@@ -2,10 +2,12 @@ import { TuyaDeviceStatus } from '../device/TuyaDevice';
 import BaseAccessory from './BaseAccessory';
 import { configureCurrentRelativeHumidity } from './characteristic/CurrentRelativeHumidity';
 import { configureCurrentTemperature } from './characteristic/CurrentTemperature';
+import { configureLightSensor } from './characteristic/LightSensor';
 
 const SCHEMA_CODE = {
-  CURRENT_TEMP: ['va_temperature'],
+  CURRENT_TEMP: ['va_temperature', 'temp_value'],
   CURRENT_HUMIDITY: ['va_humidity', 'humidity_value'],
+  LIGHT_SENSOR: ['bright_value'],
 };
 
 export default class IRControlHubAccessory extends BaseAccessory {
@@ -17,6 +19,7 @@ export default class IRControlHubAccessory extends BaseAccessory {
   configureServices() {
     configureCurrentTemperature(this, undefined, this.getSchema(...SCHEMA_CODE.CURRENT_TEMP));
     configureCurrentRelativeHumidity(this, undefined, this.getSchema(...SCHEMA_CODE.CURRENT_HUMIDITY));
+    configureLightSensor(this, undefined, this.getSchema(...SCHEMA_CODE.LIGHT_SENSOR));
   }
 
   getSubAccessories() {
