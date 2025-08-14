@@ -7,6 +7,7 @@ import TuyaDevice, {
   TuyaDeviceSchemaMode,
   TuyaDeviceSchemaProperty,
   TuyaDeviceStatus,
+  TuyaIRRemoteKeyListItem,
 } from './TuyaDevice';
 
 enum Events {
@@ -139,17 +140,75 @@ export default class TuyaDeviceManager extends EventEmitter {
     return res;
   }
 
-  async updateInfraredRemotes(allDevices: TuyaDevice[]) {
+  resolveInfraredRemotes(parentDevice: TuyaDevice, allDevices: TuyaDevice[]) {
+    const isInfraredRemoteDevice = (parent:TuyaDevice, target:TuyaDevice) => {
+      if (!target.sub || !target.category.startsWith('infrared_')) {
+        return false;
+      }
+      if (parent.lat === target.lat && parent.lon === target.lon) {
+        return true;
+      }
+      if (parent.update_time == target.update_time) {
+        return true;
+      }
+      return false;
+    };
+    const infraredRemotes = allDevices.filter(device => {
+      return isInfraredRemoteDevice(parentDevice, device);
+    }).map(device => { return {
+      'category_id': 999,
+      'remote_id': device.id,
+      'resolved': true
+    }});
+    return infraredRemotes;
+  }
 
+  fixInfraredDevice(subDevice: TuyaDevice) {
+    subDevice.remote_keys!.org_category_id = subDevice.remote_keys!.category_id;
+    subDevice.remote_keys!.category_id = this.resolveHAPCategoryID(subDevice);
+  }
+
+  resolveHAPCategoryID(subDevice: TuyaDevice) {
+    switch(subDevice.category) {
+      case 'infrared_tv':
+        return 2;
+      case 'infrared_fan':
+        return 8; // Fan
+      default:
+        return subDevice.remote_keys?.category_id || 999 // DIY;
+    }
+  }
+
+  dump(obj:any) {
+    for (let key in obj) {
+      this.log.warn(`\t ${key}:${obj[key]}`);
+      if ((typeof obj[key]) !== 'string') {
+        for (let key2 in obj[key]) {
+          this.log.warn('\t' + obj[key][key2]);
+        }
+      }
+    }
+  }
+
+  async updateInfraredRemotes(allDevices: TuyaDevice[]) {
     const irDevices = allDevices.filter(device => device.isIRControlHub());
     for (const irDevice of irDevices) {
       const res = await this.getInfraredRemotes(irDevice.id);
+
       if (!res.success) {
-        this.log.warn('Get infrared remotes failed. deviceId = %d, code = %s, msg = %s', irDevice.id, res.code, res.msg);
+        this.log.warn('Get infrared remotes failed. deviceId = %s, code = %s, msg = %s', irDevice.id, res.code, res.msg);
         continue;
       }
+      let resResult = res.result;
+      if (resResult.length == 0) {
+        // for legacy devices
+        this.log.warn('no result for Get infrared remotes.');
+        this.log.info('resolve infrared remotes from device list.');
+        resResult = this.resolveInfraredRemotes(irDevice, allDevices);
+        this.log.info(`${resResult.length} infrared remote device found.`);
+      }
 
-      for (const { category_id, remote_id } of res.result) {
+      for (const { category_id, remote_id, resolved } of resResult) {
         const subDevice = allDevices.find(device => device.id === remote_id);
         if (!subDevice) {
           continue;
@@ -158,32 +217,53 @@ export default class TuyaDeviceManager extends EventEmitter {
         subDevice.schema = [];
         const res = await this.getInfraredKeys(irDevice.id, subDevice.id);
         if (!res.success) {
-          this.log.warn('Get infrared remote keys failed. deviceId = %d, code = %s, msg = %s', subDevice.id, res.code, res.msg);
+          this.log.warn('Get infrared remote keys failed. deviceId = %s, code = %s, msg = %s', subDevice.id, res.code, res.msg);
           continue;
         }
         subDevice.remote_keys = res.result;
+        this.log.info(`infrared keys lengh:${subDevice.remote_keys?.key_list.length}`);
+
+        if (resolved) {
+          this.fixInfraredDevice(subDevice);
+        }
 
         if (subDevice.category === 'infrared_ac') { // AC Device
           const res = await this.getInfraredACStatus(irDevice.id, subDevice.id);
           if (!res.success) {
-            this.log.warn('Get infrared ac status failed. deviceId = %d, code = %s, msg = %s', subDevice.id, res.code, res.msg);
+            this.log.warn('Get infrared ac status failed. deviceId = %s, code = %s, msg = %s', subDevice.id, res.code, res.msg);
             continue;
           }
           subDevice.status = Object.entries(res.result).map(([key, value]) => ({code: key, value} as TuyaDeviceStatus));
         } else if (category_id === 999) { // DIY Device
           const res = await this.getInfraredDIYKeys(irDevice.id, subDevice.id);
           if (!res.success) {
-            this.log.warn('Get infrared diy keys failed. deviceId = %d, code = %s, msg = %s', subDevice.id, res.code, res.msg);
+            this.log.warn('Get infrared diy keys failed. deviceId = %s, code = %s, msg = %s', subDevice.id, res.code, res.msg);
             continue;
           }
           const key_list = subDevice.remote_keys?.key_list || [];
+          this.log.info(`key list length:${key_list.length}`);
+          const ignoreList:TuyaIRRemoteKeyListItem[] = [];
           for (const key of key_list) {
+            if (key.standard_key) {
+              if (resolved) {
+                ignoreList.push(key);
+              }
+              continue;
+            }
             const item = (res.result as []).find(item => item['id'] === key.key_id && item['key'] === key.key);
             if (!item) {
+              if (resolved) {
+                ignoreList.push(key);
+              }
               continue;
             }
             this.log.debug('learning_code:', item['code']);
             key.learning_code = item['code'];
+          }
+          if (subDevice.remote_keys && ignoreList.length !== 0) {
+            this.log.info(`remove standard instructions. not need for DIY Device`);
+            subDevice.remote_keys.key_list = subDevice.remote_keys?.key_list.filter(item => !ignoreList.includes(item));
+            this.log.info(`new key list length:${subDevice.remote_keys?.key_list.length}`);
           }
         }
       }

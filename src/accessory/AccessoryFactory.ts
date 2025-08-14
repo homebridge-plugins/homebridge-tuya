@@ -212,20 +212,25 @@ export default class AccessoryFactory {
         break;
     }
 
-    // IR Control Hub
-    if (device.isIRControlHub()) {
-      handler = new IRControlHubAccessory(platform, accessory);
-    }
+    // basically use should set the handler at the switch-case
+    if (!handler) {
+      // IR Control Hub
+      if (device.isIRControlHub()) {
+        handler = new IRControlHubAccessory(platform, accessory);
+      }
 
-    // IR Remote Control
-    if (device.isIRRemoteControl()) {
-      switch (device.remote_keys?.category_id) {
-        case 5: // AC
-          handler = new IRAirConditionerAccessory(platform, accessory);
-          break;
-        default:
-          handler = new IRGenericAccessory(platform, accessory);
-          break;
+      // IR Remote Control
+      if (device.isIRRemoteControl()) {
+        switch (device.remote_keys?.category_id) {
+          case 5: // AC
+          platform.log.warn("case IRAirConditionerAccessory");
+            handler = new IRAirConditionerAccessory(platform, accessory);
+            break;
+          default:
+          platform.log.warn("case IRGenericAccessory");
+            handler = new IRGenericAccessory(platform, accessory);
+            break;
+        }
       }
     }
 

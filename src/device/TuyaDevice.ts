@@ -76,6 +76,7 @@ export type TuyaIRRemoteFanListItem = {
 
 export type TuyaIRRemoteKeys = {
   category_id: number;
+  org_category_id: number;
   brand_id: number;
   remote_index: number;
   single_air: boolean;
@@ -135,7 +136,7 @@ export default class TuyaDevice {
   }
 
   isIRRemoteControl() {
-    return this.remote_keys !== undefined;
+    return this.remote_keys !== undefined || this.category.startsWith('infrared_');
   }
 
 }
