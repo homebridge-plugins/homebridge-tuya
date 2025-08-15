@@ -62,7 +62,7 @@ function createStatusGetter(accessory: BaseAccessory, schema: TuyaDeviceSchema, 
   };
 }
 
-function createAmperesCharacteristic(api: API) {
+export function createAmperesCharacteristic(api: API) {
   return class Amperes extends api.hap.Characteristic {
     static readonly UUID = 'E863F126-079E-48FF-8F27-9C2605A29F52';
 
