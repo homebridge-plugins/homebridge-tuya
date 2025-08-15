@@ -140,7 +140,7 @@ export default class TuyaDeviceManager extends EventEmitter {
     return res;
   }
 
-  resolveInfraredRemotes(parentDevice: TuyaDevice, allDevices: TuyaDevice[]) {
+    resolveInfraredRemotes(parentDevice: TuyaDevice, allDevices: TuyaDevice[]) {
     const isInfraredRemoteDevice = (parent:TuyaDevice, target:TuyaDevice) => {
       if (!target.sub || !target.category.startsWith('infrared_')) {
         return false;
@@ -169,14 +169,20 @@ export default class TuyaDeviceManager extends EventEmitter {
   }
 
   resolveHAPCategoryID(subDevice: TuyaDevice) {
+    this.log.info(`resolve HAP category ID. subDevice category:${subDevice.category}`);
+    let category_id;
     switch(subDevice.category) {
       case 'infrared_tv':
-        return 2;
+        category_id = 2;
+        break;
       case 'infrared_fan':
-        return 8; // Fan
+        category_id = 8; // Fan
+        break;
       default:
-        return subDevice.remote_keys?.category_id || 999 // DIY;
+        category_id = subDevice.remote_keys?.category_id || 999 // DIY;
     }
+    this.log.info(`resolved HAP category ID:${category_id}`);
+    return category_id;
   }
 
   dump(obj:any) {
@@ -200,6 +206,15 @@ export default class TuyaDeviceManager extends EventEmitter {
         continue;
       }
       let resResult = res.result;
+      for (const resolvedRemoteDevice of this.resolveInfraredRemotes(irDevice, allDevices)) {
+        resResult.forEach(remoteDevice => {
+          if (remoteDevice.remote_id === resolvedRemoteDevice.remote_id) {
+            remoteDevice.org_category_id = remoteDevice.category_id;
+            remoteDevice.category_id = resolvedRemoteDevice.category_id;
+            remoteDevice.resolved = true;
+          }
+        });
+      }
       if (resResult.length == 0) {
         // for legacy devices
         this.log.warn('no result for Get infrared remotes.');
