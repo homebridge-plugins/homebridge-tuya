@@ -140,7 +140,7 @@ export default class TuyaDeviceManager extends EventEmitter {
     return res;
   }
 
-    resolveInfraredRemotes(parentDevice: TuyaDevice, allDevices: TuyaDevice[]) {
+  resolveInfraredRemotes(parentDevice: TuyaDevice, allDevices: TuyaDevice[]) {
     const isInfraredRemoteDevice = (parent:TuyaDevice, target:TuyaDevice) => {
       if (!target.sub || !target.category.startsWith('infrared_')) {
         return false;
@@ -171,12 +171,12 @@ export default class TuyaDeviceManager extends EventEmitter {
   resolveHAPCategoryID(subDevice: TuyaDevice) {
     this.log.info(`resolve HAP category ID. subDevice category:${subDevice.category}`);
     let category_id;
-    switch(subDevice.category) {
-      case 'infrared_tv':
-        category_id = 2;
-        break;
-      case 'infrared_fan':
+    switch(subDevice.product_id) {
+      case 'prsgoryjfdtb42r4':
         category_id = 8; // Fan
+        break;
+      case 'k6ozylayfgnskuq6':
+        category_id = 999; // DIY
         break;
       default:
         category_id = subDevice.remote_keys?.category_id || 999 // DIY;
@@ -235,8 +235,8 @@ export default class TuyaDeviceManager extends EventEmitter {
           this.log.warn('Get infrared remote keys failed. deviceId = %s, code = %s, msg = %s', subDevice.id, res.code, res.msg);
           continue;
         }
-        subDevice.remote_keys = res.result;
-        this.log.info(`infrared keys lengh:${subDevice.remote_keys?.key_list.length}`);
+        subDevice.remote_keys = res.result || {};
+        this.log.info(`infrared keys lengh:${subDevice.remote_keys?.key_list?.length}`);
 
         if (resolved) {
           this.fixInfraredDevice(subDevice);
@@ -303,6 +303,7 @@ export default class TuyaDeviceManager extends EventEmitter {
 
   async sendInfraredDIYCommands(infraredID: string, remoteID: string, code: string) {
     const res = await this.api.post(`/v2.0/infrareds/${infraredID}/remotes/${remoteID}/learning-codes`, { code });
+    // const res = await this.api.post(`/v1.0/infrareds/${infraredID}/remotes/${remoteID}/learning-codes`, { code });
     return res;
   }
 

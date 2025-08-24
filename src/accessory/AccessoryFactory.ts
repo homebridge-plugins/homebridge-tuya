@@ -54,171 +54,15 @@ export default class AccessoryFactory {
   ): BaseAccessory {
 
     let handler : BaseAccessory | undefined;
-    switch (device.category) {
 
-      // Lighting
-      case 'dj':
-      case 'dsd':
-      case 'xdd':
-      case 'fwd':
-      case 'dc':
-      case 'dd':
-      case 'gyd':
-      case 'tyndj':
-      case 'sxd':
-        handler = new LightAccessory(platform, accessory);
-        break;
-      case 'tgq':
-      case 'tgkg':
-        handler = new DimmerAccessory(platform, accessory);
-        break;
+    handler = resolveAccessoryByProductID(platform, accessory, device.product_id);
 
-      // Electrical Products
-      case 'dlq':
-      case 'kg':
-      case 'tdq':
-      case 'qjdcz':
-      case 'szjqr':
-        handler = new SwitchAccessory(platform, accessory);
-        break;
-      case 'cz':
-      case 'pc':
-      case 'wkcz':
-        handler = new OutletAccessory(platform, accessory);
-        break;
-      case 'wxkg':
-        handler = new WirelessSwitchAccessory(platform, accessory);
-        break;
-      case 'cjkg':
-        handler = new SceneSwitchAccessory(platform, accessory);
-        break;
-      case 'bzyd':
-        handler = new WhiteNoiseLightAccessory(platform, accessory);
-        break;
-
-      // Large Home Appliances
-      case 'kt':
-      case 'ktkzq':
-        handler = new AirConditionerAccessory(platform, accessory);
-        break;
-
-      // Small Home Appliances
-      case 'qn':
-        handler = new HeaterAccessory(platform, accessory);
-        break;
-      case 'kj':
-        handler = new AirPurifierAccessory(platform, accessory);
-        break;
-      case 'xxj':
-        handler = new DiffuserAccessory(platform, accessory);
-        break;
-      case 'ckmkzq':
-        handler = new GarageDoorAccessory(platform, accessory);
-        break;
-      case 'cl':
-      case 'clkg':
-        handler = new WindowCoveringAccessory(platform, accessory);
-        break;
-      case 'cwwsq':
-        handler = new PetFeederAccessory(platform, accessory);
-        break;
-      case 'mc':
-        handler = new WindowAccessory(platform, accessory);
-        break;
-      case 'wk':
-      case 'wkf':
-        handler = new ThermostatAccessory(platform, accessory);
-        break;
-      case 'ggq':
-      case 'sfkzq':
-        handler = new ValveAccessory(platform, accessory);
-        break;
-      case 'jsq':
-        handler = new HumidifierAccessory(platform, accessory);
-        break;
-      case 'cs':
-        handler = new DehumidifierAccessory(platform, accessory);
-        break;
-      case 'fs':
-      case 'fsd':
-      case 'fskg':
-        handler = new FanAccessory(platform, accessory);
-        break;
-      case 'yyj':
-        handler = new ExtractionHoodAccessory(platform, accessory);
-        break;
-
-      // Security & Video Surveillance
-      case 'sp':
-        handler = new CameraAccessory(platform, accessory);
-        break;
-      case 'ywbj':
-        handler = new SmokeSensorAccessory(platform, accessory);
-        break;
-      case 'mcs':
-        handler = new ContactSensorAccessory(platform, accessory);
-        break;
-      case 'zd':
-        handler = new VibrationSensorAccessory(platform, accessory);
-        break;
-      case 'rqbj':
-      case 'jwbj':
-      case 'sj':
-        handler = new LeakSensorAccessory(platform, accessory);
-        break;
-      case 'cobj':
-      case 'cocgq':
-        handler = new CarbonMonoxideSensorAccessory(platform, accessory);
-        break;
-      case 'co2bj':
-      case 'co2cgq':
-        handler = new CarbonDioxideSensorAccessory(platform, accessory);
-        break;
-      case 'wsdcg':
-        handler = new TemperatureHumiditySensorAccessory(platform, accessory);
-        break;
-      case 'ldcg':
-        handler = new LightSensorAccessory(platform, accessory);
-        break;
-      case 'pir':
-        handler = new MotionSensorAccessory(platform, accessory);
-        break;
-      case 'pm25':
-      case 'pm2.5':
-      case 'pm25cgq':
-      case 'hjjcy':
-        handler = new AirQualitySensorAccessory(platform, accessory);
-        break;
-      case 'hps':
-        handler = new HumanPresenceSensorAccessory(platform, accessory);
-        break;
-      case 'ms':
-      case 'jtmspro':
-        handler = new LockAccessory(platform, accessory);
-        break;
-      case 'mal':
-        handler = new SecuritySystemAccessory(platform, accessory);
-        break;
-      case 'wxml':
-        handler = new DoorbellAccessory(platform, accessory);
-        break;
-      case 'qxj':
-        handler = new WeatherStationAccessory(platform, accessory);
-        break;
-
-      // Other
-      case 'scene':
-        handler = new SceneAccessory(platform, accessory);
-        break;
+    if (!handler) {
+      handler = resolveAccessoryByCategory(platform, accessory, device.category);
     }
 
     // basically use should set the handler at the switch-case
     if (!handler) {
-      // IR Control Hub
-      if (device.isIRControlHub()) {
-        handler = new IRControlHubAccessory(platform, accessory);
-      }
-
       // IR Remote Control
       if (device.isIRRemoteControl()) {
         switch (device.remote_keys?.category_id) {
@@ -251,3 +95,148 @@ export default class AccessoryFactory {
     return handler;
   }
 }
+function resolveAccessoryByProductID(platform: TuyaPlatform, accessory: PlatformAccessory, product_id: string): BaseAccessory | undefined {
+  switch (product_id) {
+    case 'prsgoryjfdtb42r4':
+      return undefined;
+    default:
+      return undefined;
+  }
+}
+
+function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformAccessory, category: string): BaseAccessory | undefined {
+    switch (category) {
+      // Lighting
+      case 'dj':
+      case 'dsd':
+      case 'xdd':
+      case 'fwd':
+      case 'dc':
+      case 'dd':
+      case 'gyd':
+      case 'tyndj':
+      case 'sxd':
+        return new LightAccessory(platform, accessory);
+      case 'tgq':
+      case 'tgkg':
+        return new DimmerAccessory(platform, accessory);
+
+      // Electrical Products
+      case 'dlq':
+      case 'kg':
+      case 'tdq':
+      case 'qjdcz':
+      case 'szjqr':
+        return new SwitchAccessory(platform, accessory);
+      case 'cz':
+      case 'pc':
+      case 'wkcz':
+        return new OutletAccessory(platform, accessory);
+      case 'wxkg':
+        return new WirelessSwitchAccessory(platform, accessory);
+      case 'cjkg':
+        return new SceneSwitchAccessory(platform, accessory);
+      case 'bzyd':
+        return new WhiteNoiseLightAccessory(platform, accessory);
+
+      // Large Home Appliances
+      case 'kt':
+      case 'ktkzq':
+        return new AirConditionerAccessory(platform, accessory);
+
+      // Small Home Appliances
+      case 'qn':
+        return new HeaterAccessory(platform, accessory);
+      case 'kj':
+        return new AirPurifierAccessory(platform, accessory);
+      case 'xxj':
+        return new DiffuserAccessory(platform, accessory);
+      case 'ckmkzq':
+        return new GarageDoorAccessory(platform, accessory);
+      case 'cl':
+      case 'clkg':
+        return new WindowCoveringAccessory(platform, accessory);
+      case 'cwwsq':
+        return new PetFeederAccessory(platform, accessory);
+      case 'mc':
+        return new WindowAccessory(platform, accessory);
+      case 'wk':
+      case 'wkf':
+        return new ThermostatAccessory(platform, accessory);
+      case 'ggq':
+      case 'sfkzq':
+        return new ValveAccessory(platform, accessory);
+      case 'jsq':
+        return new HumidifierAccessory(platform, accessory);
+      case 'cs':
+        return new DehumidifierAccessory(platform, accessory);
+      case 'fs':
+      case 'fsd':
+      case 'fskg':
+        return new FanAccessory(platform, accessory);
+      case 'yyj':
+        return new ExtractionHoodAccessory(platform, accessory);
+
+      // Security & Video Surveillance
+      case 'sp':
+        return new CameraAccessory(platform, accessory);
+      case 'ywbj':
+        return new SmokeSensorAccessory(platform, accessory);
+      case 'mcs':
+        return new ContactSensorAccessory(platform, accessory);
+      case 'zd':
+        return new VibrationSensorAccessory(platform, accessory);
+      case 'rqbj':
+      case 'jwbj':
+      case 'sj':
+        return new LeakSensorAccessory(platform, accessory);
+      case 'cobj':
+      case 'cocgq':
+        return new CarbonMonoxideSensorAccessory(platform, accessory);
+      case 'co2bj':
+      case 'co2cgq':
+        return new CarbonDioxideSensorAccessory(platform, accessory);
+      case 'wsdcg':
+        return new TemperatureHumiditySensorAccessory(platform, accessory);
+      case 'ldcg':
+        return new LightSensorAccessory(platform, accessory);
+      case 'pir':
+        return new MotionSensorAccessory(platform, accessory);
+      case 'pm25':
+      case 'pm2.5':
+      case 'pm25cgq':
+      case 'hjjcy':
+        return new AirQualitySensorAccessory(platform, accessory);
+      case 'hps':
+        return new HumanPresenceSensorAccessory(platform, accessory);
+      case 'ms':
+      case 'jtmspro':
+        return new LockAccessory(platform, accessory);
+      case 'mal':
+        return new SecuritySystemAccessory(platform, accessory);
+      case 'wxml':
+        return new DoorbellAccessory(platform, accessory);
+      case 'qxj':
+        return new WeatherStationAccessory(platform, accessory);
+
+      // IR Control
+      case 'wnykq':
+      case 'hwktwkq':
+      case 'wsdykq':
+        return new IRControlHubAccessory(platform, accessory);
+
+      case 'qt':
+        platform.log.debug(`early product. add switch-case at function resolveAccessoryByProductID()`);
+        platform.log.warn(`use plugin options and config category to another. https://github.com/0x5e/homebridge-tuya-platform/blob/develop_1.7.0/ADVANCED_OPTIONS.md https://github.com/0x5e/homebridge-tuya-platform/blob/develop_1.7.0/SUPPORTED_DEVICES.md`);
+        return undefined;
+
+      // Other
+      // FIXME: I suppose 'scene' is not an official category. add switch-case at function resolveAccessoryByProductID()
+      case 'scene':
+        return new SceneAccessory(platform, accessory);
+
+      default:
+        return undefined;
+    }
+}
+

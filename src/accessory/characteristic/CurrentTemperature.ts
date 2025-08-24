@@ -1,9 +1,10 @@
 import { Service } from 'homebridge';
 import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty } from '../../device/TuyaDevice';
-import { limit } from '../../util/util';
+import { limit, toHapProperty } from '../../util/util';
 import BaseAccessory from '../BaseAccessory';
 
 export function configureCurrentTemperature(accessory: BaseAccessory, service?: Service, schema?: TuyaDeviceSchema) {
+
   if (!schema) {
     return;
   }
@@ -13,19 +14,13 @@ export function configureCurrentTemperature(accessory: BaseAccessory, service?: 
       || accessory.accessory.addService(accessory.Service.TemperatureSensor);
   }
 
-  const property = schema.property as TuyaDeviceSchemaIntegerProperty;
-  const multiple = Math.pow(10, property ? property.scale : 0);
-  const props = {
-    minValue: Math.max(-270, property.min / multiple),
-    maxValue: Math.min(100, property.max / multiple),
-    minStep: Math.max(0.1, property.step / multiple),
-  };
-  accessory.log.debug('Set props for CurrentTemperature:', props);
-
+  const property = schema.property as TuyaDeviceSchemaIntegerProperty || {};
+  const props = toHapProperty(property);
+  const multiple = Math.pow(10, property['scale'] || 0);
   service.getCharacteristic(accessory.Characteristic.CurrentTemperature)
     .onGet(() => {
       const status = accessory.getStatus(schema.code)!;
-      return limit(status.value as number / multiple, props.minValue, props.maxValue);
+      return limit(status.value as number / multiple, props['minValue'], props['maxValue']);
     })
     .setProps(props);
 
