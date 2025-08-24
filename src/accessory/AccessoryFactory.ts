@@ -44,6 +44,7 @@ import WeatherStationAccessory from './WeatherStationAccessory';
 import DoorbellAccessory from './DoorbellAccessory';
 import PetFeederAccessory from './PetFeederAccessory';
 import WhiteNoiseLightAccessory from './WhiteNoiseLightAccessory';
+import WetBulbGlobeTemperatureAccessory from './WetBulbGlobeTemperatureAccessory';
 
 
 export default class AccessoryFactory {
@@ -97,6 +98,8 @@ export default class AccessoryFactory {
 }
 function resolveAccessoryByProductID(platform: TuyaPlatform, accessory: PlatformAccessory, product_id: string): BaseAccessory | undefined {
   switch (product_id) {
+    case 'virtual-product-id-wbgt':
+      return new WetBulbGlobeTemperatureAccessory(platform, accessory);
     case 'prsgoryjfdtb42r4':
       return undefined;
     default:

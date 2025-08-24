@@ -4,7 +4,7 @@ import { configureCurrentTemperature } from './characteristic/CurrentTemperature
 
 const SCHEMA_CODE = {
   SENSOR_STATUS: ['va_temperature', 'va_humidity', 'humidity_value'],
-  CURRENT_TEMP: ['va_temperature'],
+  CURRENT_TEMP: ['va_temperature', 'temp_value'],
   CURRENT_HUMIDITY: ['va_humidity', 'humidity_value'],
 };
 

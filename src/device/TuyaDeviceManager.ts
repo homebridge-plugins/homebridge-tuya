@@ -44,6 +44,21 @@ export default class TuyaDeviceManager extends EventEmitter {
     this.mq.addMessageListener(this.onMQTTMessage.bind(this));
   }
 
+  createVirtualDevice(baseDevice: TuyaDevice): TuyaDevice {
+    const cloneDevice = JSON.parse(JSON.stringify(baseDevice));
+    const uniqueId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    cloneDevice.id = `virtual-id-${uniqueId}`;
+    cloneDevice.uuid = `virtual-uuid-${uniqueId}`;
+    cloneDevice.name = 'Virtual Device';
+    cloneDevice.product_id = `virtual-product-id${uniqueId}`;
+    cloneDevice.product_name = 'virtual product';
+    cloneDevice.sub = true;
+    cloneDevice.ip = undefined;
+    cloneDevice.parent_id = baseDevice.id;
+    cloneDevice.remote_keys = undefined;
+    return cloneDevice;
+  }
+
   getDevice(deviceID: string) {
     return Array.from(this.devices).find(device => device.id === deviceID);
   }
