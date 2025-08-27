@@ -45,6 +45,7 @@ import DoorbellAccessory from './DoorbellAccessory';
 import PetFeederAccessory from './PetFeederAccessory';
 import WhiteNoiseLightAccessory from './WhiteNoiseLightAccessory';
 import WetBulbGlobeTemperatureAccessory from './WetBulbGlobeTemperatureAccessory';
+import IRControlHubSubAccessory from './IRControlHubSubAccessory';
 
 
 export default class AccessoryFactory {
@@ -68,11 +69,11 @@ export default class AccessoryFactory {
       if (device.isIRRemoteControl()) {
         switch (device.remote_keys?.category_id) {
           case 5: // AC
-          platform.log.warn("case IRAirConditionerAccessory");
+            platform.log.warn("case IRAirConditionerAccessory");
             handler = new IRAirConditionerAccessory(platform, accessory);
             break;
           default:
-          platform.log.warn("case IRGenericAccessory");
+            platform.log.warn("case IRGenericAccessory");
             handler = new IRGenericAccessory(platform, accessory);
             break;
         }
@@ -98,10 +99,10 @@ export default class AccessoryFactory {
 }
 function resolveAccessoryByProductID(platform: TuyaPlatform, accessory: PlatformAccessory, product_id: string): BaseAccessory | undefined {
   switch (product_id) {
+    case 'scene': // see TuyaHomeDeviceManager#getSceneList
+      return new SceneAccessory(platform, accessory);
     case 'virtual-product-id-wbgt':
       return new WetBulbGlobeTemperatureAccessory(platform, accessory);
-    case 'prsgoryjfdtb42r4':
-      return undefined;
     default:
       return undefined;
   }
@@ -232,11 +233,20 @@ function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformA
         platform.log.debug(`early product. add switch-case at function resolveAccessoryByProductID()`);
         platform.log.warn(`use plugin options and config category to another. https://github.com/0x5e/homebridge-tuya-platform/blob/develop_1.7.0/ADVANCED_OPTIONS.md https://github.com/0x5e/homebridge-tuya-platform/blob/develop_1.7.0/SUPPORTED_DEVICES.md`);
         return undefined;
-
-      // Other
-      // FIXME: I suppose 'scene' is not an official category. add switch-case at function resolveAccessoryByProductID()
-      case 'scene':
-        return new SceneAccessory(platform, accessory);
+      
+      case 'infrared_tv':
+      case 'infrared_stb':
+      case 'infrared_box':
+      case 'infrared_ac':
+      case 'infrared_fan':
+      case 'infrared_light':
+      case 'infrared_amplifier':
+      case 'infrared_projector':
+      case 'infrared_waterheater':
+      case 'infrared_airpurifier':
+      case 'infrared_humidifier':
+        // Since it's a DIY, it might be better to handle it with resolveAccessoryByProductID.
+        return new IRControlHubSubAccessory(platform, accessory);
 
       default:
         return undefined;
