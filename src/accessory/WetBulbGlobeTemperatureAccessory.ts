@@ -3,7 +3,6 @@ import BaseAccessory from './BaseAccessory';
 import TemperatureHumiditySensorAccessory from './TemperatureHumiditySensorAccessory';
 
 const SCHEMA_CODE = {
-  SENSOR_STATUS: ['va_temperature', 'va_humidity', 'humidity_value'],
   CURRENT_TEMP: ['va_temperature', 'temp_value'],
   CURRENT_HUMIDITY: ['va_humidity', 'humidity_value'],
 };
@@ -11,7 +10,7 @@ const SCHEMA_CODE = {
 export default class WetBulbGlobeTemperatureAccessory extends BaseAccessory {
 
   requiredSchema() {
-    return [SCHEMA_CODE.SENSOR_STATUS, SCHEMA_CODE.CURRENT_TEMP, SCHEMA_CODE.CURRENT_HUMIDITY];
+    return [SCHEMA_CODE.CURRENT_TEMP, SCHEMA_CODE.CURRENT_HUMIDITY];
   }
 
   configureServices(): void {

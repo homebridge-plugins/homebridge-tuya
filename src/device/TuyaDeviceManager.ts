@@ -184,7 +184,7 @@ export default class TuyaDeviceManager extends EventEmitter {
   }
 
   resolveHAPCategoryID(subDevice: TuyaDevice) {
-    this.log.info(`resolve HAP category ID. subDevice category:${subDevice.category}`);
+    this.log.info(`resolve HAP category ID. subDevice category:${subDevice.category}, categoryID:${subDevice.remote_keys?.category_id}`);
     let category_id;
     switch(subDevice.product_id) {
       case 'prsgoryjfdtb42r4':
@@ -205,7 +205,7 @@ export default class TuyaDeviceManager extends EventEmitter {
       this.log.warn(`\t ${key}:${obj[key]}`);
       if ((typeof obj[key]) !== 'string') {
         for (let key2 in obj[key]) {
-          this.log.warn('\t' + obj[key][key2]);
+          this.log.warn(`\t ${key2}:${obj[key][key2]}`);
         }
       }
     }
