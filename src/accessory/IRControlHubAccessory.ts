@@ -22,11 +22,16 @@ export default class IRControlHubAccessory extends BaseAccessory {
     configureCurrentRelativeHumidity(this, undefined, this.getSchema(...SCHEMA_CODE.CURRENT_HUMIDITY));
     configureLightSensor(this, undefined, this.getSchema(...SCHEMA_CODE.LIGHT_SENSOR));
 //    configureCurrentAbsoluteHumidity(this.platform.api, this, undefined, this.getSchema(...SCHEMA_CODE.CURRENT_HUMIDITY), this.getSchema(...SCHEMA_CODE.CURRENT_TEMP));
-    const virtualDevice = this.deviceManager.createVirtualDevice(this.device);
-    virtualDevice.product_id = 'virtual-product-id-wbgt';
-    virtualDevice.category = 'wsdcg';
-    virtualDevice.name = 'WBGT'
-    this.deviceManager.devices.push(virtualDevice);
+    const key = `wbgt-${this.device.id}`;
+    const uuid = this.platform.api.hap.uuid.generate(key);
+    if (!this.deviceManager.devices.some(device => device.uuid == uuid)) {
+      this.log.info(`add wbgt device:${key}`);
+      const virtualDevice = this.deviceManager.createVirtualDevice(this.device, uuid);
+      virtualDevice.product_id = 'virtual-product-id-wbgt';
+      virtualDevice.category = 'wsdcg';
+      virtualDevice.name = 'WBGT'
+      this.deviceManager.devices.push(virtualDevice);
+    }
   }
 
   getSubAccessories() {

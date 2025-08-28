@@ -44,13 +44,13 @@ export default class TuyaDeviceManager extends EventEmitter {
     this.mq.addMessageListener(this.onMQTTMessage.bind(this));
   }
 
-  createVirtualDevice(baseDevice: TuyaDevice): TuyaDevice {
+  createVirtualDevice(baseDevice: TuyaDevice, uuid: string): TuyaDevice {
     const cloneDevice = JSON.parse(JSON.stringify(baseDevice));
-    const uniqueId = Date.now().toString(36) + Math.random().toString(36).substring(2);
-    cloneDevice.id = `virtual-id-${uniqueId}`;
-    cloneDevice.uuid = `virtual-uuid-${uniqueId}`;
+    const uniqueId = uuid || Date.now().toString(36) + Math.random().toString(36).substring(2);
+    cloneDevice.id = `${uniqueId}`;
+    cloneDevice.uuid = `${uniqueId}`;
     cloneDevice.name = 'Virtual Device';
-    cloneDevice.product_id = `virtual-product-id${uniqueId}`;
+    cloneDevice.product_id = `${uniqueId}`;
     cloneDevice.product_name = 'virtual product';
     cloneDevice.sub = true;
     cloneDevice.ip = undefined;
@@ -184,7 +184,7 @@ export default class TuyaDeviceManager extends EventEmitter {
   }
 
   resolveHAPCategoryID(subDevice: TuyaDevice) {
-    this.log.info(`resolve HAP category ID. subDevice category:${subDevice.category}, categoryID:${subDevice.remote_keys?.category_id}`);
+    this.log.debug(`resolve HAP category ID. subDevice category:${subDevice.category}, categoryID:${subDevice.remote_keys?.category_id}`);
     let category_id;
     switch(subDevice.product_id) {
       case 'prsgoryjfdtb42r4':
@@ -196,7 +196,7 @@ export default class TuyaDeviceManager extends EventEmitter {
       default:
         category_id = subDevice.remote_keys?.category_id || 999 // DIY;
     }
-    this.log.info(`resolved HAP category ID:${category_id}`);
+    this.log.debug(`resolved HAP category ID:${category_id}`);
     return category_id;
   }
 
@@ -233,7 +233,7 @@ export default class TuyaDeviceManager extends EventEmitter {
       if (resResult.length == 0) {
         // for legacy devices
         this.log.warn('no result for Get infrared remotes.');
-        this.log.info('resolve infrared remotes from device list.');
+        this.log.info('resolving infrared remotes from device list...');
         resResult = this.resolveInfraredRemotes(irDevice, allDevices);
         this.log.info(`${resResult.length} infrared remote device found.`);
       }
@@ -251,7 +251,7 @@ export default class TuyaDeviceManager extends EventEmitter {
           continue;
         }
         subDevice.remote_keys = res.result || {};
-        this.log.info(`infrared keys lengh:${subDevice.remote_keys?.key_list?.length}`);
+        this.log.debug(`infrared keys lengh:${subDevice.remote_keys?.key_list?.length}`);
 
         if (resolved) {
           this.fixInfraredDevice(subDevice);
@@ -271,7 +271,7 @@ export default class TuyaDeviceManager extends EventEmitter {
             continue;
           }
           const key_list = subDevice.remote_keys?.key_list || [];
-          this.log.info(`key list length:${key_list.length}`);
+          this.log.debug(`key list length:${key_list.length}`);
           const ignoreList:TuyaIRRemoteKeyListItem[] = [];
           for (const key of key_list) {
             if (key.standard_key) {
@@ -291,9 +291,9 @@ export default class TuyaDeviceManager extends EventEmitter {
             key.learning_code = item['code'];
           }
           if (subDevice.remote_keys && ignoreList.length !== 0) {
-            this.log.info(`remove standard instructions. not need for DIY Device`);
+            this.log.debug(`remove standard instructions. not need for DIY Device`);
             subDevice.remote_keys.key_list = subDevice.remote_keys?.key_list.filter(item => !ignoreList.includes(item));
-            this.log.info(`new key list length:${subDevice.remote_keys?.key_list.length}`);
+            this.log.debug(`new key list length:${subDevice.remote_keys?.key_list.length}`);
           }
         }
       }
