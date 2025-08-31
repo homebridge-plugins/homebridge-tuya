@@ -57,11 +57,8 @@ export default class AccessoryFactory {
 
     let handler : BaseAccessory | undefined;
 
-    handler = resolveAccessoryByProductID(platform, accessory, device.product_id);
-
-    if (!handler) {
-      handler = resolveAccessoryByCategory(platform, accessory, device.category);
-    }
+    handler = resolveAccessoryByProductID(platform, accessory, device.product_id)
+      || resolveAccessoryByCategory(platform, accessory, device.category);
 
     // basically use should set the handler at the switch-case
     if (!handler) {
@@ -96,7 +93,44 @@ export default class AccessoryFactory {
 
     return handler;
   }
+
+  static configAccessory(platform: TuyaPlatform, accessory: PlatformAccessory) {
+    const configs = platform.options.serviceInformationOverrides;
+    if (!configs) return;
+
+    const sn = accessory.getService(platform.Service.AccessoryInformation).getCharacteristic(platform.Characteristic.SerialNumber).value;
+
+    configs.filter(config => config.device_id === sn).forEach(config => {
+      try {
+        const service = accessory.services[config.index];
+        if (config.manifacturer) {
+          const before = service.getCharacteristic(platform.Characteristic.Manufacturer).value;
+          service.getCharacteristic(platform.Characteristic.Manufacturer).updateValue(config.manifacturer);
+          platform.log.success(`manifacturer updated. ${before} -> ${config.manifacturer}`);
+        }
+        if (config.model) {
+          const before = service.getCharacteristic(platform.Characteristic.Model).value;
+          service.getCharacteristic(platform.Characteristic.Model).updateValue(config.model);
+          platform.log.success(`model updated. ${before} -> ${config.model}`);
+        }
+        if (config.firmwareRevision) {
+          const before = service.getCharacteristic(platform.Characteristic.FirmwareRevision).value;
+          service.getCharacteristic(platform.Characteristic.FirmwareRevision).updateValue(config.firmwareRevision);
+          platform.log.success(`firmwareRevision updated. ${before} -> ${config.firmwareRevision}`);
+        }
+        if (config.configuredName) {
+          const before = service.getCharacteristic(platform.Characteristic.ConfiguredName).value;
+          service.getCharacteristic(platform.Characteristic.Name).updateValue(config.configuredName);
+          service.getCharacteristic(platform.Characteristic.ConfiguredName).updateValue(config.configuredName);
+          platform.log.success(`configuredName updated. ${before} -> ${config.configuredName}`);
+        }
+      } catch (e) {
+        platform.log.error(`index out of bound.:${config.index}`);
+      }
+    });
+  }
 }
+
 function resolveAccessoryByProductID(platform: TuyaPlatform, accessory: PlatformAccessory, product_id: string): BaseAccessory | undefined {
   switch (product_id) {
     case 'scene': // see TuyaHomeDeviceManager#getSceneList

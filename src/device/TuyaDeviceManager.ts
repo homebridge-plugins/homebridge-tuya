@@ -202,10 +202,26 @@ export default class TuyaDeviceManager extends EventEmitter {
 
   dump(obj:any) {
     for (let key in obj) {
-      this.log.warn(`\t ${key}:${obj[key]}`);
+      try {
+        if ((typeof obj[key]) === 'function') {
+          this.log.warn(`\t function ${key}:${obj[key].name}`);
+        } else {
+          this.log.warn(`\t ${key}:${obj[key]}`);
+        }
+      } catch (e) {
+        this.dump(e);
+      }
       if ((typeof obj[key]) !== 'string') {
         for (let key2 in obj[key]) {
-          this.log.warn(`\t ${key2}:${obj[key][key2]}`);
+          try {
+            if ((typeof obj[key][key2]) === 'function') {
+              this.log.warn(`\t function ${key2}:${obj[key][key2].name}`);
+            } else {
+              this.log.warn(`\t ${key2}:${obj[key][key2]}`);
+            }
+          } catch (e) {
+            this.dump(e);
+          }
         }
       }
     }

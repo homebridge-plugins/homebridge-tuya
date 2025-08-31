@@ -56,7 +56,7 @@ class BaseAccessory {
 
     service
       .setCharacteristic(this.Characteristic.Manufacturer, MANUFACTURER)
-      .setCharacteristic(this.Characteristic.Model, this.device.product_id)
+      .setCharacteristic(this.Characteristic.Model, this.device.model || this.device.product_name || this.device.product_id)
       .setCharacteristic(this.Characteristic.Name, this.device.name)
       .setCharacteristic(this.Characteristic.ConfiguredName, this.device.name)
       .setCharacteristic(this.Characteristic.SerialNumber, this.device.uuid)

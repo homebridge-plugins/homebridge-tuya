@@ -269,6 +269,53 @@
                             }
                         }
                     },
+                    "serviceInformationOverrides": {
+                        "title": "Accessory Service Informations ",
+                        "description": "Accessory Service Information Configs",
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "device_id": {
+                                    "title": "DeviceID",
+                                    "description": "Device ID. Often Sub Device ID. See Accessory Information > Serial Number.",
+                                    "type": "string",
+                                    "required": true
+                                },
+                                "index": {
+                                    "title": "Characteristic Index",
+                                    "description": "Usually 1. If Accessory has more functions, it might be 2 or more.",
+                                    "type": "string",
+                                    "default": 1,
+                                    "required": true
+                                },
+                                "manifacturer": {
+                                    "title": "Manifacturer",
+                                    "description": "Product Manifacturer",
+                                    "type": "string",
+                                    "required": false
+                                },
+                                "model": {
+                                    "title": "Model",
+                                    "description": "Model",
+                                    "type": "string",
+                                    "required": false
+                                },
+                                "firmwareRevision": {
+                                    "title": "Firmware Revision",
+                                    "description": "Firware Revision",
+                                    "type": "string",
+                                    "required": false
+                                },
+                                "configuredName": {
+                                    "title": "Configured Name",
+                                    "description": "Accessory name displayed in Home.app",
+                                    "type": "string",
+                                    "required": false
+                                }
+                            }
+                        }
+                    },
                     "debug": {
                         "title": "Enable Debug Logging",
                         "type": "boolean",
@@ -425,6 +472,52 @@
                                             ]
                                         }
                                     ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+
+        {
+            "type": "fieldset",
+            "title": "Accessory Service Informations",
+            "expandable": true,
+            "expanded": false,
+            "notitle": false,
+            "items": [
+                {
+                    "key": "options.serviceInformationOverrides",
+                    "add": "Add Another Service Information Override",
+                    "title": "{{ 'New Service Information Override' }}",
+                    "type": "tabarray",
+                    "notitle": true,
+                    "items": [
+                        {
+                            "type": "div",
+                            "displayFlex": false,
+                            "flex-direction": "row",
+                            "notitle": true,
+                            "title": "{{ value.device_id }}",
+                            "items": [
+                                {
+                                    "key": "options.serviceInformationOverrides[].device_id"
+                                },
+                                {
+                                    "key": "options.serviceInformationOverrides[].index"
+                                },
+                                {
+                                    "key": "options.serviceInformationOverrides[].manifacturer"
+                                },
+                                {
+                                    "key": "options.serviceInformationOverrides[].model"
+                                },
+                                {
+                                    "key": "options.serviceInformationOverrides[].firmwareRevision"
+                                },
+                                {
+                                    "key": "options.serviceInformationOverrides[].configuredName"
                                 }
                             ]
                         }

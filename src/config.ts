@@ -19,6 +19,15 @@ export interface TuyaPlatformDeviceConfig {
   adaptiveLighting?: boolean;
 }
 
+export interface TuyaPlatformServiceInformationConfig {
+  device_id: string;
+  index: number;
+  manifacturer?: string;
+  model?: string;
+  firmwareRevision?: string;
+  configuredName?: string;
+}
+
 export interface TuyaPlatformCustomConfigOptions {
   projectType: '1';
   endpoint: string;
@@ -27,6 +36,7 @@ export interface TuyaPlatformCustomConfigOptions {
   username: string;
   password: string;
   deviceOverrides?: Array<TuyaPlatformDeviceConfig>;
+  serviceInformationOverrides?: Array<TuyaPlatformServiceInformationConfig>;
   debug?: boolean;
   debugLevel?: string;
 }
@@ -42,6 +52,7 @@ export interface TuyaPlatformHomeConfigOptions {
   appSchema: string;
   homeWhitelist?: Array<number>;
   deviceOverrides?: Array<TuyaPlatformDeviceConfig>;
+  serviceInformationOverrides?: Array<TuyaPlatformServiceInformationConfig>;
   debug?: boolean;
   debugLevel?: string;
 }

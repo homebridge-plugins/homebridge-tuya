@@ -97,6 +97,7 @@ export default class TuyaDevice {
   // product
   product_id!: string;
   product_name!: string;
+  model?: string;
   icon!: string;
   category!: string;
   unbridged?: boolean;
