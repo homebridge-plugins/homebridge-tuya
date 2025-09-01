@@ -9,10 +9,10 @@ const SCHEMA_CODE = {
 };
 
 // Custom Characteristic. Depends on TemperatureHumiditySensorAccessory or somethings like.
-export function configureCurrentWetBulbGlobeTemperature(accessory: BaseAccessory, subtype?: string) {
+export function configureCurrentWetBulbGlobeTemperature(accessory: BaseAccessory) {
 
-  const service = accessory.accessory.getService(accessory.Service.TemperatureSensor, subtype)
-      || accessory.accessory.addService(accessory.Service.TemperatureSensor, subtype);
+  const service = accessory.accessory.getService(accessory.Service.TemperatureSensor)
+      || accessory.accessory.addService(accessory.Service.TemperatureSensor);
 
     service.getCharacteristic(accessory.Characteristic.CurrentTemperature)
       .onGet(() => {

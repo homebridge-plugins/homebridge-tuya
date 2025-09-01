@@ -98,7 +98,7 @@ export default class AccessoryFactory {
     const configs = platform.options.serviceInformationOverrides;
     if (!configs) return;
 
-    const sn = accessory.getService(platform.Service.AccessoryInformation).getCharacteristic(platform.Characteristic.SerialNumber).value;
+    const sn = accessory.getService(platform.Service.AccessoryInformation)?.getCharacteristic(platform.Characteristic.SerialNumber).value;
 
     configs.filter(config => config.device_id === sn).forEach(config => {
       try {
@@ -106,23 +106,23 @@ export default class AccessoryFactory {
         if (config.manifacturer) {
           const before = service.getCharacteristic(platform.Characteristic.Manufacturer).value;
           service.getCharacteristic(platform.Characteristic.Manufacturer).updateValue(config.manifacturer);
-          platform.log.success(`manifacturer updated. ${before} -> ${config.manifacturer}`);
+          platform.log.info(`manifacturer updated. ${before} -> ${config.manifacturer}`);
         }
         if (config.model) {
           const before = service.getCharacteristic(platform.Characteristic.Model).value;
           service.getCharacteristic(platform.Characteristic.Model).updateValue(config.model);
-          platform.log.success(`model updated. ${before} -> ${config.model}`);
+          platform.log.info(`model updated. ${before} -> ${config.model}`);
         }
         if (config.firmwareRevision) {
           const before = service.getCharacteristic(platform.Characteristic.FirmwareRevision).value;
           service.getCharacteristic(platform.Characteristic.FirmwareRevision).updateValue(config.firmwareRevision);
-          platform.log.success(`firmwareRevision updated. ${before} -> ${config.firmwareRevision}`);
+          platform.log.info(`firmwareRevision updated. ${before} -> ${config.firmwareRevision}`);
         }
         if (config.configuredName) {
           const before = service.getCharacteristic(platform.Characteristic.ConfiguredName).value;
           service.getCharacteristic(platform.Characteristic.Name).updateValue(config.configuredName);
           service.getCharacteristic(platform.Characteristic.ConfiguredName).updateValue(config.configuredName);
-          platform.log.success(`configuredName updated. ${before} -> ${config.configuredName}`);
+          platform.log.info(`configuredName updated. ${before} -> ${config.configuredName}`);
         }
       } catch (e) {
         platform.log.error(`index out of bound.:${config.index}`);

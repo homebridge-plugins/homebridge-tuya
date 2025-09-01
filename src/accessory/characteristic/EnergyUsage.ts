@@ -62,7 +62,7 @@ function createStatusGetter(accessory: BaseAccessory, schema: TuyaDeviceSchema, 
   };
 }
 
-export function createAmperesCharacteristic(api: API) {
+export function createAmperesCharacteristic(api: API) : any {
   return class Amperes extends api.hap.Characteristic {
     static readonly UUID = 'E863F126-079E-48FF-8F27-9C2605A29F52';
 
@@ -76,7 +76,7 @@ export function createAmperesCharacteristic(api: API) {
   };
 }
 
-function createWattsCharacteristic(api: API) {
+function createWattsCharacteristic(api: API) : any {
   return class Watts extends api.hap.Characteristic {
     static readonly UUID = 'E863F10D-079E-48FF-8F27-9C2605A29F52';
 
@@ -90,7 +90,7 @@ function createWattsCharacteristic(api: API) {
   };
 }
 
-function createVoltsCharacteristic(api: API) {
+function createVoltsCharacteristic(api: API) : any {
   return class Volts extends api.hap.Characteristic {
     static readonly UUID = 'E863F10A-079E-48FF-8F27-9C2605A29F52';
 
@@ -104,7 +104,7 @@ function createVoltsCharacteristic(api: API) {
   };
 }
 
-function createKilowattHourCharacteristic(api: API) {
+function createKilowattHourCharacteristic(api: API) : any {
   return class KilowattHour extends api.hap.Characteristic {
     static readonly UUID = 'E863F10C-079E-48FF-8F27-9C2605A29F52';
 

@@ -1,6 +1,6 @@
 import { TuyaDeviceStatus } from '../device/TuyaDevice';
 import BaseAccessory from './BaseAccessory';
-import { configureCurrentAbsoluteHumidity } from './characteristic/CurrentAbsoluteHumidity';
+// import { configureCurrentAbsoluteHumidity } from './characteristic/CurrentAbsoluteHumidity';
 import { configureCurrentRelativeHumidity } from './characteristic/CurrentRelativeHumidity';
 import { configureCurrentTemperature } from './characteristic/CurrentTemperature';
 import { configureLightSensor } from './characteristic/LightSensor';

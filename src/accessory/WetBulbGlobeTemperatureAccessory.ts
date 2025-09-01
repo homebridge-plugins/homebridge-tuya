@@ -16,7 +16,7 @@ export default class WetBulbGlobeTemperatureAccessory extends BaseAccessory {
 
   configureServices(): void {
     const helperAcessory = new TemperatureHumiditySensorAccessory(this.platform, this.accessory);
-    configureCurrentWetBulbGlobeTemperature(helperAcessory, 'WBGT');
+    configureCurrentWetBulbGlobeTemperature(helperAcessory);
   }
 
 }
