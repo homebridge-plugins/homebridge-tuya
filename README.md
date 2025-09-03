@@ -1,18 +1,12 @@
-# @0x5e/homebridge-tuya-platform
+# @tassy-h/homebridge-tuya-platform
 
-[![npm](https://badgen.net/npm/v/@0x5e/homebridge-tuya-platform)](https://npmjs.com/package/@0x5e/homebridge-tuya-platform)
-[![npm](https://badgen.net/npm/dt/@0x5e/homebridge-tuya-platform)](https://npmjs.com/package/@0x5e/homebridge-tuya-platform)
-[![mit-license](https://badgen.net/npm/license/@0x5e/homebridge-tuya-platform)](https://github.com/0x5e/homebridge-tuya-platform/blob/main/LICENSE)
-[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
-[![Build and Lint](https://github.com/0x5e/homebridge-tuya-platform/actions/workflows/build.yml/badge.svg)](https://github.com/0x5e/homebridge-tuya-platform/actions/workflows/build.yml)
-[![join-discord](https://badgen.net/badge/icon/discord?icon=discord&label=homebridge/tuya)](https://discord.gg/homebridge-432663330281226270)
+[![npm](https://badgen.net/npm/v/@tassy-h/homebridge-tuya-platform)](https://npmjs.com/package/@tassy-h/homebridge-tuya-platform)
+[![npm](https://badgen.net/npm/dt/@tassy-h/homebridge-tuya-platform)](https://npmjs.com/package/@tassy-h/homebridge-tuya-platform)
+[![mit-license](https://badgen.net/npm/license/@tassy-h/homebridge-tuya-platform)](https://github.com/tassy-h/homebridge-tuya-platform/blob/main/LICENSE)
+[![Build and Lint](https://github.com/tassy-h/homebridge-tuya-platform/actions/workflows/build.yml/badge.svg)](https://github.com/tassy-h/homebridge-tuya-platform/actions/workflows/build.yml)
 
 
-Fork version of the official Tuya Homebridge plugin, with a focus on fixing bugs and adding new device support.
-
-
-
-⚠️**Update on 2024.1.14:** Thanks for the attention on this project. There's more and more "problem device", which has wrong definition by manufacture (reversed 0%-100% state, wrong range, wrong unit, ...). Support them one by one really cost a lot. I'm not going to support them in the future, please try solve them by yourself. PRs are still welcome, and bugs will be focused. Thanks again :)
+forked from 0x5e/homebridge-tuya-platform, with a focus on fixing bugs and adding new device support.
 
 
 
@@ -41,14 +35,14 @@ See [CHANGELOG.md](./CHANGELOG.md)
 Before using this plugin, please make sure to uninstall `homebridge-tuya-platform` first as these two plugins cannot run simultaneously. However, the configuration files are compatible, so there's no need to delete them.
 
 #### For Homebridge Web UI Users
-Go to plugin page, search for `@0x5e/homebridge-tuya-platform` and install it.
+Go to plugin page, search for `@tassy-h/homebridge-tuya-platform` and install it.
 
 
 #### For Homebridge Command Line Users
 
 Run the following command in the terminal:
 ```
-npm install @0x5e/homebridge-tuya-platform
+npm install @tassy-h/homebridge-tuya-platform
 ```
 
 
@@ -108,7 +102,7 @@ See [ADVANCED_OPTIONS.md](./ADVANCED_OPTIONS.md)
 ## Limitations
 - **⚠️Don't forget to extend the API trial period every 6 months. Maybe you can set up a reminder in calendar.**
 - Using the same app account for multiple Homebridge/HomeAssistant instances is not supported. Please use separate app accounts for each instance.
-- The plugin requires an internet connection to the Tuya Cloud and does not support the LAN protocol. See [#90](https://github.com/0x5e/homebridge-tuya-platform/issues/90) for more information.
+- The plugin requires an internet connection to the Tuya Cloud and does not support the LAN protocol. See [#90](https://github.com/tassy-h/homebridge-tuya-platform/issues/90) for more information.
 
 ## FAQ
 
@@ -151,7 +145,7 @@ Yes. The device must be listed in the support list and the following steps must 
 
 
 #### Local support
-See [#90](https://github.com/0x5e/homebridge-tuya-platform/issues/90).
+See [#90](https://github.com/tassy-h/homebridge-tuya-platform/issues/90).
 
 Although the plugin didn't implemented tuya local protocol now, it still remains possibility in the future.
 
