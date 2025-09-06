@@ -72,7 +72,7 @@ export function configureCurrentWeather(accessory: BaseAccessory, weatherConditi
         return weatherCondition.current_weather.humidity;
       })
       .setProps({
-        unit: '℃',
+        unit: '%',
         minValue: 0.0,
         maxValue: 100.0,
         minStep: 0.1
