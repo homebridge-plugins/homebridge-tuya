@@ -45,7 +45,7 @@ export default class TuyaDeviceManager extends EventEmitter {
   }
 
   createVirtualDevice(baseDevice: TuyaDevice, uuid: string): TuyaDevice {
-    const cloneDevice = JSON.parse(JSON.stringify(baseDevice));
+    const cloneDevice = new TuyaDevice(baseDevice);
     const uniqueId = uuid || Date.now().toString(36) + Math.random().toString(36).substring(2);
     cloneDevice.id = `${uniqueId}`;
     cloneDevice.uuid = `${uniqueId}`;
@@ -53,7 +53,7 @@ export default class TuyaDeviceManager extends EventEmitter {
     cloneDevice.product_id = `${uniqueId}`;
     cloneDevice.product_name = 'virtual product';
     cloneDevice.sub = true;
-    cloneDevice.ip = undefined;
+    cloneDevice.ip = "";
     cloneDevice.parent_id = baseDevice.id;
     cloneDevice.remote_keys = undefined;
     return cloneDevice;
@@ -361,6 +361,17 @@ export default class TuyaDeviceManager extends EventEmitter {
   async sendCommands(deviceID: string, commands: TuyaDeviceStatus[]) {
     const res = await this.api.post(`/v1.0/devices/${deviceID}/commands`, { commands });
     return res.result;
+  }
+
+  async getCurrentWeather(lat: string, lon: string) {
+    const res = await this.api.get(`/v2.0/iot-03/weather/current?lat=${lat}&lon=${lon}`);
+    return res.result;
+  }
+
+  async getCurrentWeatherByOpenMeteo(lat: string, lon: string) {
+    /** <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> */
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m`, { cache: 'no-cache' });
+    return await res.json();
   }
 
 

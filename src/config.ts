@@ -37,6 +37,8 @@ export interface TuyaPlatformCustomConfigOptions {
   password: string;
   deviceOverrides?: Array<TuyaPlatformDeviceConfig>;
   serviceInformationOverrides?: Array<TuyaPlatformServiceInformationConfig>;
+  generateWeatherAccessory: boolean;
+  weatherAPI: string;
   debug?: boolean;
   debugLevel?: string;
 }
@@ -53,6 +55,8 @@ export interface TuyaPlatformHomeConfigOptions {
   homeWhitelist?: Array<number>;
   deviceOverrides?: Array<TuyaPlatformDeviceConfig>;
   serviceInformationOverrides?: Array<TuyaPlatformServiceInformationConfig>;
+  generateWeatherAccessory: boolean;
+  weatherAPI: string;
   debug?: boolean;
   debugLevel?: string;
 }

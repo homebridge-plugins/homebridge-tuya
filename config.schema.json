@@ -316,6 +316,24 @@
                             }
                         }
                     },
+                    "generateWeatherAccessory": {
+                        "title": "Generate Weather Accessory",
+                        "description": "Generate Current Weather at Home Location. Gets Temperature and Humidity.",
+                        "type": "boolean",
+                        "required": true,
+                        "default": false
+                    },
+                    "weatherAPI": {
+                        "title": "Weather API",
+                        "description": "Open-Meteo : For non-commercial use. [Weather data by Open-Meteo.com](https://open-meteo.com/)<br>Tuya : Requires authorization for Weather Service.",
+                        "type": "string",
+                        "enum": ["Open-Meteo", "Tuya"],
+                        "required": true,
+                        "default": "Open-Meteo",
+                        "condition":  {
+                            "functionBody": "return (model.options && model.options.generateWeatherAccessory);"
+                        }
+                    },
                     "debug": {
                         "title": "Enable Debug Logging",
                         "type": "boolean",
@@ -532,6 +550,8 @@
             "expanded": false,
             "notitle": false,
             "items": [
+                "options.generateWeatherAccessory",
+                "options.weatherAPI",
                 "options.debug",
                 "options.debugLevel"
             ]

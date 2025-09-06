@@ -46,6 +46,7 @@ import PetFeederAccessory from './PetFeederAccessory';
 import WhiteNoiseLightAccessory from './WhiteNoiseLightAccessory';
 import WetBulbGlobeTemperatureAccessory from './WetBulbGlobeTemperatureAccessory';
 import IRControlHubSubAccessory from './IRControlHubSubAccessory';
+import LocationWeatherAccessory from './LocationWeatherAccessory';
 
 
 export default class AccessoryFactory {
@@ -137,6 +138,8 @@ function resolveAccessoryByProductID(platform: TuyaPlatform, accessory: Platform
       return new SceneAccessory(platform, accessory);
     case 'virtual-product-id-wbgt':
       return new WetBulbGlobeTemperatureAccessory(platform, accessory);
+    case 'virtual-product-id-weather':
+      return new LocationWeatherAccessory(platform, accessory);
     default:
       return undefined;
   }
