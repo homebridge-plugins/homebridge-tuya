@@ -44,12 +44,18 @@ function cleanHex(hex: string): string {
 
 function hexToBytes(hex: string): number[] {
   const h = cleanHex(hex);
-  if (!h) throw new Error('empty hex string');
-  if (h.length % 2 !== 0) throw new Error('hex string length must be even');
+  if (!h) {
+    throw new Error('empty hex string');
+  }
+  if (h.length % 2 !== 0) {
+    throw new Error('hex string length must be even');
+  }
   const out: number[] = new Array(h.length / 2);
   for (let i = 0; i < h.length; i += 2) {
     const b = parseInt(h.slice(i, i + 2), 16);
-    if (Number.isNaN(b)) throw new Error(`invalid hex at ${i}: ${h.slice(i, i + 2)}`);
+    if (Number.isNaN(b)) {
+      throw new Error(`invalid hex at ${i}: ${h.slice(i, i + 2)}`);
+    }
     out[i / 2] = b;
   }
   return out;
@@ -60,7 +66,9 @@ function bytesToHex(bytes: ArrayLike<number>): string {
 }
 
 function trimPaddingFF(bytes: number[], ffRunLength: number): number[] {
-  if (ffRunLength <= 0) return bytes.slice();
+  if (ffRunLength <= 0) {
+    return bytes.slice();
+  }
   let run = 0;
   for (let i = 0; i < bytes.length; i++) {
     if (bytes[i] === 0xff) {
@@ -81,7 +89,9 @@ function bytesToBase64(bytes: number[]): string {
   }
   // Browser
   let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  for (let i = 0; i < bytes.length; i++) {
+    bin += String.fromCharCode(bytes[i]);
+  }
   // eslint-disable-next-line no-undef
   return btoa(bin);
 }
@@ -93,12 +103,16 @@ function base64ToBytes(b64: string): number[] {
   // eslint-disable-next-line no-undef
   const bin = atob(b64);
   const out = new Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  for (let i = 0; i < bin.length; i++) {
+    out[i] = bin.charCodeAt(i);
+  }
   return out;
 }
 
 function u16FromBytes(bytes: number[], endian: Endian): number[] {
-  if (bytes.length % 2 !== 0) bytes = bytes.slice(0, bytes.length - 1);
+  if (bytes.length % 2 !== 0) {
+    bytes = bytes.slice(0, bytes.length - 1);
+  }
   const out: number[] = [];
   for (let i = 0; i < bytes.length; i += 2) {
     const val = endian === 'LE'
@@ -137,7 +151,9 @@ function packBitsLSB(bits: number[]): number[] {
       count = 0;
     }
   }
-  if (count > 0) out.push(cur);
+  if (count > 0) {
+    out.push(cur);
+  }
   return out;
 }
 
@@ -153,7 +169,9 @@ function packBitsMSB(bits: number[]): number[] {
       count = 0;
     }
   }
-  if (count > 0) out.push(cur);
+  if (count > 0) {
+    out.push(cur);
+  }
   return out;
 }
 
@@ -217,9 +235,13 @@ function decodeNEC(pulses: number[]): TryResult {
   const markSamples: number[] = [];
   for (let k = i; k < Math.min(i + 100, pulses.length); k += 2) {
     const mk = pulses[k];
-    if (mk > 200 && mk < 1200) markSamples.push(mk);
+    if (mk > 200 && mk < 1200) {
+      markSamples.push(mk);
+    }
   }
-  if (markSamples.length < 4) return { ok: false, score: 0 };
+  if (markSamples.length < 4) {
+    return { ok: false, score: 0 };
+  }
   const T = median(markSamples);
 
   const bits: number[] = [];
@@ -227,15 +249,21 @@ function decodeNEC(pulses: number[]): TryResult {
     const mark = pulses[i];
     const space = pulses[i + 1];
     i += 2;
-    if (mark < T * 0.5 || mark > T * 1.8) break; // mark drifted → end
+    if (mark < T * 0.5 || mark > T * 1.8) {
+      break;
+    } // mark drifted → end
     // classify by space length (0 ~T, 1 ~3T)
     const bit = (space > T * 2) ? 1 : 0;
     bits.push(bit);
-    if (bits.length > 64) break; // NEC32（最大で拡張48）
+    if (bits.length > 64) {
+      break;
+    } // NEC32（最大で拡張48）
   }
 
   // Expect 32 bits (allow 28..40)
-  if (bits.length < 28) return { ok: false, score: 0.2 };
+  if (bits.length < 28) {
+    return { ok: false, score: 0.2 };
+  }
 
   const bytesLSB = packBitsLSB(bits);
   const res: DecodeResult = {
@@ -293,9 +321,13 @@ function decodeAEHA(pulses: number[]): TryResult {
   const markSamples: number[] = [];
   for (let k = i; k < Math.min(i + 200, pulses.length); k += 2) {
     const mk = pulses[k];
-    if (mk > 200 && mk < 900) markSamples.push(mk);
+    if (mk > 200 && mk < 900) {
+      markSamples.push(mk);
+    }
   }
-  if (markSamples.length < 6) return { ok: false, score: 0 };
+  if (markSamples.length < 6) {
+    return { ok: false, score: 0 };
+  }
   const T = median(markSamples);
 
   const bits: number[] = [];
@@ -303,13 +335,19 @@ function decodeAEHA(pulses: number[]): TryResult {
     const mark = pulses[i];
     const space = pulses[i + 1];
     i += 2;
-    if (mark < T * 0.5 || mark > T * 1.8) break;
+    if (mark < T * 0.5 || mark > T * 1.8) {
+      break;
+    }
     const bit = (space > T * 2.0) ? 1 : 0; // 0: ~T, 1: ~3T
     bits.push(bit);
-    if (bits.length > 256) break; // AEHA長尺上限
+    if (bits.length > 256) {
+      break;
+    } // AEHA長尺上限
   }
 
-  if (bits.length < 32) return { ok: false, score: 0.2 };
+  if (bits.length < 32) {
+    return { ok: false, score: 0.2 };
+  }
 
   const bytesLSB = packBitsLSB(bits);
   const res: DecodeResult = {
@@ -346,22 +384,30 @@ function decodeSIRC(pulses: number[]): TryResult {
 
   // Bits: mark 600(0) or 1200(1), space ~600
   const bits: number[] = [];
-  let T = 600;
+  const T = 600;
   while (i + 1 < pulses.length) {
     const mark = pulses[i];
     const space = pulses[i + 1];
     i += 2;
-    if (!near(space, 600, 0.4)) break;
+    if (!near(space, 600, 0.4)) {
+      break;
+    }
     const bit = near(mark, 1200, 0.35) ? 1 : (near(mark, 600, 0.35) ? 0 : -1);
-    if (bit < 0) break;
+    if (bit < 0) {
+      break;
+    }
     bits.push(bit);
-    if (bits.length > 24) break;
+    if (bits.length > 24) {
+      break;
+    }
   }
 
   // Valid lengths: 12/15/20 bits
   const validLens: Array<12 | 15 | 20> = [12, 15, 20];
   const len = bits.length as 12 | 15 | 20;
-  if (!validLens.includes(len)) return { ok: false, score: 0.2 };
+  if (!validLens.includes(len)) {
+    return { ok: false, score: 0.2 };
+  }
 
   const bytesLSB = packBitsLSB(bits);
   const res: DecodeResult = {

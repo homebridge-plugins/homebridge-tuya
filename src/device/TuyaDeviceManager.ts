@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import TuyaOpenAPI from '../core/TuyaOpenAPI';
 import TuyaOpenMQ from '../core/TuyaOpenMQ';
-import Logger, { PrefixLogger } from '../util/Logger';
+import { ExLogger, PrefixLogger } from '../util/Logger';
 import TuyaDevice, {
   TuyaDeviceSchema,
   TuyaDeviceSchemaMode,
@@ -29,7 +29,7 @@ export default class TuyaDeviceManager extends EventEmitter {
   public mq: TuyaOpenMQ;
   public ownerIDs: string[] = [];
   public devices: TuyaDevice[] = [];
-  public log: Logger;
+  public log: ExLogger;
 
   constructor(
     public api: TuyaOpenAPI,
@@ -53,7 +53,7 @@ export default class TuyaDeviceManager extends EventEmitter {
     cloneDevice.product_id = `${uniqueId}`;
     cloneDevice.product_name = 'virtual product';
     cloneDevice.sub = true;
-    cloneDevice.ip = "";
+    cloneDevice.ip = '';
     cloneDevice.parent_id = baseDevice.id;
     cloneDevice.remote_keys = undefined;
     return cloneDevice;
@@ -163,18 +163,20 @@ export default class TuyaDeviceManager extends EventEmitter {
       if (parent.lat === target.lat && parent.lon === target.lon) {
         return true;
       }
-      if (parent.update_time == target.update_time) {
+      if (parent.update_time === target.update_time) {
         return true;
       }
       return false;
     };
     const infraredRemotes = allDevices.filter(device => {
       return isInfraredRemoteDevice(parentDevice, device);
-    }).map(device => { return {
-      'category_id': 999,
-      'remote_id': device.id,
-      'resolved': true
-    }});
+    }).map(device => {
+      return {
+        'category_id': 999,
+        'remote_id': device.id,
+        'resolved': true,
+      };
+    });
     return infraredRemotes;
   }
 
@@ -194,14 +196,14 @@ export default class TuyaDeviceManager extends EventEmitter {
         category_id = 999; // DIY
         break;
       default:
-        category_id = subDevice.remote_keys?.category_id || 999 // DIY;
+        category_id = subDevice.remote_keys?.category_id || 999; // DIY;
     }
     this.log.debug(`resolved HAP category ID:${category_id}`);
     return category_id;
   }
 
   dump(obj:any) {
-    for (let key in obj) {
+    for (const key in obj) {
       try {
         if ((typeof obj[key]) === 'function') {
           this.log.warn(`\t function ${key}:${obj[key].name}`);
@@ -212,7 +214,7 @@ export default class TuyaDeviceManager extends EventEmitter {
         this.dump(e);
       }
       if ((typeof obj[key]) !== 'string') {
-        for (let key2 in obj[key]) {
+        for (const key2 in obj[key]) {
           try {
             if ((typeof obj[key][key2]) === 'function') {
               this.log.warn(`\t function ${key2}:${obj[key][key2].name}`);
@@ -246,12 +248,12 @@ export default class TuyaDeviceManager extends EventEmitter {
           }
         });
       }
-      if (resResult.length == 0) {
+      if (resResult.length === 0) {
         // for legacy devices
         this.log.warn('no result for Get infrared remotes.');
         this.log.info('resolving infrared remotes from device list...');
         resResult = this.resolveInfraredRemotes(irDevice, allDevices);
-        this.log.info(`${resResult.length} infrared remote device found.`);
+        this.log.success(`${resResult.length} infrared remote device found.`);
       }
 
       for (const { category_id, remote_id, resolved } of resResult) {
@@ -307,7 +309,7 @@ export default class TuyaDeviceManager extends EventEmitter {
             key.learning_code = item['code'];
           }
           if (subDevice.remote_keys && ignoreList.length !== 0) {
-            this.log.debug(`remove standard instructions. not need for DIY Device`);
+            this.log.debug('remove standard instructions. not need for DIY Device');
             subDevice.remote_keys.key_list = subDevice.remote_keys?.key_list.filter(item => !ignoreList.includes(item));
             this.log.debug(`new key list length:${subDevice.remote_keys?.key_list.length}`);
           }
@@ -370,6 +372,7 @@ export default class TuyaDeviceManager extends EventEmitter {
 
   async getCurrentWeatherByOpenMeteo(lat: string, lon: string) {
     /** <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> */
+    // eslint-disable-next-line max-len
     const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m`, { cache: 'no-cache' });
     return await res.json();
   }

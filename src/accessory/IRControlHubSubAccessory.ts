@@ -46,7 +46,7 @@ export default class IRControlHubSubAccessory extends BaseAccessory {
     const { category_id, remote_index } = this.device.remote_keys!;
     if (key.learning_code) {
       const buffer = internalCodeToBase64(key.learning_code, { trimPadding: true, endian: 'LE' });
-      const commands:TuyaDeviceStatus[] = [{ "code": "key_data", "value": buffer }];
+      const commands:TuyaDeviceStatus[] = [{ 'code': 'key_data', 'value': buffer }];
       await this.deviceManager.sendCommands(parent_id || id, commands);
     } else {
       await this.deviceManager.sendInfraredCommands(parent_id!, id, category_id, remote_index, key.key, key.key_id);

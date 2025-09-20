@@ -6,8 +6,15 @@ export default interface Logger {
   debug(message?: any, ...args: any[]): void;
   error(message?: any, ...args: any[]): void;
 }
+export interface ExLogger extends Logger {
+  success(message?: any, ...args: any[]): void;
+}
 
-export class PrefixLogger {
+function isExLogger(obj: any): obj is ExLogger {
+  return typeof obj.success === 'function';
+}
+
+export class PrefixLogger implements ExLogger {
   constructor(
     public log: Logger,
     public prefix: string,
@@ -34,6 +41,14 @@ export class PrefixLogger {
 
   error(message?: any, ...args: any[]) {
     this.log.error((this.prefix ? `[${this.prefix}] ` : '') + message, ...args);
+  }
+
+  success(message?: any, ...args: any[]) {
+    if (isExLogger(this.log)) {
+      this.log.success((this.prefix ? `[${this.prefix}] ` : '') + message, ...args);
+    } else {
+      this.log.info((this.prefix ? `[${this.prefix}] ` : '') + message, ...args);
+    }
   }
 
 }
