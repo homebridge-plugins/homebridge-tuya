@@ -202,6 +202,7 @@ export default class TuyaDeviceManager extends EventEmitter {
     return category_id;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dump(obj:any) {
     for (const key in obj) {
       try {

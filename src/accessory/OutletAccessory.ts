@@ -9,7 +9,7 @@ export default class OutletAccessory extends SwitchAccessory {
   mainService() {
     return this.Service.Outlet;
   }
-  
+
   configureSwitch(schema: TuyaDeviceSchema, name: string) {
     super.configureSwitch(schema, name);
     const service = this.accessory.getService(schema.code)

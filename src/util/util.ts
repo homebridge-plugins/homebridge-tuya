@@ -1,4 +1,4 @@
-import { TuyaDeviceSchemaProperty } from "../device/TuyaDevice";
+import { TuyaDeviceSchemaProperty } from '../device/TuyaDevice';
 
 export function remap(
   value: number,
@@ -24,7 +24,7 @@ export function limit(
 }
 
 export function toHapProperty(
-  property: TuyaDeviceSchemaProperty
+  property: TuyaDeviceSchemaProperty,
 ) {
   return Object.entries(property).reduce((hap, [key, value]) => {
     switch (key) {

@@ -1,4 +1,3 @@
-import { TuyaDeviceSchemaIntegerProperty } from '../device/TuyaDevice';
 import BaseAccessory from './BaseAccessory';
 import TemperatureHumiditySensorAccessory from './TemperatureHumiditySensorAccessory';
 import { configureCurrentWetBulbGlobeTemperature } from './characteristic/CurrentWetBulbGlobeTemperature';
