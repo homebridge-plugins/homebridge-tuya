@@ -320,7 +320,6 @@
                         "title": "Generate Weather Accessory",
                         "description": "Generate Current Weather at Home Location. Gets Temperature and Humidity.",
                         "type": "boolean",
-                        "required": true,
                         "default": false
                     },
                     "weatherAPI": {
