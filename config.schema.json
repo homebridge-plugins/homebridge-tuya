@@ -11,13 +11,12 @@
             "name": {
                 "type": "string",
                 "title": "Name",
-                "required": true,
                 "default": "Tuya"
             },
             "options": {
                 "title": "Project Info",
                 "type": "object",
-                "required": true,
+                "required": ["projectType", "accessId", "accessKey", "weatherAPI"],
                 "properties": {
                     "projectType": {
                         "title": "Project Type (Development Method)",
@@ -36,8 +35,7 @@
                                     "2"
                                 ]
                             }
-                        ],
-                        "required": true
+                        ]
                     },
                     "endpoint": {
                         "title": "Endpoint URL",
@@ -46,13 +44,11 @@
                     },
                     "accessId": {
                         "title": "Access ID",
-                        "type": "string",
-                        "required": true
+                        "type": "string"
                     },
                     "accessKey": {
                         "title": "Access Secret",
-                        "type": "string",
-                        "required": true
+                        "type": "string"
                     },
                     "countryCode": {
                         "title": "Country Code",
@@ -115,12 +111,12 @@
                         "type": "array",
                         "items": {
                             "type": "object",
+                            "required": ["id"],
                             "properties": {
                                 "id": {
                                     "title": "ID",
                                     "description": "Device ID or Product ID or `global`",
-                                    "type": "string",
-                                    "required": true
+                                    "type": "string"
                                 },
                                 "category": {
                                     "title": "Category",
@@ -143,11 +139,11 @@
                                     "type": "array",
                                     "items": {
                                         "type": "object",
+                                        "required": ["code"],
                                         "properties": {
                                             "code": {
                                                 "title": "DP Code",
                                                 "type": "string",
-                                                "required": true,
                                                 "condition": {
                                                     "functionBody": "return (model.options && model.options.deviceOverrides);"
                                                 }
@@ -275,43 +271,38 @@
                         "type": "array",
                         "items": {
                             "type": "object",
+                            "required": ["device_id", "index"],
                             "properties": {
                                 "device_id": {
                                     "title": "DeviceID",
                                     "description": "Device ID. Often Sub Device ID. See Accessory Information > Serial Number.",
-                                    "type": "string",
-                                    "required": true
+                                    "type": "string"
                                 },
                                 "index": {
                                     "title": "Characteristic Index",
                                     "description": "Usually 1. If Accessory has more functions, it might be 2 or more.",
                                     "type": "string",
-                                    "default": 1,
-                                    "required": true
+                                    "default": 1
                                 },
                                 "manifacturer": {
                                     "title": "Manifacturer",
                                     "description": "Product Manifacturer",
-                                    "type": "string",
-                                    "required": false
+                                    "type": "string"
                                 },
                                 "model": {
                                     "title": "Model",
                                     "description": "Model",
-                                    "type": "string",
-                                    "required": false
+                                    "type": "string"
                                 },
                                 "firmwareRevision": {
                                     "title": "Firmware Revision",
                                     "description": "Firware Revision",
-                                    "type": "string",
-                                    "required": false
+                                    "type": "string"
                                 },
                                 "configuredName": {
                                     "title": "Configured Name",
                                     "description": "Accessory name displayed in Home.app",
-                                    "type": "string",
-                                    "required": false
+                                    "type": "string"
                                 }
                             }
                         }
@@ -327,7 +318,6 @@
                         "description": "Open-Meteo : For non-commercial use. [Weather data by Open-Meteo.com](https://open-meteo.com/)<br>Tuya : Requires authorization for Weather Service.",
                         "type": "string",
                         "enum": ["Open-Meteo", "Tuya"],
-                        "required": true,
                         "default": "Open-Meteo",
                         "condition":  {
                             "functionBody": "return (model.options && model.options.generateWeatherAccessory);"
@@ -348,7 +338,8 @@
                     }
                 }
             }
-        }
+        },
+        "required":["name"]
     },
     "layout": [
         {
