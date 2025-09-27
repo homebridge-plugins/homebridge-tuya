@@ -1,16 +1,16 @@
 {
-  "name": "@tassy-h/homebridge-tuya-platform",
-  "displayName": "TuyaHomebridge Tuya Platform Tassy-h",
-  "version": "2.0.2-beta.2",
-  "description": "forked from 0x5e/homebridge-tuya-platform, with a focus on fixing bugs and adding new device support.",
+  "name": "@homebridge-plugins/homebridge-tuya",
+  "displayName": "Homebridge Tuya",
+  "version": "2.0.2-beta.3",
+  "description": "Forked from 0x5e/homebridge-tuya-platform, with a focus on fixing bugs and adding new device support.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tassy-h/homebridge-tuya-platform"
+    "url": "https://github.com/homebridge-plugins/homebridge-tuya"
   },
-  "homepage": "https://github.com/tassy-h/homebridge-tuya-platform#readme",
+  "homepage": "https://github.com/homebridge-plugins/homebridge-tuya#readme",
   "bugs": {
-    "url": "https://github.com/tassy-h/homebridge-tuya-platform/issues"
+    "url": "https://github.com/homebridge-plugins/homebridge-tuya/issues"
   },
   "funding": [
     {

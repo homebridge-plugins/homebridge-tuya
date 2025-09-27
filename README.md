@@ -1,12 +1,12 @@
-# @tassy-h/homebridge-tuya-platform
+# @homebridge-plugins/homebridge-tuya
 
-[![npm](https://badgen.net/npm/v/@tassy-h/homebridge-tuya-platform)](https://npmjs.com/package/@tassy-h/homebridge-tuya-platform)
-[![npm](https://badgen.net/npm/dt/@tassy-h/homebridge-tuya-platform)](https://npmjs.com/package/@tassy-h/homebridge-tuya-platform)
-[![mit-license](https://badgen.net/npm/license/@tassy-h/homebridge-tuya-platform)](https://github.com/tassy-h/homebridge-tuya-platform/blob/main/LICENSE)
-[![Build and Lint](https://github.com/tassy-h/homebridge-tuya-platform/actions/workflows/build.yml/badge.svg)](https://github.com/tassy-h/homebridge-tuya-platform/actions/workflows/build.yml)
+[![npm](https://badgen.net/npm/v/@homebridge-plugins/homebridge-tuya)](https://npmjs.com/package/@homebridge-plugins/homebridge-tuya)
+[![npm](https://badgen.net/npm/dt/@homebridge-plugins/homebridge-tuya)](https://npmjs.com/package/@homebridge-plugins/homebridge-tuya)
+[![mit-license](https://badgen.net/npm/license/@homebridge-plugins/homebridge-tuya)](https://github.com/homebridge-plugins/homebridge-tuya/blob/main/LICENSE)
+[![Build and Lint](https://github.com/homebridge-plugins/homebridge-tuya/actions/workflows/build.yml/badge.svg)](https://github.com/homebridge-plugins/homebridge-tuya/actions/workflows/build.yml)
 
 
-forked from 0x5e/homebridge-tuya-platform, with a focus on fixing bugs and adding new device support.
+Forked from 0x5e/homebridge-tuya-platform, with a focus on fixing bugs and adding new device support.
 
 
 
@@ -35,14 +35,14 @@ See [CHANGELOG.md](./CHANGELOG.md)
 Before using this plugin, please make sure to uninstall `homebridge-tuya-platform` first as these two plugins cannot run simultaneously. However, the configuration files are compatible, so there's no need to delete them.
 
 #### For Homebridge Web UI Users
-Go to plugin page, search for `@tassy-h/homebridge-tuya-platform` and install it.
+Go to plugin page, search for `@homebridge-plugins/homebridge-tuya` and install it.
 
 
 #### For Homebridge Command Line Users
 
 Run the following command in the terminal:
 ```
-npm install @tassy-h/homebridge-tuya-platform
+npm install @homebridge-plugins/homebridge-tuya
 ```
 
 
@@ -102,7 +102,7 @@ See [ADVANCED_OPTIONS.md](./ADVANCED_OPTIONS.md)
 ## Limitations
 - **⚠️Don't forget to extend the API trial period every 6 months. Maybe you can set up a reminder in calendar.**
 - Using the same app account for multiple Homebridge/HomeAssistant instances is not supported. Please use separate app accounts for each instance.
-- The plugin requires an internet connection to the Tuya Cloud and does not support the LAN protocol. See [#90](https://github.com/tassy-h/homebridge-tuya-platform/issues/90) for more information.
+- The plugin requires an internet connection to the Tuya Cloud and does not support the LAN protocol. See [#90](https://github.com/homebridge-plugins/homebridge-tuya/issues/90) for more information.
 
 ## FAQ
 
@@ -145,7 +145,7 @@ Yes. The device must be listed in the support list and the following steps must 
 
 
 #### Local support
-See [#90](https://github.com/tassy-h/homebridge-tuya-platform/issues/90).
+See [#90](https://github.com/homebridge-plugins/homebridge-tuya/issues/90).
 
 Although the plugin didn't implemented tuya local protocol now, it still remains possibility in the future.
 
