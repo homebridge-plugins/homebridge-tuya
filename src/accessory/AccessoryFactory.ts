@@ -47,6 +47,7 @@ import WhiteNoiseLightAccessory from './WhiteNoiseLightAccessory';
 import WetBulbGlobeTemperatureAccessory from './WetBulbGlobeTemperatureAccessory';
 import IRControlHubSubAccessory from './IRControlHubSubAccessory';
 import LocationWeatherAccessory from './LocationWeatherAccessory';
+import TowelRackAccessory from './TowerRackAccessory';
 
 
 export default class AccessoryFactory {
@@ -206,6 +207,8 @@ function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformA
     case 'wk':
     case 'wkf':
       return new ThermostatAccessory(platform, accessory);
+    case 'mjj':
+      return new TowelRackAccessory(platform, accessory);
     case 'ggq':
     case 'sfkzq':
       return new ValveAccessory(platform, accessory);

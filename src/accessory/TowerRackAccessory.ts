@@ -1,19 +1,19 @@
-import { TuyaDeviceSchemaEnumProperty, TuyaDeviceSchemaIntegerProperty, TuyaDeviceStatus } from '../device/TuyaDevice';
-import { limit } from '../util/util';
+import { TuyaDeviceSchemaEnumProperty, TuyaDeviceStatus } from '../device/TuyaDevice';
 import BaseAccessory from './BaseAccessory';
 import { configureCurrentTemperature } from './characteristic/CurrentTemperature';
+import { configureTargetTemperature } from './characteristic/TargetTemperature';
 import { configureTempDisplayUnits } from './characteristic/TemperatureDisplayUnits';
 
 const SCHEMA_CODE = {
   ON: ['switch'],
-  CURRENT_MODE: ['work_state', 'mode'],
-  TARGET_MODE: ['mode'],
-  CURRENT_TEMP: ['temp_current', 'temp_set'],
   TARGET_TEMP: ['temp_set'],
+  TARGET_MODE: ['mode'],
   TEMP_UNIT_CONVERT: ['temp_unit_convert', 'c_f'],
+  CURRENT_TEMP: ['temp_current', 'temp_set'],
+  CURRENT_MODE: ['work_state', 'mode'],
 };
 
-export default class ThermostatAccessory extends BaseAccessory {
+export default class TowelRackAccessory extends BaseAccessory {
 
   requiredSchema() {
     return [SCHEMA_CODE.CURRENT_TEMP, SCHEMA_CODE.TARGET_TEMP];
@@ -23,7 +23,7 @@ export default class ThermostatAccessory extends BaseAccessory {
     this.configureCurrentState();
     this.configureTargetState();
     configureCurrentTemperature(this, this.mainService(), this.getSchema(...SCHEMA_CODE.CURRENT_TEMP));
-    this.configureTargetTemp();
+    configureTargetTemperature(this, this.mainService(), this.getSchema(...SCHEMA_CODE.TARGET_TEMP));
     configureTempDisplayUnits(this, this.mainService(), this.getSchema(...SCHEMA_CODE.TEMP_UNIT_CONVERT));
   }
 
@@ -161,45 +161,6 @@ export default class ThermostatAccessory extends BaseAccessory {
         }
       })
       .setProps({ validValues });
-
-  }
-
-  // FIXME: For some reason, a limit is being imposed on the target temperature.
-  // Request to those who have the actual product: Please investigate whether ./characteristic/TargetTemperature can be used.
-  configureTargetTemp() {
-    const schema = this.getSchema(...SCHEMA_CODE.TARGET_TEMP);
-    if (!schema) {
-      this.log.warn('TargetTemperature not supported.');
-      return;
-    }
-
-    const property = schema.property as TuyaDeviceSchemaIntegerProperty;
-    let multiple = Math.pow(10, property.scale);
-    let props = {
-      minValue: Math.max(10, property.min / multiple),
-      maxValue: Math.min(38, property.max / multiple),
-      minStep: Math.max(0.1, property.step / multiple),
-    };
-    if (props.maxValue <= props.minValue) {
-      this.log.warn('Invalid schema: %o, props will be reset to the default value.', schema);
-      multiple = 1;
-      props = { minValue: 10, maxValue: 38, minStep: 1 };
-    }
-    this.log.debug('Set props for TargetTemperature:', props);
-
-    this.mainService().getCharacteristic(this.Characteristic.TargetTemperature)
-      .onGet(() => {
-        const status = this.getStatus(schema.code)!;
-        const temp = status.value as number / multiple;
-        return limit(temp, props.minValue, props.maxValue);
-      })
-      .onSet(async value => {
-        await this.sendCommands([{
-          code: schema.code,
-          value: value as number * multiple,
-        }]);
-      })
-      .setProps(props);
 
   }
 
