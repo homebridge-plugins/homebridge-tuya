@@ -1,6 +1,4 @@
-import { Service } from 'homebridge';
-import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty } from '../../device/TuyaDevice';
-import { limit, toHapProperty } from '../../util/util';
+import { TuyaDeviceSchemaIntegerProperty } from '../../device/TuyaDevice';
 import BaseAccessory from '../BaseAccessory';
 
 const SCHEMA_CODE = {
@@ -14,24 +12,24 @@ export function configureCurrentWetBulbGlobeTemperature(accessory: BaseAccessory
   const service = accessory.accessory.getService(accessory.Service.TemperatureSensor)
       || accessory.accessory.addService(accessory.Service.TemperatureSensor);
 
-    service.getCharacteristic(accessory.Characteristic.CurrentTemperature)
-      .onGet(() => {
-        const rhSchema = accessory.getSchema(...SCHEMA_CODE.CURRENT_HUMIDITY);
-        const rh = accessory.getStatus(rhSchema!.code)?.value as number || 1;
-        const tSchema = accessory.getSchema(...SCHEMA_CODE.CURRENT_TEMP);
-        const t = accessory.getStatus(tSchema!.code)?.value as number || 1;
-        const rhProperty = rhSchema?.property as TuyaDeviceSchemaIntegerProperty || {};
-        const rhMultiple = Math.pow(10, rhProperty['scale'] || 0);
-        const tProperty = rhSchema?.property as TuyaDeviceSchemaIntegerProperty || {};
-        const tMultiple = Math.pow(10, tProperty['scale'] || 0);
-        return calculateWBGT(t/tMultiple, rh/rhMultiple).wbgtIndoor;
-      })
-      .setProps({
-        unit: '℃',
-        minValue: -273.15,
-        maxValue: 100,
-        minStep: 0.1
-      });
+  service.getCharacteristic(accessory.Characteristic.CurrentTemperature)
+    .onGet(() => {
+      const rhSchema = accessory.getSchema(...SCHEMA_CODE.CURRENT_HUMIDITY);
+      const rh = accessory.getStatus(rhSchema!.code)?.value as number || 1;
+      const tSchema = accessory.getSchema(...SCHEMA_CODE.CURRENT_TEMP);
+      const t = accessory.getStatus(tSchema!.code)?.value as number || 1;
+      const rhProperty = rhSchema?.property as TuyaDeviceSchemaIntegerProperty || {};
+      const rhMultiple = Math.pow(10, rhProperty['scale'] || 0);
+      const tProperty = rhSchema?.property as TuyaDeviceSchemaIntegerProperty || {};
+      const tMultiple = Math.pow(10, tProperty['scale'] || 0);
+      return calculateWBGT(t/tMultiple, rh/rhMultiple).wbgtIndoor;
+    })
+    .setProps({
+      unit: '℃',
+      minValue: -273.15,
+      maxValue: 100,
+      minStep: 0.1,
+    });
 
 }
 
@@ -39,7 +37,7 @@ type WBGT = {
   wetBulbTemp: number;
   wbgtOutdoor: number;
   wbgtIndoor: number;
-}
+};
 
 function calculateWBGT(temperature: number, humidity: number): WBGT {
   // 湿球温度の近似式（Stullの式）

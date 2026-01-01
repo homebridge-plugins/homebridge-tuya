@@ -23,41 +23,13 @@ export interface WeatherCondition {
 }
 
 export function configureCurrentWeatherByOpenMeteo(accessory: BaseAccessory, weatherCondition: WeatherCondition) {
-
-  const dump = (obj:any) => {
-    for (let key in obj) {
-      try {
-        if ((typeof obj[key]) === 'function') {
-          accessory.log.warn(`\t function ${key}:${obj[key].name}`);
-        } else {
-          accessory.log.warn(`\t ${key}:${obj[key]}`);
-        }
-      } catch (e) {
-        dump(e);
-      }
-      if ((typeof obj[key]) !== 'string') {
-        for (let key2 in obj[key]) {
-          try {
-            if ((typeof obj[key][key2]) === 'function') {
-              accessory.log.warn(`\t function ${key2}:${obj[key][key2].name}`);
-            } else {
-              accessory.log.warn(`\t ${key2}:${obj[key][key2]}`);
-            }
-          } catch (e) {
-            dump(e);
-          }
-        }
-      }
-    }
-  }
   // First time
-  accessory.log.info("get current weather from Open-Meteo.");
+  accessory.log.info('get current weather from Open-Meteo.');
   const res = accessory.deviceManager.getCurrentWeatherByOpenMeteo(accessory.device.lat, accessory.device.lon);
   res.then(result => Object.assign(weatherCondition, result));
 
   // Controlling API call frequency
   setInterval(() => {
-    accessory.log.info("get current weather from Open-Meteo.");
     const res = accessory.deviceManager.getCurrentWeatherByOpenMeteo(accessory.device.lat, accessory.device.lon);
     res.then(result => Object.assign(weatherCondition, result));
   },
@@ -78,7 +50,7 @@ export function configureCurrentWeatherByOpenMeteo(accessory: BaseAccessory, wea
         unit: weatherCondition.current_units.temperature_2m,
         minValue: -273.15,
         maxValue: 500.0,
-        minStep: 0.1
+        minStep: 0.1,
       });
   }
 
@@ -97,7 +69,7 @@ export function configureCurrentWeatherByOpenMeteo(accessory: BaseAccessory, wea
         unit: weatherCondition.current_units.relative_humidity_2m,
         minValue: 0.0,
         maxValue: 100.0,
-        minStep: 0.1
+        minStep: 0.1,
       });
   }
 

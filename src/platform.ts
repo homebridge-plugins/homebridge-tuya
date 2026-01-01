@@ -506,14 +506,14 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     return this.accessoryHandlers.find(handler => handler.device.id === deviceID);
   }
 
-  createWeatherDevice(device: TuyaDevice, result: Array<any>): TuyaDevice {
+  createWeatherDevice(device: TuyaDevice, result: { home_id: string; name: string }[]): TuyaDevice {
     const key = `weather-${device.owner_id}`;
     const uuid = this.api.hap.uuid.generate(key);
     this.log.info(`add weather device:${key}`);
     const virtualDevice = this.deviceManager!.createVirtualDevice(device, uuid);
     virtualDevice.product_id = 'virtual-product-id-weather';
     virtualDevice.category = 'wsdcg';
-    virtualDevice.name = `Weather(${result.find(home => home.home_id == device.owner_id).name})`
+    virtualDevice.name = `Weather(${result.find(home => home.home_id === device.owner_id)?.name})`;
     return virtualDevice;
   }
 }

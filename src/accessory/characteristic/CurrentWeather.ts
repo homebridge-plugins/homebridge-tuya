@@ -1,41 +1,40 @@
 import BaseAccessory from '../BaseAccessory';
 
 export interface WeatherCondition {
-  "coordinate": {
-      "lon": string,
-      "lat": string
-  },
-  "air_quality": {
-      "o3": string,
-      "pm10": string,
-      "co": string,
-      "no2": string,
-      "pm25": string,
-      "so2": string,
-      "aqi": string
-  },
-  "current_weather": {
-      "temp": string,
-      "real_feel": string,
-      "uvi": string,
-      "pressure": string,
-      "condition": string,
-      "condition_num": string,
-      "humidity": string,
-      "wind_speed": string
-  }
+  'coordinate': {
+      'lon': string;
+      'lat': string;
+  };
+  'air_quality': {
+      'o3': string;
+      'pm10': string;
+      'co': string;
+      'no2': string;
+      'pm25': string;
+      'so2': string;
+      'aqi': string;
+  };
+  'current_weather': {
+      'temp': string;
+      'real_feel': string;
+      'uvi': string;
+      'pressure': string;
+      'condition': string;
+      'condition_num': string;
+      'humidity': string;
+      'wind_speed': string;
+  };
 }
 
 export function configureCurrentWeather(accessory: BaseAccessory, weatherCondition: WeatherCondition) {
 
   // First time
-  accessory.log.info("get current weather from Tuya.");
+  accessory.log.info('get current weather from Tuya.');
   const res = accessory.deviceManager.getCurrentWeather(accessory.device.lat, accessory.device.lon);
   res.then(result => Object.assign(weatherCondition, result));
 
   // Controlling API call frequency
   setInterval(() => {
-    accessory.log.info("get current weather from Tuya.");
     const res = accessory.deviceManager.getCurrentWeather(accessory.device.lat, accessory.device.lon);
     res.then(result => Object.assign(weatherCondition, result));
   },
@@ -56,7 +55,7 @@ export function configureCurrentWeather(accessory: BaseAccessory, weatherConditi
         unit: '℃',
         minValue: -273.15,
         maxValue: 500.0,
-        minStep: 0.1
+        minStep: 0.1,
       });
   }
 
@@ -75,7 +74,7 @@ export function configureCurrentWeather(accessory: BaseAccessory, weatherConditi
         unit: '%',
         minValue: 0.0,
         maxValue: 100.0,
-        minStep: 0.1
+        minStep: 0.1,
       });
   }
 
