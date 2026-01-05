@@ -16,8 +16,6 @@ export function configureTargetTemperature(accessory: BaseAccessory, service?: S
 
   const property = schema.property as TuyaDeviceSchemaIntegerProperty || {};
   const props = toHapProperty(property);
-  accessory.platform.log.warn('properties');
-  accessory.platform.log.warn(JSON.stringify(props, null, 2));
   const multiple = Math.pow(10, property['scale'] || 0);
   service.getCharacteristic(accessory.Characteristic.TargetTemperature)
     .onGet(() => {
