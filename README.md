@@ -65,7 +65,7 @@ The difference between them is:
 If you are a personal user and are unsure which one to choose, please use the `Smart Home` project.
 
 Before you can configure, you must go to the [Tuya IoT Platform](https://iot.tuya.com):
-- Create a cloud development project, and select the data center where your app account is located. See [Mappings Between OEM App Accounts and Data Centers](https://developer.tuya.com/en/docs/iot/oem-app-data-center-distributed?id=Kafi0ku9l07qb)
+- Create a cloud development project, and select the data center where your app account is located. See [Mappings Between OEM App Accounts and Data Centers](https://developer.tuya.com/en/docs/iot/oem-app-data-center-distributed?id=Kafi0ku9l07qb) or [Countries Regions and Tuya Data Center](https://github.com/tuya/tuya-home-assistant/wiki/Countries-Regions-and-Tuya-Data-Center)
 - Go to the `Project Page` > `Devices Panel` > `Link Tuya App Account`, and link your app account.
 - Go to the `Project Page` > `Service API` > `Go to Authorize`, and subscribe to the following APIs (it is free for trial):
     - Authorization Token Management
