@@ -1,6 +1,6 @@
 import { Service } from 'homebridge';
 import { TuyaDeviceSchema, TuyaDeviceSchemaEnumProperty, TuyaDeviceSchemaIntegerProperty, TuyaDeviceStatus } from '../../device/TuyaDevice';
-import { hsvToTuyaPackedHSV, kelvinToHSV, kelvinToMired, miredToKelvin, tuyaPackedHSVToHSV } from '../../util/color';
+import { kelvinToHSV, kelvinToMired, miredToKelvin } from '../../util/color';
 import { limit, remap } from '../../util/util';
 import BaseAccessory from '../BaseAccessory';
 import { configureOn } from './On';
@@ -21,10 +21,6 @@ type TuyaDeviceSchemaColorProperty = {
   h: TuyaDeviceSchemaIntegerProperty;
   s: TuyaDeviceSchemaIntegerProperty;
   v: TuyaDeviceSchemaIntegerProperty;
-};
-
-type TuyaDeviceSchemaExtra = TuyaDeviceSchema & {
-  forcedJson?: boolean;
 };
 
 function getLightType(
@@ -58,26 +54,18 @@ function getLightType(
   return lightType;
 }
 
-function getColorValue(accessory: BaseAccessory, schema: TuyaDeviceSchemaExtra) {
+function getColorValue(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
   const status = accessory.getStatus(schema!.code);
-  if (schema?.forcedJson) {
-    if (!status || !status.value || (status.value as string).length !== 12) {
-      return { h: 0, s: 0, v: 0 };
-    }
-    accessory.log.info('[beta test]' + status.value);
-    accessory.log.info('[beta test]' + JSON.stringify(tuyaPackedHSVToHSV((status.value as string)), null, 2));
-    return tuyaPackedHSVToHSV((status.value as string));
-  } else { // if json
-    if (!status || !status.value || status.value === '' || status.value === '{}') {
-      return { h: 0, s: 0, v: 0 };
-    }
-    const { h, s, v } = JSON.parse(status.value as string);
-    return {
-      h: h as number,
-      s: s as number,
-      v: v as number,
-    };
+  if (!status || !status.value || status.value === '' || status.value === '{}') {
+    return { h: 0, s: 0, v: 0 };
   }
+
+  const { h, s, v } = JSON.parse(status.value as string);
+  return {
+    h: h as number,
+    s: s as number,
+    v: v as number,
+  };
 }
 
 function inWhiteMode(
@@ -121,7 +109,7 @@ function configureBrightness(
   service: Service,
   lightType: LightType,
   brightSchema?: TuyaDeviceSchema,
-  colorSchema?: TuyaDeviceSchemaExtra,
+  colorSchema?: TuyaDeviceSchema,
   modeSchema?: TuyaDeviceSchema,
 ) {
 
@@ -130,7 +118,7 @@ function configureBrightness(
       if (inColorMode(accessory, lightType, modeSchema) && colorSchema) {
         // Color mode, get brightness from `color_data.v`
         const { max } = (colorSchema.property as TuyaDeviceSchemaColorProperty).v;
-        const colorValue = getColorValue(accessory, (colorSchema as TuyaDeviceSchemaExtra));
+        const colorValue = getColorValue(accessory, colorSchema);
         const value = Math.round(100 * colorValue.v / max);
         return limit(value, 0, 100);
       } else if (inWhiteMode(accessory, lightType, modeSchema) && brightSchema) {
@@ -149,14 +137,10 @@ function configureBrightness(
       if (inColorMode(accessory, lightType, modeSchema) && colorSchema) {
         // Color mode, set brightness to `color_data.v`
         const { min, max } = (colorSchema.property as TuyaDeviceSchemaColorProperty).v;
-        const colorValue = getColorValue(accessory, (colorSchema as TuyaDeviceSchemaExtra));
+        const colorValue = getColorValue(accessory, colorSchema);
         colorValue.v = Math.round(value as number * max / 100);
         colorValue.v = limit(colorValue.v, min, max);
-        const commands: TuyaDeviceStatus[] = [{
-          code: colorSchema.code,
-          value: colorSchema.forcedJson ? hsvToTuyaPackedHSV(colorValue.h, colorValue.s, colorValue.v) : JSON.stringify(colorValue),
-        }];
-        await accessory.sendCommands(commands, true);
+        await accessory.sendCommands([{ code: colorSchema.code, value: JSON.stringify(colorValue) }], true);
       } else if (inWhiteMode(accessory, lightType, modeSchema) && brightSchema) {
         // White mode, set brightness to `brightness_value`
         const { min, max } = brightSchema.property as TuyaDeviceSchemaIntegerProperty;
@@ -223,7 +207,7 @@ function configureHue(
   accessory: BaseAccessory,
   service: Service,
   lightType: LightType,
-  colorSchema: TuyaDeviceSchemaExtra,
+  colorSchema: TuyaDeviceSchema,
   modeSchema?: TuyaDeviceSchema,
 ) {
   const { min, max } = (colorSchema.property as TuyaDeviceSchemaColorProperty).h;
@@ -243,7 +227,7 @@ function configureHue(
       colorValue.h = limit(colorValue.h, min, max);
       const commands: TuyaDeviceStatus[] = [{
         code: colorSchema.code,
-        value: colorSchema.forcedJson ? hsvToTuyaPackedHSV(colorValue.h, colorValue.s, colorValue.v) : JSON.stringify(colorValue),
+        value: JSON.stringify(colorValue),
       }];
 
       if (modeSchema) {
@@ -258,7 +242,7 @@ function configureSaturation(
   accessory: BaseAccessory,
   service: Service,
   lightType: LightType,
-  colorSchema: TuyaDeviceSchemaExtra,
+  colorSchema: TuyaDeviceSchema,
   modeSchema?: TuyaDeviceSchema,
 ) {
   const { min, max } = (colorSchema.property as TuyaDeviceSchemaColorProperty).s;
@@ -268,17 +252,17 @@ function configureSaturation(
         return kelvinToHSV(DEFAULT_COLOR_TEMPERATURE_KELVIN)!.s;
       }
 
-      const saturation = Math.round(100 * getColorValue(accessory, (colorSchema as TuyaDeviceSchemaExtra)).s / max);
+      const saturation = Math.round(100 * getColorValue(accessory, colorSchema).s / max);
       return limit(saturation, 0, 100);
     })
     .onSet(async value => {
       accessory.log.debug(`Characteristic.Saturation set to: ${value}`);
-      const colorValue = getColorValue(accessory, (colorSchema as TuyaDeviceSchemaExtra));
+      const colorValue = getColorValue(accessory, colorSchema);
       colorValue.s = Math.round(value as number * max / 100);
       colorValue.s = limit(colorValue.s, min, max);
       const commands: TuyaDeviceStatus[] = [{
         code: colorSchema.code,
-        value: colorSchema.forcedJson ? hsvToTuyaPackedHSV(colorValue.h, colorValue.s, colorValue.v) : JSON.stringify(colorValue),
+        value: JSON.stringify(colorValue),
       }];
 
       if (modeSchema) {
@@ -307,21 +291,7 @@ export function configureLight(
       || accessory.accessory.addService(accessory.Service.Lightbulb, accessory.accessory.displayName + ' Light');
   }
 
-  let colorSchemaJson:TuyaDeviceSchemaExtra = (colorSchema as TuyaDeviceSchemaExtra);
-  // fixme: Because the way Strings and JSON are processed is quite different, I’m making them behave the same by force.
-  if (colorSchema?.type === 'String') {
-    colorSchemaJson = Object.assign({}, colorSchema, {
-      type: 'Json',
-      property: {
-        h: { min: 0, scale: 0, unit: '', max: 360, step: 1 },
-        s: { min: 0, scale: 0, unit: '', max: 1000, step: 1 },
-        v: { min: 0, scale: 0, unit: '', max: 1000, step: 1 },
-      },
-      forcedJson: true,
-    });
-  }
-
-  const lightType = getLightType(accessory, onSchema, brightSchema, tempSchema, colorSchemaJson, modeSchema);
+  const lightType = getLightType(accessory, onSchema, brightSchema, tempSchema, colorSchema, modeSchema);
   accessory.log.info('Light type:', lightType);
 
   switch (lightType) {
@@ -330,26 +300,26 @@ export function configureLight(
       break;
     case LightType.C:
       configureOn(accessory, service, onSchema);
-      configureBrightness(accessory, service, lightType, brightSchema, colorSchemaJson, modeSchema);
+      configureBrightness(accessory, service, lightType, brightSchema, colorSchema, modeSchema);
       break;
     case LightType.CW:
       configureOn(accessory, service, onSchema);
-      configureBrightness(accessory, service, lightType, brightSchema, colorSchemaJson, modeSchema);
+      configureBrightness(accessory, service, lightType, brightSchema, colorSchema, modeSchema);
       configureColourTemperature(accessory, service, lightType, tempSchema!, modeSchema);
       break;
     case LightType.RGB:
       configureOn(accessory, service, onSchema);
-      configureBrightness(accessory, service, lightType, brightSchema, colorSchemaJson, modeSchema);
-      configureHue(accessory, service, lightType, colorSchemaJson!, modeSchema);
-      configureSaturation(accessory, service, lightType, colorSchemaJson!, modeSchema);
+      configureBrightness(accessory, service, lightType, brightSchema, colorSchema, modeSchema);
+      configureHue(accessory, service, lightType, colorSchema!, modeSchema);
+      configureSaturation(accessory, service, lightType, colorSchema!, modeSchema);
       break;
     case LightType.RGBC:
     case LightType.RGBCW:
       configureOn(accessory, service, onSchema);
-      configureBrightness(accessory, service, lightType, brightSchema, colorSchemaJson, modeSchema);
+      configureBrightness(accessory, service, lightType, brightSchema, colorSchema, modeSchema);
       configureColourTemperature(accessory, service, lightType, tempSchema!, modeSchema);
-      configureHue(accessory, service, lightType, colorSchemaJson!, modeSchema);
-      configureSaturation(accessory, service, lightType, colorSchemaJson!, modeSchema);
+      configureHue(accessory, service, lightType, colorSchema!, modeSchema);
+      configureSaturation(accessory, service, lightType, colorSchema!, modeSchema);
       break;
   }
 
