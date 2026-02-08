@@ -16,6 +16,7 @@ import WindowCoveringAccessory from './WindowCoveringAccessory';
 import LockAccessory from './LockAccessory';
 import ThermostatAccessory from './ThermostatAccessory';
 import HeaterAccessory from './HeaterAccessory';
+import HeaterAccessory_old from './HeaterAccessory_old';
 import ValveAccessory from './ValveAccessory';
 import ContactSensorAccessory from './ContactSensorAccessory';
 import LeakSensorAccessory from './LeakSensorAccessory';
@@ -191,6 +192,8 @@ function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformA
     // Small Home Appliances
     case 'qn':
       return new HeaterAccessory(platform, accessory);
+    case 'qn_old':
+      return new HeaterAccessory_old(platform, accessory);
     case 'kj':
       return new AirPurifierAccessory(platform, accessory);
     case 'xxj':

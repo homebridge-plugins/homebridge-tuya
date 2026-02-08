@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { TuyaDeviceSchemaIntegerProperty } from '../device/TuyaDevice';
-import { limit, toHapProperty } from '../util/util';
+import { limit } from '../util/util';
 import BaseAccessory from './BaseAccessory';
 import { configureActive } from './characteristic/Active';
 import { configureCurrentTemperature } from './characteristic/CurrentTemperature';
@@ -17,12 +17,8 @@ const SCHEMA_CODE = {
   SWING: ['shake'],
   TEMP_UNIT_CONVERT: ['temp_unit_convert', 'c_f'],
 };
-const STATE_CODE = {
-  HEATING: ['heating', 'High'],
-  IDLE: ['warming', 'Low'],
-};
 
-export default class HeaterAccessory extends BaseAccessory {
+export default class HeaterAccessory_old extends BaseAccessory {
 
   requiredSchema() {
     return [SCHEMA_CODE.ACTIVE];
@@ -35,7 +31,7 @@ export default class HeaterAccessory extends BaseAccessory {
     configureCurrentTemperature(this, this.mainService(), this.getSchema(...SCHEMA_CODE.CURRENT_TEMP));
     configureLockPhysicalControls(this, this.mainService(), this.getSchema(...SCHEMA_CODE.LOCK));
     configureSwingMode(this, this.mainService(), this.getSchema(...SCHEMA_CODE.SWING));
-    this.configureHeatingThresholdTemp();
+    this.configureHeatingThreshouldTemp();
     configureTempDisplayUnits(this, this.mainService(), this.getSchema(...SCHEMA_CODE.TEMP_UNIT_CONVERT));
   }
 
@@ -54,13 +50,11 @@ export default class HeaterAccessory extends BaseAccessory {
           return IDLE;
         }
         const status = this.getStatus(schema.code)!;
-        this.log.debug('[beta]configureCurrentState status:' + JSON.stringify(status, null, 2));
-        if (STATE_CODE.HEATING.includes(status.value as string)) {
+        if (status.value === 'heating') {
           return HEATING;
-        } else if (STATE_CODE.IDLE.includes(status.value as string)) {
+        } else if (status.value === 'warming') {
           return IDLE;
         }
-        this.log.debug('[beta]configureCurrentState else:' + JSON.stringify(schema, null, 2));
 
         return INACTIVE;
       });
@@ -71,36 +65,36 @@ export default class HeaterAccessory extends BaseAccessory {
     const validValues = [ AUTO ];
     this.mainService().getCharacteristic(this.Characteristic.TargetHeaterCoolerState)
       .onGet(() => {
-        this.log.debug('[beta]configureTargetState status:' + AUTO);
         return AUTO;
       })
       .onSet(async value => {
         // TODO
-        this.log.debug('[beta]configureTargetState set:' + value);
       })
       .setProps({ validValues });
   }
 
-  configureHeatingThresholdTemp() {
+  configureHeatingThreshouldTemp() {
     const schema = this.getSchema(...SCHEMA_CODE.TARGET_TEMP);
     if (!schema) {
       return;
     }
 
     const property = schema.property as TuyaDeviceSchemaIntegerProperty;
-    const props = toHapProperty(property);
-    const multiple = Math.pow(10, property['scale'] || 0);
+    const multiple = property ? Math.pow(10, property.scale) : 1;
+    const props = {
+      minValue: property.min / multiple,
+      maxValue: property.max / multiple,
+      minStep: Math.max(0.1, property.step / multiple),
+    };
     this.log.debug('Set props for HeatingThresholdTemperature:', props);
 
     this.mainService().getCharacteristic(this.Characteristic.HeatingThresholdTemperature)
       .onGet(() => {
         const status = this.getStatus(schema.code)!;
-        this.log.debug('[beta]configureHeatingThresholdTemp status:' + JSON.stringify(status, null, 2));
         const temp = status.value as number / multiple;
-        return limit(temp, props['minValue'], props['maxValue']);
+        return limit(temp, props.minValue, props.maxValue);
       })
       .onSet(async value => {
-        this.log.debug('[beta]configureHeatingThresholdTemp set:' + value);
         await this.sendCommands([{ code: schema.code, value: (value as number) * multiple}]);
       })
       .setProps(props);
