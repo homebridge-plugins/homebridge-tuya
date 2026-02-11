@@ -10,7 +10,7 @@ import { configureTempDisplayUnits } from './characteristic/TemperatureDisplayUn
 
 const SCHEMA_CODE = {
   ACTIVE: ['switch'],
-  WORK_STATE: ['work_state'],
+  WORK_STATE: ['work_state', 'mode'],
   CURRENT_TEMP: ['temp_current'],
   TARGET_TEMP: ['temp_set'],
   LOCK: ['lock'],
@@ -47,32 +47,38 @@ export default class HeaterAccessory extends BaseAccessory {
 
   configureCurrentState() {
     const schema = this.getSchema(...SCHEMA_CODE.WORK_STATE);
+    const { ACTIVE:ON, INACTIVE:OFF } = this.Characteristic.Active;
     const { INACTIVE, IDLE, HEATING } = this.Characteristic.CurrentHeaterCoolerState;
     this.mainService().getCharacteristic(this.Characteristic.CurrentHeaterCoolerState)
       .onGet(() => {
         if (!schema) {
-          return IDLE;
+          return INACTIVE;
+        }
+        if (this.mainService().getCharacteristic(this.Characteristic.Active).value === OFF) {
+          return INACTIVE;
         }
         const status = this.getStatus(schema.code)!;
-        this.log.debug('[beta]configureCurrentState status:' + JSON.stringify(status, null, 2));
+        this.log.debug('[beta]configureCurrentState status:' + schema.code + ':' + JSON.stringify(status, null, 2));
         if (STATE_CODE.HEATING.includes(status.value as string)) {
           return HEATING;
         } else if (STATE_CODE.IDLE.includes(status.value as string)) {
           return IDLE;
         }
-        this.log.debug('[beta]configureCurrentState else:' + JSON.stringify(schema, null, 2));
+        this.log.debug('[beta]configureCurrentState else:' + schema.code + ':' + JSON.stringify(schema, null, 2));
 
         return INACTIVE;
       });
+
   }
 
   configureTargetState() {
     const { AUTO, HEAT, COOL } = this.Characteristic.TargetHeaterCoolerState;
-    const validValues = [ AUTO ];
+    const validValues = [ HEAT ];
     this.mainService().getCharacteristic(this.Characteristic.TargetHeaterCoolerState)
       .onGet(() => {
-        this.log.debug('[beta]configureTargetState status:' + AUTO);
-        return AUTO;
+        this.log.debug('[beta]configureTargetState status:' + HEAT);
+        // Since setting the mode to AUTO prevents temperature adjustments in the iPhone Home app, the default mode will be set to HEAT.
+        return HEAT;
       })
       .onSet(async value => {
         // TODO
@@ -90,17 +96,20 @@ export default class HeaterAccessory extends BaseAccessory {
     const property = schema.property as TuyaDeviceSchemaIntegerProperty;
     const props = toHapProperty(property);
     const multiple = Math.pow(10, property['scale'] || 0);
+
+
+
     this.log.debug('Set props for HeatingThresholdTemperature:', props);
 
     this.mainService().getCharacteristic(this.Characteristic.HeatingThresholdTemperature)
       .onGet(() => {
         const status = this.getStatus(schema.code)!;
-        this.log.debug('[beta]configureHeatingThresholdTemp status:' + JSON.stringify(status, null, 2));
+        this.log.debug('[beta]configureHeatingThresholdTemp status:' + schema.code + ':' + JSON.stringify(status, null, 2));
         const temp = status.value as number / multiple;
         return limit(temp, props['minValue'], props['maxValue']);
       })
       .onSet(async value => {
-        this.log.debug('[beta]configureHeatingThresholdTemp set:' + value);
+        this.log.debug('[beta]configureHeatingThresholdTemp set:' + schema.code + ':' + value);
         await this.sendCommands([{ code: schema.code, value: (value as number) * multiple}]);
       })
       .setProps(props);
