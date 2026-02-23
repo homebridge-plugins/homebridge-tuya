@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.2.0] - (2026.2.23)
+
+### Fixed
+ - Fixed the HeaterAccessory to follow the device’s schema information.
+If you want to revert to the previous behavior, set the category code to qn_old. 
+
+### Changed
+ - Updated the handling of DP Codes so they are now processed in a case‑insensitive manner.
+ - Updated the plugin settings window to mask the password field.
+
 ## [2.1.0] - (2026.1.5)
 
 ### Added
