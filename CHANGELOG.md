@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.1.0] - (2026.1.5)
+
+### Added
+ - Support Towel Rack(mjj)
+The implementation is almost identical to a thermostat.
+The difference is that there is no limit on the set temperature.
+The lower limit, upper limit, and step of the set temperature may sometimes differ from expectations. Since this is an issue with the product you are using, please override it to any desired value in Advanced Options.
+
+## [2.0.3] - (2025.9.6)
+
+First release after forking.
+Homebridge verified.
+
+### Added
+ - Added an illuminance sensor to the IRControlHub.
+ - Added an accessory that displays weather temperature and humidity.
+ - config.schema.json to allow customizing the Service information for each accessory.
+
+### Fixed
+ - Fixed an issue where learned infrared codes in the IRControlHub would not work in some cases. This likely improves compatibility with older devices.
+### Changed
+ - Updated the IRControlHub to calculate WBGT based on its temperature and humidity readings and expose it as an accessory.
+ - Updated the Outlet accessory so that its “in use” status can be checked in the Home app.
+
 ## [1.7.0] - (unreleased)
 
 ### Added

@@ -58,13 +58,11 @@ export default class HeaterAccessory extends BaseAccessory {
           return INACTIVE;
         }
         const status = this.getStatus(schema.code)!;
-        this.log.debug('[beta]configureCurrentState status:' + schema.code + ':' + JSON.stringify(status, null, 2));
         if (STATE_CODE.HEATING.includes(status.value as string)) {
           return HEATING;
         } else if (STATE_CODE.IDLE.includes(status.value as string)) {
           return IDLE;
         }
-        this.log.debug('[beta]configureCurrentState else:' + schema.code + ':' + JSON.stringify(schema, null, 2));
 
         return INACTIVE;
       });
@@ -76,13 +74,12 @@ export default class HeaterAccessory extends BaseAccessory {
     const validValues = [ HEAT ];
     this.mainService().getCharacteristic(this.Characteristic.TargetHeaterCoolerState)
       .onGet(() => {
-        this.log.debug('[beta]configureTargetState status:' + HEAT);
         // Since setting the mode to AUTO prevents temperature adjustments in the iPhone Home app, the default mode will be set to HEAT.
         return HEAT;
       })
       .onSet(async value => {
         // TODO
-        this.log.debug('[beta]configureTargetState set:' + value);
+        this.log.debug('configureTargetState set:' + value);
       })
       .setProps({ validValues });
   }
@@ -104,12 +101,10 @@ export default class HeaterAccessory extends BaseAccessory {
     this.mainService().getCharacteristic(this.Characteristic.HeatingThresholdTemperature)
       .onGet(() => {
         const status = this.getStatus(schema.code)!;
-        this.log.debug('[beta]configureHeatingThresholdTemp status:' + schema.code + ':' + JSON.stringify(status, null, 2));
         const temp = status.value as number / multiple;
         return limit(temp, props['minValue'], props['maxValue']);
       })
       .onSet(async value => {
-        this.log.debug('[beta]configureHeatingThresholdTemp set:' + schema.code + ':' + value);
         await this.sendCommands([{ code: schema.code, value: (value as number) * multiple}]);
       })
       .setProps(props);

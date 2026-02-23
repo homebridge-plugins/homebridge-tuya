@@ -164,7 +164,7 @@ class BaseAccessory {
         // ignore case
         return schema.code.toLowerCase() === code.toLowerCase();
       });
-      this.log.warn('getSchema schema:' + JSON.stringify(schema, null, 2));
+
       if (!schema) {
         continue;
       }
@@ -304,6 +304,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
 
   getSchema(...codes: string[]) {
     for (const code of codes) {
+
       const schema = this.getOverridedSchema(code) || super.getSchema(code);
       if (!schema) {
         continue;

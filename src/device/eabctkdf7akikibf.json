@@ -1,0 +1,109 @@
+{
+    "category": "qn",
+    "name": "Heater",
+    "product_id": "wja8imamn8sj2sjf",
+    "product_name": "Aquecedor Novo",
+    "status": [
+      {
+        "code": "FAULT",
+        "value": 0
+      },
+      {
+        "code": "Lock",
+        "value": false
+      },
+      {
+        "code": "Mode",
+        "value": "High"
+      },
+      {
+        "code": "Switch",
+        "value": true
+      },
+      {
+        "code": "Temp_current",
+        "value": 23
+      },
+      {
+        "code": "Temp_set",
+        "value": 24
+      },
+      {
+        "code": "Timer",
+        "value": 0
+      }
+    ],
+    "schema": [
+      {
+        "code": "FAULT",
+        "mode": "ro",
+        "type": "Bitmap",
+        "property": {
+          "label": [
+            "Fault_1",
+            "Fault_2"
+          ],
+          "maxlen": 2
+        }
+      },
+      {
+        "code": "Lock",
+        "mode": "rw",
+        "type": "Boolean",
+        "property": {}
+      },
+      {
+        "code": "Mode",
+        "mode": "rw",
+        "type": "Enum",
+        "property": {
+          "range": [
+            "High",
+            "Low"
+          ]
+        }
+      },
+      {
+        "code": "Switch",
+        "mode": "rw",
+        "type": "Boolean",
+        "property": {}
+      },
+      {
+        "code": "Temp_current",
+        "mode": "ro",
+        "type": "Integer",
+        "property": {
+          "unit": "℃",
+          "min": 0,
+          "max": 100,
+          "scale": 0,
+          "step": 1
+        }
+      },
+      {
+        "code": "Temp_set",
+        "mode": "rw",
+        "type": "Integer",
+        "property": {
+          "unit": "℃",
+          "min": 5,
+          "max": 40,
+          "scale": 0,
+          "step": 1
+        }
+      },
+      {
+        "code": "Timer",
+        "mode": "rw",
+        "type": "Integer",
+        "property": {
+          "unit": "min",
+          "min": 0,
+          "max": 1440,
+          "scale": 0,
+          "step": 60
+        }
+      }
+    ]
+}
