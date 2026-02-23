@@ -237,7 +237,9 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       }
     });
 
-    const schemaConfig = deviceConfig.schema.find(item => item.newCode ? item.newCode === code : item.code === code);
+    // ignore case
+    const schemaConfig = deviceConfig.schema.find(item => item.newCode ?
+      item.newCode.toLowerCase() === code.toLowerCase() : item.code.toLowerCase() === code.toLowerCase());
     if (!schemaConfig) {
       return undefined;
     }

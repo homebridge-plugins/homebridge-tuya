@@ -160,7 +160,11 @@ class BaseAccessory {
 
   getSchema(...codes: string[]) {
     for (const code of codes) {
-      const schema = this.device.schema.find(schema => schema.code === code);
+      const schema = this.device.schema.find(schema => {
+        // ignore case
+        return schema.code.toLowerCase() === code.toLowerCase();
+      });
+
       if (!schema) {
         continue;
       }
@@ -168,6 +172,7 @@ class BaseAccessory {
       // Readable schema must have a status
       if ([TuyaDeviceSchemaMode.READ_WRITE, TuyaDeviceSchemaMode.READ_ONLY].includes(schema.mode)
         && !this.getStatus(schema.code)) {
+        this.log.warn('no status');
         continue;
       }
 
@@ -274,8 +279,10 @@ export default class OverridedBaseAccessory extends BaseAccessory {
     if (!schemaConfig) {
       return undefined;
     }
-
-    const oldSchema = this.device.schema.find(schema => schema.code === schemaConfig.code);
+    const oldSchema = this.device.schema.find(schema => {
+      // ignore case
+      return schema.code.toLowerCase() === schemaConfig.code.toLowerCase();
+    });
     if (!oldSchema) {
       return undefined;
     }
@@ -297,6 +304,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
 
   getSchema(...codes: string[]) {
     for (const code of codes) {
+
       const schema = this.getOverridedSchema(code) || super.getSchema(code);
       if (!schema) {
         continue;

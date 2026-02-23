@@ -48,7 +48,10 @@
                     },
                     "accessKey": {
                         "title": "Access Secret",
-                        "type": "string"
+                        "type": "string",
+                        "x-schema-form": {
+                            "type": "password"
+                        }
                     },
                     "countryCode": {
                         "title": "Country Code",
@@ -68,6 +71,9 @@
                     "password": {
                         "title": "Password",
                         "type": "string",
+                        "x-schema-form": {
+                            "type": "password"
+                        },
                         "condition": {
                             "functionBody": "return model.options.projectType === '2';"
                         }

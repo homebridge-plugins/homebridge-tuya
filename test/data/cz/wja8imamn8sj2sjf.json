@@ -1,0 +1,183 @@
+{
+    "category": "cz",
+    "name": "Switch",
+    "product_id": "wja8imamn8sj2sjf",
+    "product_name": "PS-POP-W01",
+    "status": [
+        {
+            "code": "add_ele",
+            "value": 8
+        },
+        {
+            "code": "countdown_1",
+            "value": 0
+        },
+        {
+            "code": "cur_current",
+            "value": 278
+        },
+        {
+            "code": "cur_power",
+            "value": 175
+        },
+        {
+            "code": "cur_voltage",
+            "value": 1032
+        },
+        {
+            "code": "electric_coe",
+            "value": 29911
+        },
+        {
+            "code": "electricity_coe",
+            "value": 1236
+        },
+        {
+            "code": "fault",
+            "value": 0
+        },
+        {
+            "code": "power_coe",
+            "value": 16791
+        },
+        {
+            "code": "switch_1",
+            "value": true
+        },
+        {
+            "code": "voltage_coe",
+            "value": 593
+        }
+    ],
+    "schema": [
+        {
+            "code": "add_ele",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "",
+                "min": 0,
+                "max": 50000,
+                "scale": 3,
+                "step": 100
+            }
+        },
+        {
+            "code": "countdown_1",
+            "mode": "rw",
+            "type": "Integer",
+            "property": {
+                "unit": "s",
+                "min": 0,
+                "max": 86400,
+                "scale": 0,
+                "step": 1
+            }
+        },
+        {
+            "code": "cur_current",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "mA",
+                "min": 0,
+                "max": 30000,
+                "scale": 0,
+                "step": 1
+            }
+        },
+        {
+            "code": "cur_power",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "W",
+                "min": 0,
+                "max": 20000,
+                "scale": 1,
+                "step": 1
+            }
+        },
+        {
+            "code": "cur_voltage",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "V",
+                "min": 0,
+                "max": 5000,
+                "scale": 1,
+                "step": 1
+            }
+        },
+        {
+            "code": "electric_coe",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "",
+                "min": 0,
+                "max": 1000000,
+                "scale": 0,
+                "step": 1
+            }
+        },
+        {
+            "code": "electricity_coe",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "",
+                "min": 0,
+                "max": 1000000,
+                "scale": 0,
+                "step": 1
+            }
+        },
+        {
+            "code": "fault",
+            "mode": "ro",
+            "type": "Bitmap",
+            "property": {
+                "label": [
+                    "ov_cr",
+                    "ov_vol",
+                    "ov_pwr",
+                    "ls_cr",
+                    "ls_vol",
+                    "ls_pow"
+                ]
+            }
+        },
+        {
+            "code": "power_coe",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "",
+                "min": 0,
+                "max": 1000000,
+                "scale": 0,
+                "step": 1
+            }
+        },
+        {
+            "code": "switch_1",
+            "mode": "rw",
+            "type": "Boolean",
+            "property": {}
+        },
+        {
+            "code": "voltage_coe",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "",
+                "min": 0,
+                "max": 1000000,
+                "scale": 0,
+                "step": 1
+            }
+        }
+    ]
+}
