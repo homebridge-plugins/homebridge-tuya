@@ -19,11 +19,11 @@
     }
   ],
   "engines": {
-    "homebridge": ">=1.8.0",
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0",
     "node": "^20 || ^22 || ^24 || ^25"
   },
   "peerDependencies": {
-    "homebridge": ">=1.8.0"
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "main": "dist/index.js",
   "scripts": {
