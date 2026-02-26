@@ -55,3 +55,16 @@ export function toHapProperty(
     return hap;
   }, {});
 }
+
+export function sanitizeName(name?: string): string | undefined {
+  if (!name) return undefined;
+  // keep alphanumeric, spaces and apostrophes; replace other chars with space
+  let s = name.toString().replace(/[^A-Za-z0-9 '\s]/g, ' ');
+  // collapse whitespace
+  s = s.replace(/\s+/g, ' ').trim();
+  // ensure it starts and ends with alphanumeric
+  if (!/^[A-Za-z0-9].*[A-Za-z0-9]$/.test(s)) {
+    return undefined;
+  }
+  return s;
+}

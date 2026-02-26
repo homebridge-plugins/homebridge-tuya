@@ -6,7 +6,7 @@ import isEqual from 'lodash.isequal';
 
 import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty, TuyaDeviceSchemaMode, TuyaDeviceStatus } from '../device/TuyaDevice';
 import { TuyaPlatform } from '../platform';
-import { limit } from '../util/util';
+import { limit, sanitizeName } from '../util/util';
 import { PrefixLogger } from '../util/Logger';
 
 const MANUFACTURER = 'Tuya Inc.';
@@ -54,11 +54,12 @@ class BaseAccessory {
     const service = this.accessory.getService(this.Service.AccessoryInformation)
       || this.accessory.addService(this.Service.AccessoryInformation);
 
+    const safeName = sanitizeName(this.device.name) ?? (this.device.id || 'Tuya Device');
     service
       .setCharacteristic(this.Characteristic.Manufacturer, MANUFACTURER)
       .setCharacteristic(this.Characteristic.Model, this.device.model || this.device.product_name || this.device.product_id)
-      .setCharacteristic(this.Characteristic.Name, this.device.name)
-      .setCharacteristic(this.Characteristic.ConfiguredName, this.device.name)
+      .setCharacteristic(this.Characteristic.Name, safeName)
+      .setCharacteristic(this.Characteristic.ConfiguredName, safeName)
       .setCharacteristic(this.Characteristic.SerialNumber, this.device.uuid)
     ;
   }

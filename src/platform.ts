@@ -12,6 +12,7 @@ import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { TuyaPlatformConfigOptions, customOptionsSchema, homeOptionsSchema } from './config';
 import AccessoryFactory from './accessory/AccessoryFactory';
 import BaseAccessory from './accessory/BaseAccessory';
+import { sanitizeName } from './util/util';
 import TuyaOpenAPI, { LOGIN_ERROR_MESSAGES } from './core/TuyaOpenAPI';
 
 
@@ -237,9 +238,14 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       }
     });
 
-    // ignore case
-    const schemaConfig = deviceConfig.schema.find(item => item.newCode ?
-      item.newCode.toLowerCase() === code.toLowerCase() : item.code.toLowerCase() === code.toLowerCase());
+    // ignore case - guard against undefined codes
+    const schemaConfig = deviceConfig.schema.find(item => {
+      const itemCode = (item.newCode ?? item.code);
+      if (!itemCode || !code) {
+        return false;
+      }
+      return itemCode.toString().toLowerCase() === code.toString().toLowerCase();
+    });
     if (!schemaConfig) {
       return undefined;
     }
@@ -451,8 +457,9 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       // the accessory does not yet exist, so we need to create it
       this.log.info('Adding new accessory:', device.name);
 
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.name, uuid);
+      // create a new accessory (sanitize name to conform to HAP rules)
+      const safeName = sanitizeName(device.name) ?? (device.id || 'Tuya Device');
+      const accessory = new this.api.platformAccessory(safeName, uuid);
       accessory.context.deviceID = device.id;
 
       // create the accessory handler for the newly create accessory

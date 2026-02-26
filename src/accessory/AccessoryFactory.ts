@@ -3,6 +3,7 @@ import TuyaDevice from '../device/TuyaDevice';
 import { TuyaPlatform } from '../platform';
 
 import BaseAccessory from './BaseAccessory';
+import { sanitizeName } from '../util/util';
 import LightAccessory from './LightAccessory';
 import DimmerAccessory from './DimmerAccessory';
 import OutletAccessory from './OutletAccessory';
@@ -99,6 +100,28 @@ export default class AccessoryFactory {
 
   static configAccessory(platform: TuyaPlatform, accessory: PlatformAccessory) {
     const configs = platform.options.serviceInformationOverrides;
+
+    // Always sanitize existing Name/ConfiguredName loaded from persist
+    try {
+      const info = accessory.getService(platform.Service.AccessoryInformation);
+      if (info) {
+        const currentConfigured = info.getCharacteristic(platform.Characteristic.ConfiguredName).value as unknown as string;
+        const currentName = info.getCharacteristic(platform.Characteristic.Name).value as unknown as string;
+        const safeConfigured = sanitizeName(currentConfigured) ?? undefined;
+        const safeName = sanitizeName(currentName) ?? undefined;
+        if (safeName && safeName !== currentName) {
+          info.getCharacteristic(platform.Characteristic.Name).updateValue(safeName);
+          platform.log.info(`Sanitized Name: ${currentName} -> ${safeName}`);
+        }
+        if (safeConfigured && safeConfigured !== currentConfigured) {
+          info.getCharacteristic(platform.Characteristic.ConfiguredName).updateValue(safeConfigured);
+          platform.log.info(`Sanitized ConfiguredName: ${currentConfigured} -> ${safeConfigured}`);
+        }
+      }
+    } catch (e) {
+      platform.log.debug('Failed to sanitize accessory name:', e);
+    }
+
     if (!configs) {
       return;
     }
@@ -124,10 +147,12 @@ export default class AccessoryFactory {
           platform.log.info(`firmwareRevision updated. ${before} -> ${config.firmwareRevision}`);
         }
         if (config.configuredName) {
+          const { sanitizeName } = require('../util/util');
+          const safe = sanitizeName(config.configuredName) ?? config.configuredName.replace(/[^A-Za-z0-9 '\s]/g, ' ').replace(/\s+/g, ' ').trim();
           const before = service.getCharacteristic(platform.Characteristic.ConfiguredName).value;
-          service.getCharacteristic(platform.Characteristic.Name).updateValue(config.configuredName);
-          service.getCharacteristic(platform.Characteristic.ConfiguredName).updateValue(config.configuredName);
-          platform.log.info(`configuredName updated. ${before} -> ${config.configuredName}`);
+          service.getCharacteristic(platform.Characteristic.Name).updateValue(safe);
+          service.getCharacteristic(platform.Characteristic.ConfiguredName).updateValue(safe);
+          platform.log.info(`configuredName updated. ${before} -> ${safe}`);
         }
       } catch (e) {
         platform.log.error(`index out of bound.:${config.index}`);
