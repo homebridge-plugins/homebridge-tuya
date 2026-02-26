@@ -57,13 +57,16 @@ export function toHapProperty(
 }
 
 export function sanitizeName(name?: string): string | undefined {
-  if (!name) return undefined;
-  // keep alphanumeric, spaces and apostrophes; replace other chars with space
-  let s = name.toString().replace(/[^A-Za-z0-9 '\s]/g, ' ');
+  if (!name) {
+    return undefined;
+  }
+  // keep Unicode alphanumeric characters, spaces and apostrophes; replace other chars with space
+  // Uses Unicode property escapes so letters and numbers from all scripts are allowed.
+  let s = name.toString().replace(/[^\p{L}\p{N}'\s]/gu, ' ');
   // collapse whitespace
   s = s.replace(/\s+/g, ' ').trim();
-  // ensure it starts and ends with alphanumeric
-  if (!/^[A-Za-z0-9].*[A-Za-z0-9]$/.test(s)) {
+  // ensure it starts and ends with an alphanumeric (Unicode-aware)
+  if (!/^[\p{L}\p{N}].*[\p{L}\p{N}]$/u.test(s)) {
     return undefined;
   }
   return s;
