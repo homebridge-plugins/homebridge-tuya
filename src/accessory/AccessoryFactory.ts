@@ -147,8 +147,11 @@ export default class AccessoryFactory {
           platform.log.info(`firmwareRevision updated. ${before} -> ${config.firmwareRevision}`);
         }
         if (config.configuredName) {
-          const { sanitizeName } = require('../util/util');
-          const safe = sanitizeName(config.configuredName) ?? config.configuredName.replace(/[^A-Za-z0-9 '\s]/g, ' ').replace(/\s+/g, ' ').trim();
+          const safe = sanitizeName(config.configuredName)
+            ?? config.configuredName
+              .replace(/[^A-Za-z0-9 '\s]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
           const before = service.getCharacteristic(platform.Characteristic.ConfiguredName).value;
           service.getCharacteristic(platform.Characteristic.Name).updateValue(safe);
           service.getCharacteristic(platform.Characteristic.ConfiguredName).updateValue(safe);
