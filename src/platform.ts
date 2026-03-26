@@ -218,7 +218,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       await this.localDeviceManager.initLocalDevices();
       this.localDeviceManager.connectAllDevices();
 
-      this.localDeviceManager.on(TuyaDeviceManager.Events.DEVICE_ADD, this.addAccessory.bind(this));
+      this.localDeviceManager.on(TuyaDeviceManager.Events.DEVICE_ADD, (device) => this.addAccessory(device, 'local'));
       this.localDeviceManager.on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.updateAccessoryInfo.bind(this));
       this.localDeviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.updateAccessoryStatus.bind(this));
       this.localDeviceManager.on(TuyaDeviceManager.Events.DEVICE_DELETE, this.removeAccessory.bind(this));
@@ -226,7 +226,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       const localDevices = [...this.localDeviceManager.devices.values()];
       this.log.info(`[Local] Registered ${localDevices.length} local device(s).`);
       for (const device of localDevices) {
-        this.addAccessory(device);
+        this.addAccessory(device, 'local');
       }
     }
 
@@ -248,7 +248,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
 
         // Apply device config overrides
         for (const device of devices) {
-          const deviceConfig = this.getDeviceConfig(device);
+          const deviceConfig = this.getDeviceConfig(device, 'cloud');
           if (deviceConfig?.category) {
             this.log.warn('Override %o category from %o to %o', device.name, device.category, deviceConfig.category);
             device.category = deviceConfig.category;
@@ -285,10 +285,10 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
         await fs.promises.writeFile(file, JSON.stringify(devices, null, 2));
 
         for (const device of devices) {
-          this.addAccessory(device);
+          this.addAccessory(device, 'cloud');
         }
 
-        this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_ADD, this.addAccessory.bind(this));
+        this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_ADD, (device) => this.addAccessory(device, 'cloud'));
         this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.updateAccessoryInfo.bind(this));
         this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.updateAccessoryStatus.bind(this));
         this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_DELETE, this.removeAccessory.bind(this));
@@ -303,20 +303,32 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     this.cachedAccessories = [];
   }
 
-  getDeviceConfig(device: TuyaDevice) {
+  getDeviceConfig(device: TuyaDevice, source?: 'local' | 'cloud') {
     if (!this.options.deviceOverrides) {
       return undefined;
     }
 
-    const deviceConfig = this.options.deviceOverrides.find(config => config.id === device.id || config.id === device.uuid);
-    const productConfig = this.options.deviceOverrides.find(config => config.id === device.product_id);
-    const globalConfig = this.options.deviceOverrides.find(config => config.id === 'global');
+    // Find matching override, respecting source filtering
+    // Since deviceOverrides are in the cloud config, they default to cloud-only
+    const matches = this.options.deviceOverrides.filter(config => {
+      // If source is explicitly specified in config, use it
+      // If source is not specified, default to cloud-only (since overrides are in cloud config)
+      const sourceMatch = config.source
+        ? (config.source === 'both' || config.source === source)  // explicit source
+        : source === 'cloud';                                      // default: cloud-only
+      const idMatch = config.id === device.id || config.id === device.uuid ||
+                      config.id === device.product_id || config.id === 'global';
+      return sourceMatch && idMatch;
+    });
 
-    return deviceConfig || productConfig || globalConfig;
+    // Return device-specific config, then product, then global
+    return matches.find(config => config.id === device.id || config.id === device.uuid) ||
+           matches.find(config => config.id === device.product_id) ||
+           matches.find(config => config.id === 'global');
   }
 
-  getDeviceSchemaConfig(device: TuyaDevice, code: string) {
-    const deviceConfig = this.getDeviceConfig(device);
+  getDeviceSchemaConfig(device: TuyaDevice, code: string, source?: 'local' | 'cloud') {
+    const deviceConfig = this.getDeviceConfig(device, source);
     if (!deviceConfig || !deviceConfig.schema) {
       return undefined;
     }
@@ -520,9 +532,9 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     return devices;
   }
 
-  addAccessory(device: TuyaDevice) {
+  addAccessory(device: TuyaDevice, source?: 'local' | 'cloud') {
     // Apply device override config before checking if hidden
-    const deviceConfig = this.getDeviceConfig(device);
+    const deviceConfig = this.getDeviceConfig(device, source);
     if (deviceConfig?.category) {
       this.log.warn('Override %o category from %o to %o', device.name, device.category, deviceConfig.category);
       device.category = deviceConfig.category;

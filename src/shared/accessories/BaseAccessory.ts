@@ -37,6 +37,18 @@ class BaseAccessory {
     return this.platform.deviceManager;
   }
 
+  public get deviceSource(): 'local' | 'cloud' | undefined {
+    // Determine which source this device comes from for override lookup
+    const deviceID = this.accessory.context.deviceID;
+    if (deviceID && this.platform.localDeviceManager?.getDevice(deviceID)) {
+      return 'local';
+    }
+    if (deviceID && this.platform.deviceManager?.getDevice(deviceID)) {
+      return 'cloud';
+    }
+    return undefined;
+  }
+
   public get device() {
     // Try local device manager first (for local-only or hybrid modes)
     const localDevice = this.platform.localDeviceManager?.getDevice(this.accessory.context.deviceID);
@@ -337,7 +349,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
     if (!this.device) {
       return undefined;
     }
-    const schemaConfig = this.platform.getDeviceSchemaConfig(this.device, code);
+    const schemaConfig = this.platform.getDeviceSchemaConfig(this.device, code, this.deviceSource);
     if (!schemaConfig) {
       return undefined;
     }
@@ -384,7 +396,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
     if (!this.device) {
       return undefined;
     }
-    const schemaConfig = this.platform.getDeviceSchemaConfig(this.device, code);
+    const schemaConfig = this.platform.getDeviceSchemaConfig(this.device, code, this.deviceSource);
     if (!schemaConfig) {
       return undefined;
     }
@@ -419,7 +431,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
 
     // convert to original commands
     for (const command of commands) {
-      const schemaConfig = this.platform.getDeviceSchemaConfig(this.device, command.code);
+      const schemaConfig = this.platform.getDeviceSchemaConfig(this.device, command.code, this.deviceSource);
       if (!schemaConfig) {
         continue;
       }

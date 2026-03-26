@@ -25,7 +25,14 @@ export interface TuyaPlatformDeviceConfig {
   schema?: Array<TuyaPlatformDeviceSchemaConfig>;
   unbridged?: boolean;
   adaptiveLighting?: boolean;
-}
+  /**
+   * Optional: Limit this override to a specific source.
+   * Since deviceOverrides are in the options (cloud) config, they default to 'cloud' only.
+   * - 'cloud': apply only to devices from Tuya Cloud (default if not specified)
+   * - 'local': apply only to devices from local LAN discovery
+   * - 'both': apply to devices from both sources
+   */
+  source?: 'local' | 'cloud' | 'both';}
 
 export interface TuyaPlatformServiceInformationConfig {
   device_id: string;
