@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.0.0] - (2026.6.1)
+
+### Breaking Changes
+- **Complete codebase restructure** — source files are now organised under `src/cloud/`, `src/local/`, and `src/shared/` instead of the previous flat layout. No config changes needed for existing cloud users.
+- Requires Node.js `^20 || ^22 || ^24 || ^25`.
+
+### Added
+- **Local LAN mode** — communicate directly with Tuya devices over TCP on your local network with no cloud connection required. Set `"mode": "local"` in your config.
+- **Both mode** — run cloud and local connections simultaneously (`"mode": "both"`).
+- **UDP auto-discovery** — automatically finds Tuya devices on the local network (ports 6666/6667/7000). Supports protocol versions 3.1–3.5 including AES-GCM (v3.5).
+- **Full local protocol support** — LAN TCP client with AES-128-ECB (v3.1–v3.4) and AES-128-GCM (v3.5), 3-way key exchange for v3.4/v3.5, and automatic reconnection with exponential backoff.
+- New `local` config block in Homebridge UI with device list and discovery options.
+- New `mode` selector in the Homebridge UI config screen.
+
+### Changed
+- Updated `config.schema.json` with the new `mode` enum and `local` block; all cloud options now only appear when mode is `cloud` or `both`.
+- Version bump to 3.0.0 to reflect the breaking restructure.
+- Updated README with full cloud and local setup instructions.
+
 ## [2.2.0] - (2026.2.23)
 
 ### Fixed

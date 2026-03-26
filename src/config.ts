@@ -1,5 +1,11 @@
 import { PlatformConfig } from 'homebridge';
-import { TuyaDeviceSchemaProperty, TuyaDeviceSchemaType } from './device/TuyaDevice';
+import { TuyaDeviceSchemaProperty, TuyaDeviceSchemaType } from './cloud/device/TuyaDevice';
+import { LocalConfig } from './local/config';
+
+// ── Re-export local config so consumers can import from one place ─────────────
+export { LocalConfig } from './local/config';
+
+// ── Schema overrides (cloud device per-code overrides) ────────────────────────
 
 export interface TuyaPlatformDeviceSchemaConfig {
   code: string;
@@ -10,6 +16,8 @@ export interface TuyaPlatformDeviceSchemaConfig {
   onSet?: string;
   hidden?: boolean;
 }
+
+// ── Per-device override block (applies to cloud devices by ID) ────────────────
 
 export interface TuyaPlatformDeviceConfig {
   id: string;
@@ -28,6 +36,8 @@ export interface TuyaPlatformServiceInformationConfig {
   configuredName?: string;
 }
 
+// ── Cloud project-type 1 (Custom / IoT project) ───────────────────────────────
+
 export interface TuyaPlatformCustomConfigOptions {
   projectType: '1';
   endpoint: string;
@@ -42,6 +52,8 @@ export interface TuyaPlatformCustomConfigOptions {
   debug?: boolean;
   debugLevel?: string;
 }
+
+// ── Cloud project-type 2 (Smart Home / app login) ────────────────────────────
 
 export interface TuyaPlatformHomeConfigOptions {
   projectType: '2';
@@ -61,11 +73,40 @@ export interface TuyaPlatformHomeConfigOptions {
   debugLevel?: string;
 }
 
-export type TuyaPlatformConfigOptions = TuyaPlatformCustomConfigOptions | TuyaPlatformHomeConfigOptions;
+export type TuyaPlatformCloudConfigOptions =
+  | TuyaPlatformCustomConfigOptions
+  | TuyaPlatformHomeConfigOptions;
+
+/** @deprecated Use TuyaPlatformCloudConfigOptions */
+export type TuyaPlatformConfigOptions = TuyaPlatformCloudConfigOptions;
+
+// ── Unified top-level plugin config ──────────────────────────────────────────
+
+/**
+ * Top-level communication mode.
+ *
+ * - `"cloud"` — connect via Tuya Cloud API only (default)
+ * - `"local"` — connect directly to devices over LAN only
+ * - `"both"`  — use cloud AND local simultaneously
+ */
+export type TuyaPluginMode = 'cloud' | 'local' | 'both';
 
 export interface TuyaPlatformConfig extends PlatformConfig {
-  options: TuyaPlatformConfigOptions;
+  /**
+   * Communication mode. Defaults to "cloud" for backward compatibility.
+   * When set to "local" or "both", the `local` block must be present.
+   * When set to "cloud" or "both", the `options` block must be present.
+   */
+  mode?: TuyaPluginMode;
+
+  /** Cloud credentials — required when mode is "cloud" or "both". */
+  options?: TuyaPlatformCloudConfigOptions;
+
+  /** Local LAN settings — required when mode is "local" or "both". */
+  local?: LocalConfig;
 }
+
+// ── JSON-Schema validators (used by platform.ts validation) ──────────────────
 
 export const customOptionsSchema = {
   properties: {

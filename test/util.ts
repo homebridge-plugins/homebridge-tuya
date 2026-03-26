@@ -1,13 +1,14 @@
+import { expect } from '@jest/globals';
 import fs from 'fs';
 import { PLATFORM_NAME } from '../src/settings';
 import { TuyaPlatformConfig } from '../src/config';
-import TuyaDevice, { TuyaDeviceSchema } from '../src/device/TuyaDevice';
-import { TuyaOpenAPIResponse } from '../src/core/TuyaOpenAPI';
+import TuyaDevice, { TuyaDeviceSchema } from '../src/cloud/device/TuyaDevice';
+import { TuyaOpenAPIResponse } from '../src/cloud/api/TuyaOpenAPI';
 
 const file = fs.readFileSync(`${process.env.HOME}/.homebridge-dev/config.json`);
 const { platforms } = JSON.parse(file.toString());
 
-export const config: TuyaPlatformConfig = platforms.find(platform => platform.platform === PLATFORM_NAME);
+export const config: TuyaPlatformConfig = platforms.find((platform: any) => platform.platform === PLATFORM_NAME);
 
 export function expectDevice(device: TuyaDevice) {
   // console.debug(JSON.stringify(device));
