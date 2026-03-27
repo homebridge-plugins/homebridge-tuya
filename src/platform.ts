@@ -310,12 +310,11 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
 
     // Find matching override, respecting source filtering
     // Since deviceOverrides are in the cloud config, they default to cloud-only
+    const effectiveSource = source || 'cloud';
     const matches = this.options.deviceOverrides.filter(config => {
-      // If source is explicitly specified in config, use it
-      // If source is not specified, default to cloud-only (since overrides are in cloud config)
       const sourceMatch = config.source
-        ? (config.source === 'both' || config.source === source)  // explicit source
-        : source === 'cloud';                                      // default: cloud-only
+        ? (config.source === 'both' || config.source === effectiveSource)  // explicit source
+        : effectiveSource === 'cloud';                                    // default: cloud-only
       const idMatch = config.id === device.id || config.id === device.uuid ||
                       config.id === device.product_id || config.id === 'global';
       return sourceMatch && idMatch;
