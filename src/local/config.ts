@@ -86,4 +86,19 @@ export interface LocalDeviceConfig {
    * Required when parentDeviceId is set.
    */
   zigbeeChildId?: string;
+
+  /**
+   * For Zigbee sub-devices: optional DP mapping override specific to this child.
+   * If provided, overrides the parent's dpMapping for this child device.
+   * Useful when child device DPs differ from parent or other children.
+   * Example: { "switch_1": 1, "bright_value": 3 } if child uses different DP indices.
+   */
+  childDpMapping?: Record<string, number>;
+
+  /**
+   * For Zigbee sub-devices: optional category override specific to this child.
+   * If provided, overrides the parent's category for this child device.
+   * Useful when child is a different device type than the gateway.
+   */
+  childCategory?: string;
 }

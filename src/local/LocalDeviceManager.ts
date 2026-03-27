@@ -13,6 +13,11 @@ import { PrefixLogger } from '../shared/util/Logger';
 import Logger from '../shared/util/Logger';
 import { ConfigHash } from '../shared/util/ConfigHash';
 import { ZigbeeGatewayDetection, GatewayRelationship } from './ZigbeeGatewayDetection';
+import {
+  discoverFromCloudList,
+  buildDiscoveredChildConfig,
+  supportsChildDiscovery,
+} from './DynamicChildDiscovery';
 
 /**
  * Default DP-to-code mapping used when the user hasn't supplied one.
@@ -684,14 +689,53 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
    * After a Zigbee gateway connects, configure all its child sub-devices.
    * Each child gets a lightweight LocalDevice whose update() call delegates
    * to the parent, with the CID embedded in the payload.
+   *
+   * If a child connection already exists (e.g. after a gateway reconnect),
+   * re-link it to the parent and restore its connected state.
    */
   private _setupZigbeeChildren(parentId: string, parentConn: LocalDevice): void {
     const rel = this.gatewayRelationships.get(parentId);
     if (!rel) return;
 
     for (const entry of rel.children) {
-      this._setupZigbeeChild(entry.deviceId, entry.cid, parentConn);
+      const existingConn = this.localConnections.get(entry.deviceId);
+      if (existingConn && existingConn.parentDevice) {
+        // Child connection already exists – re-bind to new parent connection
+        this._reconnectZigbeeChild(entry.deviceId, entry.cid, existingConn, parentConn);
+      } else {
+        // New child – set up from scratch
+        this._setupZigbeeChild(entry.deviceId, entry.cid, parentConn);
+      }
     }
+  }
+
+  /**
+   * Re-bind an existing Zigbee child connection to a newly reconnected parent gateway.
+   * Preserves the child's state and event listeners while updating the parent reference.
+   */
+  private _reconnectZigbeeChild(childDeviceId: string, cid: string, childConn: LocalDevice, newParentConn: LocalDevice): void {
+    const childTuyaDevice = this.localDevices.find(d => d.id === childDeviceId);
+    if (!childTuyaDevice) {
+      this.log.warn(`Zigbee child ${childDeviceId}: TuyaDevice not found during reconnect`);
+      return;
+    }
+
+    // Update parent reference and CID
+    childConn.parentDevice = newParentConn;
+    childConn.childId = cid;
+    newParentConn.children.set(cid, childConn);
+
+    // Mark child as connected (mirrors parent state)
+    childConn.connected = true;
+
+    this.log.info(`Zigbee child ${childDeviceId} (CID=${cid}): re-linked to parent on reconnect`);
+
+    // Notify that device is now online
+    childTuyaDevice.online = true;
+    this.emit(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, childTuyaDevice, { online: true });
+
+    // Request fresh state from child via parent
+    newParentConn.queryStateChild(cid);
   }
 
   /**
@@ -706,9 +750,20 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       return;
     }
 
+    // Check if child has per-child overrides for DP mapping or category
+    const effectiveChildCfg = { ...cfg };
+    if (cfg.childDpMapping) {
+      effectiveChildCfg.dpMapping = cfg.childDpMapping;
+      this.log.debug(`Zigbee child ${childDeviceId}: using per-child DP mapping override`);
+    }
+    if (cfg.childCategory) {
+      effectiveChildCfg.category = cfg.childCategory;
+      this.log.debug(`Zigbee child ${childDeviceId}: using per-child category override`);
+    }
+
     // Register TuyaDevice if not already present
     if (!this.localDevices.find(d => d.id === childDeviceId)) {
-      this._registerDeviceConfig(cfg);
+      this._registerDeviceConfig(effectiveChildCfg);
     }
 
     const childTuyaDevice = this.localDevices.find(d => d.id === childDeviceId);
@@ -783,6 +838,80 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       `Zigbee child "${cfg.name ?? childDeviceId}" (${childDeviceId}, CID=${cid}) ` +
       `connected via gateway ${parentConn['context'].id}`,
     );
+  }
+
+  /**
+   * Discover and register Zigbee children from Tuya Cloud device list.
+   * If cloud API provides gateway_id field, we can auto-detect parent-child relationships
+   * and create child configs without manual config.
+   * 
+   * @param cloudDeviceList - Optional array of cloud devices with id and gateway_id fields
+   */
+  discoverChildrenFromCloud(cloudDeviceList?: Array<{ id: string; gateway_id?: string }>): void {
+    if (!cloudDeviceList || cloudDeviceList.length === 0) {
+      return;
+    }
+
+    // Find parent-child relationships from cloud metadata
+    const gatewayToChildren = discoverFromCloudList(cloudDeviceList);
+
+    if (gatewayToChildren.size === 0) {
+      return;
+    }
+
+    // For each discovered parent-child relationship, ensure child config exists
+    for (const [gatewayDeviceId, childDeviceIds] of gatewayToChildren) {
+      const parentCfg = this.config.devices?.find(d => d.tuyaDeviceId === gatewayDeviceId);
+      if (!parentCfg) {
+        this.log.debug(`Cloud parent ${gatewayDeviceId}: no local config found, skipping auto-discovery`);
+        continue;
+      }
+
+      // Only auto-discover for gateways that support it
+      if (!supportsChildDiscovery(parentCfg)) {
+        continue;
+      }
+
+      for (const childDeviceId of childDeviceIds) {
+        // Check if child config already exists
+        const existingChildCfg = this.config.devices?.find(d => d.tuyaDeviceId === childDeviceId);
+        if (existingChildCfg) {
+          continue; // Already configured manually
+        }
+
+        // Auto-create child config from cloud metadata
+        // Use a placeholder CID (will be replaced by LAN discovery when gateway connects)
+        const placeholderCid = `00000000${childDeviceId.substring(0, 8).toLowerCase().padEnd(8, '0')}`;
+        const autoChildCfg = buildDiscoveredChildConfig(
+          gatewayDeviceId,
+          placeholderCid,
+          undefined,
+          parentCfg.ip,
+          parentCfg.tuyaKey,
+        );
+        autoChildCfg.zigbeeChildId = undefined; // Will be discovered dynamically
+
+        if (!this.config.devices) {
+          this.config.devices = [];
+        }
+        this.config.devices.push(autoChildCfg);
+
+        this.log.info(
+          `Zigbee child auto-discovery: registered ${childDeviceId} as child of ${gatewayDeviceId} ` +
+          '(from cloud metadata)',
+        );
+      }
+    }
+
+    // Re-detect Zigbee relationships now that we've added auto-discovered children
+    if (this.config.devices && this.config.devices.length > 0) {
+      try {
+        this.gatewayRelationships = ZigbeeGatewayDetection.detectFromDevices(this.config.devices);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.log.warn(`Re-detection of Zigbee relationships after auto-discovery failed: ${msg}`);
+      }
+    }
   }
 
   /** Connect all configured local devices eagerly (called after init). */

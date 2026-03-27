@@ -176,6 +176,25 @@
                                     "type": "string",
                                     "pattern": "^[0-9a-fA-F]{16}$"
                                 },
+                                "childDpMapping": {
+                                    "title": "Child DP Mapping (Override)",
+                                    "description": "For Zigbee sub-devices: optional DP mapping override. If provided, replaces the parent's DP mapping for this child device. Useful when child DPs differ from the gateway.",
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "integer"
+                                    },
+                                    "condition": {
+                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== undefined && ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== '';"
+                                    }
+                                },
+                                "childCategory": {
+                                    "title": "Child Category Override",
+                                    "description": "For Zigbee sub-devices: optional category override. If provided, replaces the parent's category for this child device. Useful when child is a different device type than the gateway.",
+                                    "type": "string",
+                                    "condition": {
+                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== undefined && ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== '';"
+                                    }
+                                },
                                 "outlets": {
                                     "type": "array",
                                     "title": "Outlets",
