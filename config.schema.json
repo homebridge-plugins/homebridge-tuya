@@ -159,6 +159,23 @@
                                         "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
                                     }
                                 },
+                                "isZigbeeGateway": {
+                                    "title": "Zigbee Gateway",
+                                    "description": "Mark this device as a Zigbee gateway. Usually auto-detected if other devices reference this device as their parent.",
+                                    "type": "boolean",
+                                    "default": false
+                                },
+                                "parentDeviceId": {
+                                    "title": "Parent Gateway Device ID",
+                                    "description": "For Zigbee sub-devices: the Tuya device ID of the parent gateway. Commands are routed through the parent's TCP connection using the Zigbee CID.",
+                                    "type": "string"
+                                },
+                                "zigbeeChildId": {
+                                    "title": "Zigbee Child ID (CID)",
+                                    "description": "For Zigbee sub-devices: the 16-character hex node ID assigned by the gateway (e.g. '0011223344556601'). Required when parentDeviceId is set.",
+                                    "type": "string",
+                                    "pattern": "^[0-9a-fA-F]{16}$"
+                                },
                                 "outlets": {
                                     "type": "array",
                                     "title": "Outlets",

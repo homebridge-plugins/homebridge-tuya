@@ -12,6 +12,7 @@ import { LocalConfig, LocalDeviceConfig } from './config';
 import { PrefixLogger } from '../shared/util/Logger';
 import Logger from '../shared/util/Logger';
 import { ConfigHash } from '../shared/util/ConfigHash';
+import { ZigbeeGatewayDetection, GatewayRelationship } from './ZigbeeGatewayDetection';
 
 /**
  * Default DP-to-code mapping used when the user hasn't supplied one.
@@ -85,6 +86,13 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   // Tracks which devices had config changes
   private configChanged: Map<string, boolean> = new Map();
 
+  // ── Zigbee gateway/child support ──────────────────────────────────────────
+  /** Parent gateway ID → GatewayRelationship (derived from config at init). */
+  private gatewayRelationships: Map<string, GatewayRelationship> = new Map();
+  /** Parent gateway device ID → its active LocalDevice connection. */
+  private gatewayConnections: Map<string, LocalDevice> = new Map();
+  // ──────────────────────────────────────────────────────────────────────────
+
   constructor(localConfig: LocalConfig, log: Logger, persistPath?: string) {
     // Create a minimal dummy API so the parent initialises without connecting
     const dummyLog = new PrefixLogger(log, 'LocalDummy', false);
@@ -106,16 +114,39 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
    * Returns immediately; discovery events fire asynchronously.
    */
   async initLocalDevices(): Promise<void> {
-    // Register manual device entries first
+    // ── Zigbee: detect parent-child relationships before registering devices ──
+    if (this.config.devices && this.config.devices.length > 0) {
+      try {
+        this.gatewayRelationships = ZigbeeGatewayDetection.detectFromDevices(this.config.devices);
+        if (this.gatewayRelationships.size > 0) {
+          for (const [parentId, rel] of this.gatewayRelationships) {
+            this.log.info(
+              `Zigbee gateway detected: ${parentId} has ${rel.children.length} sub-device(s): ` +
+              rel.children.map(c => `${c.name} (CID=${c.cid})`).join(', '),
+            );
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.log.error(`Zigbee configuration error: ${msg}`);
+        // Continue without Zigbee – non-fatal for non-Zigbee devices
+      }
+    }
+
+    // Register manual device entries first (non-child devices only at this stage)
     if (this.config.devices) {
       for (const cfg of this.config.devices) {
+        // Skip Zigbee children here – they are set up after their parent connects
+        if (ZigbeeGatewayDetection.isChild(cfg)) {
+          continue;
+        }
         this._registerDeviceConfig(cfg);
       }
 
       // Validate devices have keys if auto-discovery is disabled
       if (this.config.autoDiscoverDevices === false) {
         for (const cfg of this.config.devices) {
-          if (!cfg.tuyaKey) {
+          if (!cfg.tuyaKey && !ZigbeeGatewayDetection.isChild(cfg)) {
             const deviceName = cfg.name || cfg.tuyaDeviceId;
             this.log.warn(
               `Local device "${deviceName}" (${cfg.tuyaDeviceId}) is missing tuyaKey ` +
@@ -159,6 +190,11 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       ld.disconnect();
     }
     this.localConnections.clear();
+    // Gateway connections are separate from localConnections
+    for (const gw of this.gatewayConnections.values()) {
+      gw.disconnect();
+    }
+    this.gatewayConnections.clear();
   }
 
   /** Returns ALL devices (both local shadow entries from this manager). */
@@ -197,6 +233,15 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     const deviceName = device?.name || deviceID;
     const commandStr = commands.map(c => `${c.code}=${c.value}`).join(', ');
     this.log.info(`[${deviceName}] Sending command (local): ${commandStr}`);
+
+    // ── Zigbee child path ────────────────────────────────────────────────
+    const childConn = this.localConnections.get(deviceID);
+    if (childConn?.parentDevice) {
+      // Already set up as a Zigbee child – LocalDevice.update() delegates to parent
+      childConn.update(dps);
+      return true;
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
     let conn = this.localConnections.get(deviceID);
     if (!conn) {
@@ -589,6 +634,11 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     conn.on('connect', () => {
       device.online = true;
       this.emit(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, device, { online: true });
+      // ── Zigbee: when a gateway connects, set up its children ──
+      if (this.gatewayRelationships.has(deviceID)) {
+        this.gatewayConnections.set(deviceID, conn);
+        this._setupZigbeeChildren(deviceID, conn);
+      }
     });
 
     conn.on('disconnect', () => {
@@ -628,6 +678,111 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     this.localConnections.set(deviceID, conn);
 
     return conn;
+  }
+
+  /**
+   * After a Zigbee gateway connects, configure all its child sub-devices.
+   * Each child gets a lightweight LocalDevice whose update() call delegates
+   * to the parent, with the CID embedded in the payload.
+   */
+  private _setupZigbeeChildren(parentId: string, parentConn: LocalDevice): void {
+    const rel = this.gatewayRelationships.get(parentId);
+    if (!rel) return;
+
+    for (const entry of rel.children) {
+      this._setupZigbeeChild(entry.deviceId, entry.cid, parentConn);
+    }
+  }
+
+  /**
+   * Set up a single Zigbee child device.
+   * Registers the child's TuyaDevice (if not already done), links it to the
+   * parent LocalDevice connection, and subscribes to status updates.
+   */
+  private _setupZigbeeChild(childDeviceId: string, cid: string, parentConn: LocalDevice): void {
+    const cfg = this.config.devices?.find(d => d.tuyaDeviceId === childDeviceId);
+    if (!cfg) {
+      this.log.warn(`Zigbee child config not found for device ${childDeviceId}`);
+      return;
+    }
+
+    // Register TuyaDevice if not already present
+    if (!this.localDevices.find(d => d.id === childDeviceId)) {
+      this._registerDeviceConfig(cfg);
+    }
+
+    const childTuyaDevice = this.localDevices.find(d => d.id === childDeviceId);
+    if (!childTuyaDevice) {
+      this.log.warn(`Could not build TuyaDevice for Zigbee child ${childDeviceId}`);
+      return;
+    }
+
+    // Create a lightweight LocalDevice for the child (no socket of its own)
+    const childConn = new LocalDevice(
+      {
+        id: childDeviceId,
+        key: parentConn['context'].key,
+        ip: parentConn['context'].ip,
+        version: parentConn['context'].version,
+        name: cfg.name ?? childDeviceId,
+      },
+      this.parentLog,
+    );
+    // Link parent ↔ child
+    childConn.parentDevice = parentConn;
+    childConn.childId = cid;
+    parentConn.children.set(cid, childConn);
+
+    // Mark child as connected immediately (it's online whenever parent is)
+    childConn.connected = true;
+
+    childConn.on('disconnect', () => {
+      childTuyaDevice.online = false;
+      this.emit(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, childTuyaDevice, { online: false });
+    });
+
+    childConn.on('change', (changes: Record<string, unknown>) => {
+      const reverseMap = this.reverseDpMaps.get(childDeviceId) ?? {};
+      const statusUpdates: TuyaDeviceStatus[] = [];
+
+      for (const [dp, val] of Object.entries(changes)) {
+        const code = reverseMap[parseInt(dp, 10)] ?? dp;
+        const existing = childTuyaDevice.status.find(s => s.code === code);
+        if (existing) {
+          existing.value = val as string | number | boolean;
+        } else {
+          childTuyaDevice.status.push({ code, value: val as string | number | boolean });
+        }
+        statusUpdates.push({ code, value: val as string | number | boolean });
+      }
+
+      if (statusUpdates.length > 0) {
+        this.emit(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, childTuyaDevice, statusUpdates);
+      }
+    });
+
+    // Also handle the 'connect' event that parent propagation may emit
+    parentConn.on('connect', () => {
+      if (!childConn.connected) {
+        childConn.connected = true;
+        childTuyaDevice.online = true;
+        this.emit(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, childTuyaDevice, { online: true });
+        // Refresh child state after gateway reconnects
+        parentConn.queryStateChild(cid);
+      }
+    });
+
+    this.localConnections.set(childDeviceId, childConn);
+    childTuyaDevice.online = true;
+    this.emit(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, childTuyaDevice, { online: true });
+
+    // Request child's current state immediately
+    parentConn.queryStateChild(cid);
+
+    this.log.info(
+      `Zigbee child "${cfg.name ?? childDeviceId}" (${childDeviceId}, CID=${cid}) ` +
+      `connected via gateway ${parentConn['context'].id}`,
+    );
   }
 
   /** Connect all configured local devices eagerly (called after init). */

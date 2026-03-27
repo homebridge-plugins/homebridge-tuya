@@ -1,6 +1,9 @@
 # Ignore compiled code
 dist
 
+# Runtime configuration hash cache (created by ConfigHash at startup)
+tuya-local-configs/
+
 # ------------- Defaults ------------- #
 
 # Logs

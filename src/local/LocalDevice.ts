@@ -6,6 +6,7 @@ import { PrefixLogger } from '../shared/util/Logger';
 import { ProtocolFactory } from './protocol/ProtocolFactory';
 import { Protocol } from './protocol/Protocol';
 import { hmac, encryptGCM, encryptECBNoPad } from './protocol/ProtocolUtilities';
+import { ChildPayloadUtility, SupportedChildProtocol } from './protocol/ChildPayloadUtility';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,18 @@ export default class LocalDevice extends EventEmitter {
   public log: Logger;
   public connected = false;
   public state: Record<string, unknown> = {};
+
+  // ── Zigbee gateway / child support ─────────────────────────────────────────
+  /** Reference to the parent gateway LocalDevice. Set when this represents a Zigbee sub-device. */
+  public parentDevice?: LocalDevice;
+  /** Zigbee CID (Child ID) if this is a sub-device. Set alongside parentDevice. */
+  public childId?: string;
+  /**
+   * Map of Zigbee CID → child LocalDevice for parent gateways.
+   * Populated by LocalDeviceManager when children are registered.
+   */
+  public readonly children: Map<string, LocalDevice> = new Map();
+  // ───────────────────────────────────────────────────────────────────────────
 
   private protocol: Protocol;
   private socket?: net.Socket;
@@ -76,13 +89,76 @@ export default class LocalDevice extends EventEmitter {
     }
     this.connected = false;
     this.sessionKey = undefined;
+    // Propagate disconnect to all registered Zigbee children
+    for (const child of this.children.values()) {
+      if (child.connected) {
+        child.connected = false;
+        child.emit('disconnect');
+      }
+    }
   }
 
   /**
    * Send DP update to device.
+   *
+   * For a Zigbee child device (parentDevice is set) this routes the command
+   * through the parent gateway connection with CID injection.
+   *
    * @param dps  Object mapping DP number (string key) to new value.
    */
   update(dps: Record<string, unknown>): void {
+    // ── Zigbee child path ────────────────────────────────────────────────────
+    if (this.parentDevice && this.childId) {
+      this.parentDevice.updateChild(this.childId, dps);
+      return;
+    }
+    // ── Standard / parent path ───────────────────────────────────────────────
+    this._sendDps(dps);
+  }
+
+  /**
+   * Send a DP update to a Zigbee child device via this gateway connection.
+   * Only valid when this LocalDevice represents a gateway (has children registered).
+   *
+   * @param childId  Zigbee CID of the target sub-device
+   * @param dps      DP values to set
+   */
+  updateChild(childId: string, dps: Record<string, unknown>): void {
+    if (!ChildPayloadUtility.isValidCid(childId)) {
+      this.log.warn(`updateChild called with invalid CID "${childId}"`);
+      return;
+    }
+    const version = this.context.version as SupportedChildProtocol;
+    if (version !== '3.3' && version !== '3.4' && version !== '3.5') {
+      this.log.warn(`updateChild: protocol ${version} is not supported for Zigbee child routing`);
+      return;
+    }
+    const childPayload = ChildPayloadUtility.prepareChildPayload(childId, dps, version);
+    this._sendRaw(childPayload);
+  }
+
+  /**
+   * Query the current state of a Zigbee child device via this gateway connection.
+   *
+   * @param childId  Zigbee CID of the target sub-device
+   */
+  queryStateChild(childId: string): void {
+    if (!ChildPayloadUtility.isValidCid(childId)) {
+      this.log.warn(`queryStateChild called with invalid CID "${childId}"`);
+      return;
+    }
+    const version = this.context.version as SupportedChildProtocol;
+    if (version !== '3.3' && version !== '3.4' && version !== '3.5') {
+      this.log.warn(`queryStateChild: protocol ${version} is not supported for Zigbee child routing`);
+      return;
+    }
+    const queryPayload = ChildPayloadUtility.prepareChildQueryPayload(childId, version);
+    this._sendRaw(queryPayload);
+  }
+
+  // ── Private: standard DPS send (non-child path) ───────────────────────────
+
+  private _sendDps(dps: Record<string, unknown>): void {
     const t = Math.floor(Date.now() / 1000).toString();
 
     let cmd: number;
@@ -106,6 +182,15 @@ export default class LocalDevice extends EventEmitter {
     }
 
     this._send({ cmd, data });
+  }
+
+  /**
+   * Send an arbitrary JSON payload through this connection (used for child routing).
+   * The payload is serialised as-is without DP wrapping.
+   */
+  private _sendRaw(payload: Record<string, unknown>): void {
+    const cmd = (this.context.version === '3.4' || this.context.version === '3.5') ? 13 : 7;
+    this._send({ cmd, data: payload });
   }
 
   /** Request current state from device (cmd=10 for v3.1-3.3, cmd=16 for v3.4-3.5). */
@@ -302,7 +387,23 @@ export default class LocalDevice extends EventEmitter {
         if (payloadStr.startsWith('3.')) {
           payloadStr = payloadStr.slice(15);
         }
-        const data = JSON.parse(payloadStr);
+        const data = JSON.parse(payloadStr) as Record<string, unknown>;
+
+        // ── Zigbee child routing ──────────────────────────────────────────────
+        const childData = ChildPayloadUtility.extractChildData(data);
+        if (childData) {
+          const childDevice = this.children.get(childData.childId.toLowerCase());
+          if (childDevice) {
+            childDevice._change(childData.dps);
+          } else {
+            this.log.debug(
+              `Gateway ${this.context.id}: received update for unknown child CID ${childData.childId}`,
+            );
+          }
+          return; // do not apply CID payloads to the parent's own state
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         if (data?.dps) {
           this._change(data.dps as Record<string, unknown>);
         }
@@ -353,7 +454,8 @@ export default class LocalDevice extends EventEmitter {
     this.queryState();
   }
 
-  private _change(dps: Record<string, unknown>): void {
+  /** @internal Used by gateway to propagate child state updates. */
+  _change(dps: Record<string, unknown>): void {
     const changes: Record<string, unknown> = {};
     for (const [dp, val] of Object.entries(dps)) {
       if (this.state[dp] !== val) {

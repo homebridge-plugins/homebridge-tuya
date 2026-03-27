@@ -63,4 +63,27 @@ export interface LocalDeviceConfig {
    * If both are specified, switchCount takes precedence.
    */
   outletCount?: number;
+
+  // ── Zigbee / Gateway fields ───────────────────────────────────────────────
+
+  /**
+   * Mark this device as a Zigbee gateway (parent). When set, the manager
+   * registers a persistent TCP connection for this device and routes child
+   * commands through it. Usually auto-detected; set explicitly when needed.
+   */
+  isZigbeeGateway?: boolean;
+
+  /**
+   * For Zigbee sub-devices: the tuyaDeviceId of the parent gateway.
+   * When set, this device does NOT open its own TCP connection; all commands
+   * are routed through the parent's connection.
+   */
+  parentDeviceId?: string;
+
+  /**
+   * For Zigbee sub-devices: the Zigbee node ID (CID) assigned by the gateway.
+   * This is a 16-character lowercase hex string, e.g. "0011223344556601".
+   * Required when parentDeviceId is set.
+   */
+  zigbeeChildId?: string;
 }
