@@ -1,4 +1,5 @@
-import { sanitizeName } from '../src/util/util';
+import { describe, expect, test } from '@jest/globals';
+import { sanitizeName } from '../src/shared/util/util';
 
 describe('sanitizeName', () => {
   test('removes underscores and collapses to spaces', () => {
