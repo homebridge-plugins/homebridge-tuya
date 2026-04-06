@@ -136,8 +136,6 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
    */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
-
-    AccessoryFactory.configAccessory(this, accessory);
     // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.cachedAccessories.push(accessory);
   }
@@ -448,6 +446,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       const handler = AccessoryFactory.createAccessory(this, existingAccessory, device);
       this.accessoryHandlers.push(handler);
 
+      AccessoryFactory.configAccessory(this, existingAccessory);
       const index = this.cachedAccessories.indexOf(existingAccessory);
       if (index >= 0) {
         this.cachedAccessories.splice(index, 1);
