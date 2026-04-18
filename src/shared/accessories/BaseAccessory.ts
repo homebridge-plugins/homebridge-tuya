@@ -292,7 +292,16 @@ class BaseAccessory {
     }
 
     if (debounce === false) {
-      return await this.deviceManager.sendCommands(this.device.id, commands);
+      try {
+        return await this.deviceManager.sendCommands(this.device.id, commands);
+      } catch (error) {
+        if (this.platform.deviceManager && this.deviceManager === this.platform.localDeviceManager) {
+          const deviceName = this.device?.name || this.device?.id || 'Unknown Device';
+          this.log.warn(`[${deviceName}] Local send failed, falling back to cloud: ${error instanceof Error ? error.message : error}`);
+          return await this.platform.deviceManager.sendCommands(this.device.id, commands);
+        }
+        throw error;
+      }
     }
 
     for (const newStatus of commands) {

@@ -143,6 +143,23 @@ describe('LocalDeviceManager', () => {
       expect(mgr).toBeDefined();
     });
 
+    test('falls back when local command has no response after 10 seconds', async () => {
+      jest.useFakeTimers();
+      const mgr = new LocalDeviceManager({ devices: [] }, mockLog);
+      mgr['dpMaps'].set('device1', { switch_1: 1 });
+      mgr['localDevices'].push(new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Device 1', schema: [], status: [] }));
+
+      const conn = new (require('events').EventEmitter)();
+      conn.update = jest.fn();
+      mgr['localConnections'].set('device1', conn);
+
+      const sendPromise = mgr.sendCommands('device1', [{ code: 'switch_1', value: true }]);
+      jest.advanceTimersByTime(10000);
+
+      await expect(sendPromise).rejects.toThrow('Local command response timeout');
+      jest.useRealTimers();
+    });
+
     test('handles invalid IP address gracefully', async () => {
       const config: LocalConfig = {
         devices: [

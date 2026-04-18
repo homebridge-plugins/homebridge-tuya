@@ -256,8 +256,52 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       }
     }
 
+    const expectedDps = new Set<string>(Object.keys(dps));
+    let timer: NodeJS.Timeout | null = null;
+
+    const responsePromise = new Promise<boolean>((resolve, reject) => {
+      const cleanup = () => {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        conn?.removeListener('change', onChange);
+        conn?.removeListener('error', onError);
+      };
+
+      const onChange = (changes: Record<string, unknown>) => {
+        for (const dp of Object.keys(changes)) {
+          if (expectedDps.has(dp)) {
+            cleanup();
+            resolve(true);
+            return;
+          }
+        }
+      };
+
+      const onError = (err: Error) => {
+        cleanup();
+        reject(err);
+      };
+
+      timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('Local command response timeout'));
+      }, 10 * 1000);
+
+      conn?.on('change', onChange);
+      conn?.on('error', onError);
+    });
+
     conn.update(dps);
-    return true;
+
+    try {
+      await responsePromise;
+      return true;
+    } catch (error) {
+      this.log.warn(`Local command timeout or error for ${deviceName}: ${error instanceof Error ? error.message : error}`);
+      throw error;
+    }
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
@@ -337,7 +381,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     this.reverseDpMaps.set(cfg.tuyaDeviceId, buildDpToCodeMap(effectiveMap));
 
     const existing = this.localDevices.find(d => d.id === cfg.tuyaDeviceId);
-    
+
     // Check if config has changed since last run
     // Hash the config fields that affect device behavior
     const configToHash = {
@@ -352,11 +396,11 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     };
     const { changed: configChanged } = this.configHash.hasConfigChanged(cfg.tuyaDeviceId, configToHash);
     this.configChanged.set(cfg.tuyaDeviceId, configChanged);
-    
+
     if (configChanged && existing) {
       this.log.info(`Device ${cfg.tuyaDeviceId}: config changed, rebuilding schema`);
     }
-    
+
     if (!existing) {
       const device = this._buildTuyaDevice(cfg, configChanged);
       this.localDevices.push(device);
@@ -436,7 +480,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
           };
           const { changed: schemaChanged } = this.configHash.hasConfigChanged(deviceId, updatedConfigToHash);
           if (schemaChanged) {
-            this.log.debug(`[AutoDetect] Schema changed after auto-detection, marking config as changed`);
+            this.log.debug('[AutoDetect] Schema changed after auto-detection, marking config as changed');
             (device as TuyaDevice & { configChanged?: boolean }).configChanged = true;
             this.configChanged.set(deviceId, true);
           }
@@ -702,7 +746,9 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
    */
   private _setupZigbeeChildren(parentId: string, parentConn: LocalDevice): void {
     const rel = this.gatewayRelationships.get(parentId);
-    if (!rel) return;
+    if (!rel) {
+      return;
+    }
 
     for (const entry of rel.children) {
       const existingConn = this.localConnections.get(entry.deviceId);
@@ -851,7 +897,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
    * Discover and register Zigbee children from Tuya Cloud device list.
    * If cloud API provides gateway_id field, we can auto-detect parent-child relationships
    * and create child configs without manual config.
-   * 
+   *
    * @param cloudDeviceList - Optional array of cloud devices with id and gateway_id fields
    */
   discoverChildrenFromCloud(cloudDeviceList?: Array<{ id: string; gateway_id?: string }>): void {
