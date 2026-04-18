@@ -259,8 +259,24 @@ class BaseAccessory {
       this.sendQueue.clear();
       return;
     }
-    await this.deviceManager.sendCommands(this.device.id, commands);
-    this.sendQueue.clear();
+
+    try {
+      await this.deviceManager.sendCommands(this.device.id, commands);
+    } catch (error) {
+      if (this.platform.deviceManager && this.deviceManager === this.platform.localDeviceManager) {
+        const deviceName = this.device?.name || this.device?.id || 'Unknown Device';
+        this.log.warn(`[${deviceName}] Local debounced send failed, falling back to cloud: ${error instanceof Error ? error.message : error}`);
+        try {
+          await this.platform.deviceManager.sendCommands(this.device.id, commands);
+        } catch (cloudError) {
+          this.log.warn(`[${deviceName}] Cloud fallback failed: ${cloudError instanceof Error ? cloudError.message : cloudError}`);
+        }
+      } else {
+        this.log.warn(`Debounced send failed: ${error instanceof Error ? error.message : error}`);
+      }
+    } finally {
+      this.sendQueue.clear();
+    }
   }, 100);
 
   async sendCommands(commands: TuyaDeviceStatus[], debounce = false) {

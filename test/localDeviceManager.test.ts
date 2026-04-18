@@ -150,6 +150,7 @@ describe('LocalDeviceManager', () => {
       mgr['localDevices'].push(new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Device 1', schema: [], status: [] }));
 
       const conn = new (require('events').EventEmitter)();
+      conn.connected = true;
       conn.update = jest.fn();
       mgr['localConnections'].set('device1', conn);
 
@@ -157,6 +158,26 @@ describe('LocalDeviceManager', () => {
       jest.advanceTimersByTime(10000);
 
       await expect(sendPromise).rejects.toThrow('Local command response timeout');
+      jest.useRealTimers();
+    });
+
+    test('cancels older pending local responses when newer command supersedes same DP', async () => {
+      jest.useFakeTimers();
+      const mgr = new LocalDeviceManager({ devices: [] }, mockLog);
+      mgr['dpMaps'].set('device1', { switch_1: 1 });
+      mgr['localDevices'].push(new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Device 1', schema: [], status: [] }));
+
+      const conn = new (require('events').EventEmitter)();
+      conn.connected = true;
+      conn.update = jest.fn();
+      mgr['localConnections'].set('device1', conn);
+
+      const firstSend = mgr.sendCommands('device1', [{ code: 'switch_1', value: true }]);
+      const secondSend = mgr.sendCommands('device1', [{ code: 'switch_1', value: false }]);
+
+      await expect(firstSend).resolves.toBe(true);
+      jest.advanceTimersByTime(10000);
+      await expect(secondSend).rejects.toThrow('Local command response timeout');
       jest.useRealTimers();
     });
 

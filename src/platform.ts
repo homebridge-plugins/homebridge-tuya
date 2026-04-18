@@ -358,6 +358,11 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_ADD, (device) => this.addAccessory(device, 'cloud'));
       this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.updateAccessoryInfo.bind(this));
       this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.updateAccessoryStatus.bind(this));
+      if (this.localDeviceManager) {
+        this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, (device, status) => {
+          this.localDeviceManager?.handleCloudStatusUpdate(device.id, status);
+        });
+      }
       this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_DELETE, this.removeAccessory.bind(this));
     }
 

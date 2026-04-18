@@ -86,6 +86,14 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   private discoveredIPs: Map<string, string> = new Map();
   // Maps discovered gwId → version
   private discoveredVersions: Map<string, string> = new Map();
+  // Pending local response watches to cancel superseded commands
+  private pendingLocalResponseWatchers: Map<string, Array<{
+    expectedDps: Set<string>;
+    cleanup: () => void;
+    resolve: (value: boolean) => void;
+    reject: (error: Error) => void;
+  }>> = new Map();
+
   // Config change tracker
   private configHash: ConfigHash;
   // Tracks which devices had config changes
@@ -257,43 +265,70 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     }
 
     const expectedDps = new Set<string>(Object.keys(dps));
+    this._cancelSupersededLocalResponseWatchers(deviceID, expectedDps);
+
+    const shouldWaitForResponse = conn.connected === true;
     let timer: NodeJS.Timeout | null = null;
+    let responsePromise: Promise<boolean> | undefined;
+    let watcher: { expectedDps: Set<string>; cleanup: () => void; resolve: (value: boolean) => void; reject: (error: Error) => void; } | null = null;
 
-    const responsePromise = new Promise<boolean>((resolve, reject) => {
-      const cleanup = () => {
-        if (timer) {
-          clearTimeout(timer);
-          timer = null;
-        }
-        conn?.removeListener('change', onChange);
-        conn?.removeListener('error', onError);
-      };
-
-      const onChange = (changes: Record<string, unknown>) => {
-        for (const dp of Object.keys(changes)) {
-          if (expectedDps.has(dp)) {
-            cleanup();
-            resolve(true);
+    if (shouldWaitForResponse) {
+      responsePromise = new Promise<boolean>((resolve, reject) => {
+        const cleanup = () => {
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          conn?.removeListener('change', onChange);
+          conn?.removeListener('error', onError);
+          if (!watcher) {
             return;
           }
-        }
-      };
+          const watchers = this.pendingLocalResponseWatchers.get(deviceID) ?? [];
+          const remaining = watchers.filter(w => w !== watcher);
+          if (remaining.length > 0) {
+            this.pendingLocalResponseWatchers.set(deviceID, remaining);
+          } else {
+            this.pendingLocalResponseWatchers.delete(deviceID);
+          }
+        };
 
-      const onError = (err: Error) => {
-        cleanup();
-        reject(err);
-      };
+        const onChange = (changes: Record<string, unknown>) => {
+          for (const dp of Object.keys(changes)) {
+            if (expectedDps.has(dp)) {
+              cleanup();
+              resolve(true);
+              return;
+            }
+          }
+        };
 
-      timer = setTimeout(() => {
-        cleanup();
-        reject(new Error('Local command response timeout'));
-      }, 10 * 1000);
+        const onError = (err: Error) => {
+          cleanup();
+          reject(err);
+        };
 
-      conn?.on('change', onChange);
-      conn?.on('error', onError);
-    });
+        watcher = { expectedDps, cleanup, resolve, reject };
+        const watchers = this.pendingLocalResponseWatchers.get(deviceID) ?? [];
+        watchers.push(watcher);
+        this.pendingLocalResponseWatchers.set(deviceID, watchers);
+
+        timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('Local command response timeout'));
+        }, 10 * 1000);
+
+        conn?.on('change', onChange);
+        conn?.on('error', onError);
+      });
+    }
 
     conn.update(dps);
+
+    if (!responsePromise) {
+      this.log.debug(`Local device ${deviceName} is not yet connected; skipping response wait.`);
+      return true;
+    }
 
     try {
       await responsePromise;
@@ -302,6 +337,87 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       this.log.warn(`Local command timeout or error for ${deviceName}: ${error instanceof Error ? error.message : error}`);
       throw error;
     }
+  }
+
+  private _cancelSupersededLocalResponseWatchers(deviceID: string, expectedDps: Set<string>): void {
+    const watchers = this.pendingLocalResponseWatchers.get(deviceID);
+    if (!watchers || watchers.length === 0) {
+      return;
+    }
+
+    const remaining: typeof watchers = [];
+    for (const watcher of watchers) {
+      let overlap = false;
+      for (const dp of watcher.expectedDps) {
+        if (expectedDps.has(dp)) {
+          overlap = true;
+          break;
+        }
+      }
+      if (overlap) {
+        watcher.cleanup();
+        watcher.resolve(true);
+      } else {
+        remaining.push(watcher);
+      }
+    }
+
+    if (remaining.length > 0) {
+      this.pendingLocalResponseWatchers.set(deviceID, remaining);
+    } else {
+      this.pendingLocalResponseWatchers.delete(deviceID);
+    }
+  }
+
+  public handleCloudStatusUpdate(deviceID: string, statusUpdates: TuyaDeviceStatus[]): void {
+    const device = this.localDevices.find(d => d.id === deviceID);
+    if (!device) {
+      return;
+    }
+
+    const dpMap = this.dpMaps.get(deviceID) ?? {};
+    const statusDps = new Set<string>();
+    for (const status of statusUpdates) {
+      const dp = dpMap[status.code];
+      statusDps.add(dp !== undefined ? String(dp) : String(status.code));
+
+      const existing = device.status.find(s => s.code === status.code);
+      if (existing) {
+        existing.value = status.value;
+      } else {
+        device.status.push({ code: status.code, value: status.value });
+      }
+    }
+
+    const watchers = this.pendingLocalResponseWatchers.get(deviceID);
+    if (!watchers || watchers.length === 0) {
+      return;
+    }
+
+    const remaining: typeof watchers = [];
+    for (const watcher of watchers) {
+      let matched = false;
+      for (const dp of watcher.expectedDps) {
+        if (statusDps.has(dp)) {
+          matched = true;
+          break;
+        }
+      }
+      if (matched) {
+        watcher.cleanup();
+        watcher.resolve(true);
+      } else {
+        remaining.push(watcher);
+      }
+    }
+
+    if (remaining.length > 0) {
+      this.pendingLocalResponseWatchers.set(deviceID, remaining);
+    } else {
+      this.pendingLocalResponseWatchers.delete(deviceID);
+    }
+
+    this.emit(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, device, statusUpdates);
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
