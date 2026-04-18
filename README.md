@@ -174,7 +174,11 @@ Communicates directly with your Tuya devices over LAN — no internet or Tuya Cl
 ### Both Mode (`mode: "both"`)
 
 Uses cloud + local simultaneously. Provide both `options` (cloud) and `local` blocks.
-
+- Local LAN commands are attempted first when the device is available locally.
+- The cloud connection remains active as a fallback.
+- This fallback is only used when a local command does not receive confirmation within 10 seconds; normal local commands remain local.
+- If a local command does not receive confirmation within 10 seconds, the plugin automatically retries it via cloud.
+- Cloud status updates can also satisfy pending local commands so the device does not get double-sent commands.
 ---
 
 ### Advanced Options
