@@ -106,8 +106,14 @@ class BaseAccessory {
       .setCharacteristic(this.Characteristic.Model, this.device.model || this.device.product_name || this.device.product_id)
       .setCharacteristic(this.Characteristic.Name, safeName)
       .setCharacteristic(this.Characteristic.ConfiguredName, safeName)
-      .setCharacteristic(this.Characteristic.SerialNumber, this.device.uuid)
     ;
+
+    const serialNumber = typeof this.device.uuid === 'string' ? this.device.uuid.trim() : '';
+    if (serialNumber.length > 1) {
+      service.setCharacteristic(this.Characteristic.SerialNumber, serialNumber);
+    } else {
+      this.log.warn(`Skipping invalid SerialNumber for accessory ${safeName}`);
+    }
   }
 
   addBatteryService() {

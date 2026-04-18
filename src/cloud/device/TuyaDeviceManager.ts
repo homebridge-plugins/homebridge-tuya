@@ -98,6 +98,11 @@ export default class TuyaDeviceManager extends EventEmitter {
     return res;
   }
 
+  async getDeviceDetails(deviceID: string) {
+    const res = await this.api.getDeviceDetails(deviceID);
+    return res;
+  }
+
   async getDeviceSchema(deviceID: string) {
     // const res = await this.api.get(`/v1.2/iot-03/devices/${deviceID}/specification`);
     const res = await this.api.get(`/v1.0/devices/${deviceID}/specifications`);

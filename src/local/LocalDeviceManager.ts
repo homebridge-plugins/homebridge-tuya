@@ -326,6 +326,12 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   }
 
   private _registerDeviceConfig(cfg: LocalDeviceConfig): void {
+    if (!cfg.tuyaDeviceId) {
+      const name = cfg.name ?? 'unknown';
+      this.log.warn(`Skipping invalid local config entry for ${name}: missing tuyaDeviceId`);
+      return;
+    }
+
     const effectiveMap = Object.assign({}, DEFAULT_DP_MAP, cfg.dpMapping ?? {});
     this.dpMaps.set(cfg.tuyaDeviceId, effectiveMap);
     this.reverseDpMaps.set(cfg.tuyaDeviceId, buildDpToCodeMap(effectiveMap));
@@ -498,11 +504,12 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
   private _buildTuyaDevice(cfg: LocalDeviceConfig, configChanged = false): TuyaDevice {
     const device = new TuyaDevice({});
-    device.id = cfg.tuyaDeviceId;
-    device.uuid = cfg.tuyaDeviceId;
-    device.name = cfg.name ?? `LocalDevice-${cfg.tuyaDeviceId.slice(0, 8)}`;
+    const deviceId = cfg.tuyaDeviceId ?? '';
+    device.id = deviceId;
+    device.uuid = deviceId;
+    device.name = cfg.name ?? `LocalDevice-${deviceId ? deviceId.slice(0, 8) : 'unknown'}`;
     device.category = cfg.category ?? 'unknown';
-    device.ip = cfg.ip ?? (this.discoveredIPs.get(cfg.tuyaDeviceId) ?? '');
+    device.ip = cfg.ip ?? (deviceId ? this.discoveredIPs.get(deviceId) ?? '' : '');
     device.online = false;
     device.product_id = '';
     device.product_name = 'Local Device';

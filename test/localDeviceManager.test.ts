@@ -176,6 +176,27 @@ describe('LocalDeviceManager', () => {
       const mgr = new LocalDeviceManager(config, mockLog);
       expect(mgr).toBeDefined();
     });
+
+    test('skips invalid local config entries without tuyaDeviceId', () => {
+      const config: LocalConfig = {
+        devices: [
+          {
+            // Missing tuyaDeviceId should be rejected
+            ip: '192.168.1.1',
+            tuyaKey: 'key123',
+            protocolVersion: '3.5',
+            name: 'Invalid Device',
+          } as any,
+        ],
+      };
+      const mgr = new LocalDeviceManager(config, mockLog);
+      (mgr as any)._registerDeviceConfig(config.devices![0]);
+
+      expect(mgr.devices.length).toBe(0);
+      expect(mockLog.warn).toHaveBeenCalledWith(
+        '[LocalDeviceManager] Skipping invalid local config entry for Invalid Device: missing tuyaDeviceId',
+      );
+    });
   });
 
   describe('DP mapping', () => {

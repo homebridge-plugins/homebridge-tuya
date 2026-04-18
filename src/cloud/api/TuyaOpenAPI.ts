@@ -325,6 +325,17 @@ export default class TuyaOpenAPI {
     return res;
   }
 
+  /**
+   * Get device details including local_key and IP address
+   * Supports Tuya Cloud API endpoint: GET /v2.0/cloud/thing/{device_id}
+   * @param deviceId The device ID
+   * @returns API response with device details
+   */
+  async getDeviceDetails(deviceId: string) {
+    const res = await this.get(`/v2.0/cloud/thing/${deviceId}`);
+    return res;
+  }
+
   async get(path: string, params?) {
     return this.request('get', path, params, null);
   }
