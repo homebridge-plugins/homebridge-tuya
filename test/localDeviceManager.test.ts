@@ -143,6 +143,44 @@ describe('LocalDeviceManager', () => {
       expect(mgr).toBeDefined();
     });
 
+    test('falls back when local command has no response after 10 seconds', async () => {
+      jest.useFakeTimers();
+      const mgr = new LocalDeviceManager({ devices: [] }, mockLog);
+      mgr['dpMaps'].set('device1', { switch_1: 1 });
+      mgr['localDevices'].push(new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Device 1', schema: [], status: [] }));
+
+      const conn = new (require('events').EventEmitter)();
+      conn.connected = true;
+      conn.update = jest.fn();
+      mgr['localConnections'].set('device1', conn);
+
+      const sendPromise = mgr.sendCommands('device1', [{ code: 'switch_1', value: true }]);
+      jest.advanceTimersByTime(10000);
+
+      await expect(sendPromise).rejects.toThrow('Local command response timeout');
+      jest.useRealTimers();
+    });
+
+    test('cancels older pending local responses when newer command supersedes same DP', async () => {
+      jest.useFakeTimers();
+      const mgr = new LocalDeviceManager({ devices: [] }, mockLog);
+      mgr['dpMaps'].set('device1', { switch_1: 1 });
+      mgr['localDevices'].push(new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Device 1', schema: [], status: [] }));
+
+      const conn = new (require('events').EventEmitter)();
+      conn.connected = true;
+      conn.update = jest.fn();
+      mgr['localConnections'].set('device1', conn);
+
+      const firstSend = mgr.sendCommands('device1', [{ code: 'switch_1', value: true }]);
+      const secondSend = mgr.sendCommands('device1', [{ code: 'switch_1', value: false }]);
+
+      await expect(firstSend).resolves.toBe(true);
+      jest.advanceTimersByTime(10000);
+      await expect(secondSend).rejects.toThrow('Local command response timeout');
+      jest.useRealTimers();
+    });
+
     test('handles invalid IP address gracefully', async () => {
       const config: LocalConfig = {
         devices: [
@@ -175,6 +213,27 @@ describe('LocalDeviceManager', () => {
       // Should create manager without immediate error
       const mgr = new LocalDeviceManager(config, mockLog);
       expect(mgr).toBeDefined();
+    });
+
+    test('skips invalid local config entries without tuyaDeviceId', () => {
+      const config: LocalConfig = {
+        devices: [
+          {
+            // Missing tuyaDeviceId should be rejected
+            ip: '192.168.1.1',
+            tuyaKey: 'key123',
+            protocolVersion: '3.5',
+            name: 'Invalid Device',
+          } as any,
+        ],
+      };
+      const mgr = new LocalDeviceManager(config, mockLog);
+      (mgr as any)._registerDeviceConfig(config.devices![0]);
+
+      expect(mgr.devices.length).toBe(0);
+      expect(mockLog.warn).toHaveBeenCalledWith(
+        '[LocalDeviceManager] Skipping invalid local config entry for Invalid Device: missing tuyaDeviceId',
+      );
     });
   });
 

@@ -207,8 +207,25 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     const cloudEnabled = this.mode === 'cloud' || this.mode === 'both';
     const localEnabled = this.mode === 'local' || this.mode === 'both';
 
+    // For "both" mode, initialize cloud FIRST to fetch device details for enrichment
+    let cloudDevices: TuyaDevice[] | undefined;
+    if (cloudEnabled && this.options && this.mode === 'both') {
+      this.log.info('[Cloud] Initializing cloud device manager for hybrid mode enrichment…');
+      if (this.options.projectType === '1') {
+        cloudDevices = await this.initCustomProject();
+      } else if (this.options.projectType === '2') {
+        cloudDevices = await this.initHomeProject();
+      }
+    }
+
     // ── Local devices ────────────────────────────────────────────────────────
     if (localEnabled && this.platformConfig.local) {
+      // If "both" mode and we successfully got cloud devices, enrich local config
+      if (this.mode === 'both' && cloudDevices && this.deviceManager) {
+        this.log.info('[Local] Enriching local config with cloud device details…');
+        await this.enrichLocalConfigFromCloud(cloudDevices);
+      }
+
       this.log.info('[Local] Initialising local device manager…');
       this.localDeviceManager = new LocalDeviceManager(
         this.platformConfig.local,
@@ -230,8 +247,8 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       }
     }
 
-    // ── Cloud devices ────────────────────────────────────────────────────────
-    if (cloudEnabled && this.options) {
+    // ── Cloud devices (if not already initialized in "both" mode) ──────────────
+    if (cloudEnabled && this.options && this.mode !== 'both') {
       let devices: TuyaDevice[] | undefined;
 
       if (this.options.projectType === '1') {
@@ -293,6 +310,60 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
         this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.updateAccessoryStatus.bind(this));
         this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_DELETE, this.removeAccessory.bind(this));
       }
+    } else if (cloudEnabled && this.mode === 'both' && cloudDevices && this.deviceManager) {
+      // "both" mode: finish setting up cloud devices that were already initialized
+      this.configHash = new ConfigHash(this.api.user.storagePath(), 'tuya-cloud-configs');
+
+      // Apply device config overrides
+      for (const device of cloudDevices) {
+        const deviceConfig = this.getDeviceConfig(device, 'cloud');
+        if (deviceConfig?.category) {
+          this.log.warn('Override %o category from %o to %o', device.name, device.category, deviceConfig.category);
+          device.category = deviceConfig.category;
+        }
+        if (deviceConfig?.unbridged) {
+          this.log.warn('Unbridge %o category %o', device.name, device.category);
+          device.unbridged = deviceConfig.unbridged;
+        }
+
+        // Check if config has changed since last run
+        const configToHash = {
+          deviceId: device.id,
+          customCategory: deviceConfig?.category,
+          unbridged: deviceConfig?.unbridged ?? false,
+          schemaOverrides: deviceConfig?.schema ? JSON.stringify(deviceConfig.schema) : undefined,
+          adaptiveLighting: deviceConfig?.adaptiveLighting ?? false,
+        };
+        const { changed: configChanged } = this.configHash.hasConfigChanged(device.id, configToHash);
+        (device as any).configChanged = configChanged;
+        if (configChanged) {
+          this.log.info(`[Cloud] Device config changed for "${device.name}" (${device.id}), will rebuild services`);
+        }
+      }
+
+      await this.deviceManager.updateInfraredRemotes(cloudDevices);
+
+      this.log.info(`[Cloud] Got ${cloudDevices.length} device(s) and scene(s).`);
+      const file = path.join(this.api.user.persistPath(), `TuyaDeviceList.${this.deviceManager.api.tokenInfo.uid}.json`);
+      this.log.info('Device list saved at %s', file);
+      if (!fs.existsSync(this.api.user.persistPath())) {
+        await fs.promises.mkdir(this.api.user.persistPath());
+      }
+      await fs.promises.writeFile(file, JSON.stringify(cloudDevices, null, 2));
+
+      for (const device of cloudDevices) {
+        this.addAccessory(device, 'cloud');
+      }
+
+      this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_ADD, (device) => this.addAccessory(device, 'cloud'));
+      this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.updateAccessoryInfo.bind(this));
+      this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.updateAccessoryStatus.bind(this));
+      if (this.localDeviceManager) {
+        this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, (device, status) => {
+          this.localDeviceManager?.handleCloudStatusUpdate(device.id, status);
+        });
+      }
+      this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_DELETE, this.removeAccessory.bind(this));
     }
 
     // Remove stale cached accessories not claimed by any device
@@ -356,6 +427,87 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     }
 
     return schemaConfig;
+  }
+
+  /**
+   * Enrich local device config with cloud device details (local_key, ip, etc.)
+   * Called during "both" mode initialization to populate local credentials from cloud API
+   */
+  async enrichLocalConfigFromCloud(devices: TuyaDevice[]): Promise<void> {
+    if (!this.deviceManager || !this.platformConfig.local || !this.platformConfig.local.devices) {
+      return;
+    }
+
+    // Create a map of cloud devices by ID for quick lookup
+    const cloudDeviceMap = new Map<string, TuyaDevice>(devices.map(d => [d.id, d]));
+
+    for (const device of devices) {
+      try {
+        // Skip if already manually configured in local section
+        const existingConfig = this.platformConfig.local.devices.find(
+          cfg => cfg.tuyaDeviceId === device.id || cfg.tuyaDeviceId === device.uuid
+        );
+        if (existingConfig && existingConfig.tuyaKey) {
+          this.log.debug(`[Hybrid] Device ${device.name} (${device.id}) already has manual local config, skipping cloud enrichment`);
+          continue;
+        }
+
+        // Fetch device details from cloud API (includes local_key)
+        const detailRes = await this.deviceManager.getDeviceDetails(device.id);
+        if (!detailRes.success || !detailRes.result) {
+          this.log.debug(`[Hybrid] Could not fetch device details for ${device.name} (${device.id}) from cloud API`);
+          continue;
+        }
+
+        const details = detailRes.result;
+        const deviceId = device.id || device.uuid;
+        const localKey = details.local_key || details.localKey;
+        const ip = details.ip || details.address;
+
+        if (!deviceId) {
+          this.log.warn(`[Hybrid] Skipping enrichment for ${device.name} because cloud device ID is missing`);
+          continue;
+        }
+
+        if (!localKey) {
+          this.log.debug(`[Hybrid] No local_key available for ${device.name} (${deviceId}), will use cloud-only`);
+          continue;
+        }
+
+        if (existingConfig) {
+          // Update existing manual config with cloud-provided local_key and optional IP
+          existingConfig.tuyaKey = localKey;
+          if (ip) {
+            existingConfig.ip = ip;
+          }
+          this.log.info(`[Hybrid] Enriched local config for ${device.name} (${deviceId}) with cloud-provided local_key and ip`);
+        } else {
+          // Create new local device config entry from cloud device details
+          const localDeviceConfig: any = {
+            tuyaDeviceId: deviceId,
+            tuyaKey: localKey,
+            name: device.name || `LocalDevice-${deviceId.slice(0, 8)}`,
+            category: device.category,
+          };
+          if (ip) {
+            localDeviceConfig.ip = ip;
+          }
+          if (device.product_id) {
+            localDeviceConfig.productId = device.product_id;
+          }
+
+          if (!this.platformConfig.local.devices) {
+            this.platformConfig.local.devices = [];
+          }
+          this.platformConfig.local.devices.push(localDeviceConfig);
+          this.log.info(`[Hybrid] Added cloud device ${device.name} (${deviceId}) to local config with local_key`);
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.log.warn(`[Hybrid] Error enriching device ${device.name} (${device.id}): ${msg}`);
+        // Continue with next device - this is non-fatal
+      }
+    }
   }
 
   async initCustomProject() {

@@ -86,6 +86,14 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   private discoveredIPs: Map<string, string> = new Map();
   // Maps discovered gwId → version
   private discoveredVersions: Map<string, string> = new Map();
+  // Pending local response watches to cancel superseded commands
+  private pendingLocalResponseWatchers: Map<string, Array<{
+    expectedDps: Set<string>;
+    cleanup: () => void;
+    resolve: (value: boolean) => void;
+    reject: (error: Error) => void;
+  }>> = new Map();
+
   // Config change tracker
   private configHash: ConfigHash;
   // Tracks which devices had config changes
@@ -256,8 +264,160 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       }
     }
 
+    const expectedDps = new Set<string>(Object.keys(dps));
+    this._cancelSupersededLocalResponseWatchers(deviceID, expectedDps);
+
+    const shouldWaitForResponse = conn.connected === true;
+    let timer: NodeJS.Timeout | null = null;
+    let responsePromise: Promise<boolean> | undefined;
+    let watcher: { expectedDps: Set<string>; cleanup: () => void; resolve: (value: boolean) => void; reject: (error: Error) => void; } | null = null;
+
+    if (shouldWaitForResponse) {
+      responsePromise = new Promise<boolean>((resolve, reject) => {
+        const cleanup = () => {
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          conn?.removeListener('change', onChange);
+          conn?.removeListener('error', onError);
+          if (!watcher) {
+            return;
+          }
+          const watchers = this.pendingLocalResponseWatchers.get(deviceID) ?? [];
+          const remaining = watchers.filter(w => w !== watcher);
+          if (remaining.length > 0) {
+            this.pendingLocalResponseWatchers.set(deviceID, remaining);
+          } else {
+            this.pendingLocalResponseWatchers.delete(deviceID);
+          }
+        };
+
+        const onChange = (changes: Record<string, unknown>) => {
+          for (const dp of Object.keys(changes)) {
+            if (expectedDps.has(dp)) {
+              cleanup();
+              resolve(true);
+              return;
+            }
+          }
+        };
+
+        const onError = (err: Error) => {
+          cleanup();
+          reject(err);
+        };
+
+        watcher = { expectedDps, cleanup, resolve, reject };
+        const watchers = this.pendingLocalResponseWatchers.get(deviceID) ?? [];
+        watchers.push(watcher);
+        this.pendingLocalResponseWatchers.set(deviceID, watchers);
+
+        timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('Local command response timeout'));
+        }, 10 * 1000);
+
+        conn?.on('change', onChange);
+        conn?.on('error', onError);
+      });
+    }
+
     conn.update(dps);
-    return true;
+
+    if (!responsePromise) {
+      this.log.debug(`Local device ${deviceName} is not yet connected; skipping response wait.`);
+      return true;
+    }
+
+    try {
+      await responsePromise;
+      return true;
+    } catch (error) {
+      this.log.warn(`Local command timeout or error for ${deviceName}: ${error instanceof Error ? error.message : error}`);
+      throw error;
+    }
+  }
+
+  private _cancelSupersededLocalResponseWatchers(deviceID: string, expectedDps: Set<string>): void {
+    const watchers = this.pendingLocalResponseWatchers.get(deviceID);
+    if (!watchers || watchers.length === 0) {
+      return;
+    }
+
+    const remaining: typeof watchers = [];
+    for (const watcher of watchers) {
+      let overlap = false;
+      for (const dp of watcher.expectedDps) {
+        if (expectedDps.has(dp)) {
+          overlap = true;
+          break;
+        }
+      }
+      if (overlap) {
+        watcher.cleanup();
+        watcher.resolve(true);
+      } else {
+        remaining.push(watcher);
+      }
+    }
+
+    if (remaining.length > 0) {
+      this.pendingLocalResponseWatchers.set(deviceID, remaining);
+    } else {
+      this.pendingLocalResponseWatchers.delete(deviceID);
+    }
+  }
+
+  public handleCloudStatusUpdate(deviceID: string, statusUpdates: TuyaDeviceStatus[]): void {
+    const device = this.localDevices.find(d => d.id === deviceID);
+    if (!device) {
+      return;
+    }
+
+    const dpMap = this.dpMaps.get(deviceID) ?? {};
+    const statusDps = new Set<string>();
+    for (const status of statusUpdates) {
+      const dp = dpMap[status.code];
+      statusDps.add(dp !== undefined ? String(dp) : String(status.code));
+
+      const existing = device.status.find(s => s.code === status.code);
+      if (existing) {
+        existing.value = status.value;
+      } else {
+        device.status.push({ code: status.code, value: status.value });
+      }
+    }
+
+    const watchers = this.pendingLocalResponseWatchers.get(deviceID);
+    if (!watchers || watchers.length === 0) {
+      return;
+    }
+
+    const remaining: typeof watchers = [];
+    for (const watcher of watchers) {
+      let matched = false;
+      for (const dp of watcher.expectedDps) {
+        if (statusDps.has(dp)) {
+          matched = true;
+          break;
+        }
+      }
+      if (matched) {
+        watcher.cleanup();
+        watcher.resolve(true);
+      } else {
+        remaining.push(watcher);
+      }
+    }
+
+    if (remaining.length > 0) {
+      this.pendingLocalResponseWatchers.set(deviceID, remaining);
+    } else {
+      this.pendingLocalResponseWatchers.delete(deviceID);
+    }
+
+    this.emit(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, device, statusUpdates);
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
@@ -326,12 +486,18 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   }
 
   private _registerDeviceConfig(cfg: LocalDeviceConfig): void {
+    if (!cfg.tuyaDeviceId) {
+      const name = cfg.name ?? 'unknown';
+      this.log.warn(`Skipping invalid local config entry for ${name}: missing tuyaDeviceId`);
+      return;
+    }
+
     const effectiveMap = Object.assign({}, DEFAULT_DP_MAP, cfg.dpMapping ?? {});
     this.dpMaps.set(cfg.tuyaDeviceId, effectiveMap);
     this.reverseDpMaps.set(cfg.tuyaDeviceId, buildDpToCodeMap(effectiveMap));
 
     const existing = this.localDevices.find(d => d.id === cfg.tuyaDeviceId);
-    
+
     // Check if config has changed since last run
     // Hash the config fields that affect device behavior
     const configToHash = {
@@ -346,11 +512,11 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     };
     const { changed: configChanged } = this.configHash.hasConfigChanged(cfg.tuyaDeviceId, configToHash);
     this.configChanged.set(cfg.tuyaDeviceId, configChanged);
-    
+
     if (configChanged && existing) {
       this.log.info(`Device ${cfg.tuyaDeviceId}: config changed, rebuilding schema`);
     }
-    
+
     if (!existing) {
       const device = this._buildTuyaDevice(cfg, configChanged);
       this.localDevices.push(device);
@@ -430,7 +596,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
           };
           const { changed: schemaChanged } = this.configHash.hasConfigChanged(deviceId, updatedConfigToHash);
           if (schemaChanged) {
-            this.log.debug(`[AutoDetect] Schema changed after auto-detection, marking config as changed`);
+            this.log.debug('[AutoDetect] Schema changed after auto-detection, marking config as changed');
             (device as TuyaDevice & { configChanged?: boolean }).configChanged = true;
             this.configChanged.set(deviceId, true);
           }
@@ -498,11 +664,12 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
   private _buildTuyaDevice(cfg: LocalDeviceConfig, configChanged = false): TuyaDevice {
     const device = new TuyaDevice({});
-    device.id = cfg.tuyaDeviceId;
-    device.uuid = cfg.tuyaDeviceId;
-    device.name = cfg.name ?? `LocalDevice-${cfg.tuyaDeviceId.slice(0, 8)}`;
+    const deviceId = cfg.tuyaDeviceId ?? '';
+    device.id = deviceId;
+    device.uuid = deviceId;
+    device.name = cfg.name ?? `LocalDevice-${deviceId ? deviceId.slice(0, 8) : 'unknown'}`;
     device.category = cfg.category ?? 'unknown';
-    device.ip = cfg.ip ?? (this.discoveredIPs.get(cfg.tuyaDeviceId) ?? '');
+    device.ip = cfg.ip ?? (deviceId ? this.discoveredIPs.get(deviceId) ?? '' : '');
     device.online = false;
     device.product_id = '';
     device.product_name = 'Local Device';
@@ -695,7 +862,9 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
    */
   private _setupZigbeeChildren(parentId: string, parentConn: LocalDevice): void {
     const rel = this.gatewayRelationships.get(parentId);
-    if (!rel) return;
+    if (!rel) {
+      return;
+    }
 
     for (const entry of rel.children) {
       const existingConn = this.localConnections.get(entry.deviceId);
@@ -844,7 +1013,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
    * Discover and register Zigbee children from Tuya Cloud device list.
    * If cloud API provides gateway_id field, we can auto-detect parent-child relationships
    * and create child configs without manual config.
-   * 
+   *
    * @param cloudDeviceList - Optional array of cloud devices with id and gateway_id fields
    */
   discoverChildrenFromCloud(cloudDeviceList?: Array<{ id: string; gateway_id?: string }>): void {

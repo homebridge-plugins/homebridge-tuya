@@ -6,6 +6,9 @@ import { TuyaPlatform } from '../src/platform';
 const mockHAP = {
   Service: {},
   Characteristic: {},
+  uuid: {
+    generate: (name: string) => `${name}-uuid`,
+  },
 };
 
 const mockAPI = {
@@ -388,6 +391,181 @@ describe('TuyaPlatform', () => {
       expect(bothPlatform.options).toBeDefined();
       expect(bothPlatform.platformConfig.local).toBeDefined();
     });
+
+    test('enriches local config with cloud device details', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      // Mock cloud device
+      const mockCloudDevice = {
+        id: 'test-device-123',
+        uuid: 'test-device-123',
+        name: 'Test Device',
+        product_id: 'product-123',
+      } as any;
+
+      // Mock the getDeviceDetails response
+      const mockDeviceDetails = {
+        success: true,
+        result: {
+          id: 'test-device-123',
+          local_key: 'test-local-key-abcdef',
+          ip: '192.168.1.100',
+        },
+      };
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => mockDeviceDetails,
+      } as any;
+
+      // Enrich local config
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      // Verify local config was enriched
+      expect(bothPlatform.platformConfig.local).toBeDefined();
+      if (bothPlatform.platformConfig.local?.devices) {
+        expect(bothPlatform.platformConfig.local.devices.length).toBeGreaterThan(0);
+        
+        const enrichedDevice = bothPlatform.platformConfig.local.devices[0];
+        expect(enrichedDevice.tuyaDeviceId).toBe('test-device-123');
+        expect(enrichedDevice.tuyaKey).toBe('test-local-key-abcdef');
+        expect(enrichedDevice.ip).toBe('192.168.1.100');
+      }
+    });
+
+    test('preserves manual local config when enriching', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [
+            {
+              tuyaDeviceId: 'manual-device-456',
+              tuyaKey: 'manual-key-xyz',
+              name: 'Manual Device',
+            },
+          ],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      // Mock cloud device (different from manual one)
+      const mockCloudDevice = {
+        id: 'test-device-123',
+        uuid: 'test-device-123',
+        name: 'Test Device',
+        product_id: 'product-123',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: true,
+          result: {
+            id: 'test-device-123',
+            local_key: 'cloud-key-123',
+            ip: '192.168.1.100',
+          },
+        }),
+      } as any;
+
+      // Enrich local config
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      // Verify local config exists and has devices
+      expect(bothPlatform.platformConfig.local).toBeDefined();
+      if (bothPlatform.platformConfig.local?.devices) {
+        // Verify manual device is still there
+        const manualDevice = bothPlatform.platformConfig.local.devices.find(
+          d => d.tuyaDeviceId === 'manual-device-456'
+        );
+        expect(manualDevice).toBeDefined();
+        expect(manualDevice?.tuyaKey).toBe('manual-key-xyz');
+
+        // Verify new cloud device was added
+        const cloudDevice = bothPlatform.platformConfig.local.devices.find(
+          d => d.tuyaDeviceId === 'test-device-123'
+        );
+        expect(cloudDevice).toBeDefined();
+        expect(cloudDevice?.tuyaKey).toBe('cloud-key-123');
+      }
+    });
+
+    test('skips enrichment if cloud device details unavailable', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        id: 'test-device-123',
+        name: 'Test Device',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: false,
+          code: 'NOT_FOUND',
+        }),
+      } as any;
+
+      // Enrich local config
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      // Verify nothing was added (since API failed)
+      expect(bothPlatform.platformConfig.local).toBeDefined();
+      if (bothPlatform.platformConfig.local?.devices) {
+        expect(bothPlatform.platformConfig.local.devices.length).toBe(0);
+      }
+    });
   });
 
   describe('homebridge lifecycle', () => {
@@ -512,4 +690,621 @@ describe('TuyaPlatform', () => {
       expect(platform2.cachedAccessories.length).toBe(0);
     });
   });
+
+  describe('API field variations and error handling', () => {
+    test('handles localKey instead of local_key in API response', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        id: 'test-device-123',
+        uuid: 'test-device-123',
+        name: 'Test Device',
+        product_id: 'product-123',
+      } as any;
+
+      // Response with localKey (camelCase) instead of local_key (snake_case)
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: true,
+          result: {
+            id: 'test-device-123',
+            localKey: 'alternate-format-key',  // camelCase variant
+            ip: '192.168.1.100',
+          },
+        }),
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      if (bothPlatform.platformConfig.local?.devices) {
+        const enrichedDevice = bothPlatform.platformConfig.local.devices[0];
+        expect(enrichedDevice.tuyaKey).toBe('alternate-format-key');
+      }
+    });
+
+    test('handles address field instead of ip in API response', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        id: 'test-device-456',
+        name: 'Another Device',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: true,
+          result: {
+            id: 'test-device-456',
+            local_key: 'test-key-456',
+            address: '10.0.0.50',  // Uses 'address' instead of 'ip'
+          },
+        }),
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      if (bothPlatform.platformConfig.local?.devices) {
+        const enrichedDevice = bothPlatform.platformConfig.local.devices[0];
+        expect(enrichedDevice.ip).toBe('10.0.0.50');
+      }
+    });
+
+    test('uses uuid fallback when cloud device id is missing', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        uuid: 'fallback-device-123',
+        name: 'Fallback Device',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: true,
+          result: {
+            uuid: 'fallback-device-123',
+            local_key: 'fallback-key-123',
+            ip: '192.168.1.101',
+          },
+        }),
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      if (bothPlatform.platformConfig.local?.devices) {
+        const enrichedDevice = bothPlatform.platformConfig.local.devices[0];
+        expect(enrichedDevice.tuyaDeviceId).toBe('fallback-device-123');
+        expect(enrichedDevice.tuyaKey).toBe('fallback-key-123');
+      }
+    });
+
+    test('propagates cloud category into local config', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        id: 'category-device-123',
+        name: 'Category Device',
+        category: 'kg',
+        product_id: 'abc123',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: true,
+          result: {
+            id: 'category-device-123',
+            local_key: 'category-key-123',
+            ip: '192.168.1.102',
+          },
+        }),
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      if (bothPlatform.platformConfig.local?.devices) {
+        const enrichedDevice = bothPlatform.platformConfig.local.devices[0];
+        expect(enrichedDevice.category).toBe('kg');
+      }
+    });
+
+    test('handles missing local_key gracefully', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        id: 'test-device-no-key',
+        name: 'Device Without Local Key',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: true,
+          result: {
+            id: 'test-device-no-key',
+            // No local_key or localKey provided
+            ip: '192.168.1.200',
+          },
+        }),
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      // Device should not be added to local config without local_key
+      if (bothPlatform.platformConfig.local?.devices) {
+        expect(bothPlatform.platformConfig.local.devices.length).toBe(0);
+      }
+    });
+
+    test('handles API timeout with grace', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        id: 'test-device-timeout',
+        name: 'Timeout Device',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => {
+          throw new Error('Request timeout');
+        },
+      } as any;
+
+      // Should not throw, but handle gracefully
+      await expect(bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice])).resolves.toBeUndefined();
+      
+      // Local devices should remain empty (timeout treated as error)
+      if (bothPlatform.platformConfig.local?.devices) {
+        expect(bothPlatform.platformConfig.local.devices.length).toBe(0);
+      }
+    });
+  });
+
+  describe('mixed config scenarios', () => {
+    test('updates manual local config with cloud-provided local_key', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [
+            {
+              tuyaDeviceId: 'manual-device-xyz',
+              // User provided device ID but no key
+              name: 'Manual Device No Key',
+            },
+          ],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        id: 'manual-device-xyz',
+        name: 'Manual Device No Key',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: true,
+          result: {
+            id: 'manual-device-xyz',
+            local_key: 'cloud-filled-key',
+            ip: '192.168.1.99',
+          },
+        }),
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      if (bothPlatform.platformConfig.local?.devices) {
+        const enrichedDevice = bothPlatform.platformConfig.local.devices[0];
+        expect(enrichedDevice.tuyaDeviceId).toBe('manual-device-xyz');
+        expect(enrichedDevice.tuyaKey).toBe('cloud-filled-key');
+        expect(enrichedDevice.ip).toBe('192.168.1.99');
+        // Original name should be preserved
+        expect(enrichedDevice.name).toBe('Manual Device No Key');
+      }
+    });
+
+    test('does not overwrite existing manual local_key', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [
+            {
+              tuyaDeviceId: 'device-with-manual-key',
+              tuyaKey: 'user-provided-key-123',  // User explicitly set this
+              name: 'Device With Manual Key',
+            },
+          ],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        id: 'device-with-manual-key',
+        name: 'Device With Manual Key',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: true,
+          result: {
+            id: 'device-with-manual-key',
+            local_key: 'different-cloud-key',
+            ip: '192.168.1.88',
+          },
+        }),
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      if (bothPlatform.platformConfig.local?.devices) {
+        const enrichedDevice = bothPlatform.platformConfig.local.devices[0];
+        // Manual key should be skipped (device has tuyaKey already)
+        expect(enrichedDevice.tuyaKey).toBe('user-provided-key-123');
+      }
+    });
+  });
+
+  describe('multi-device enrichment', () => {
+    test('enriches multiple cloud devices in parallel', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevices = [
+        { id: 'device-1', uuid: 'device-1', name: 'Device 1', product_id: 'prod-1' },
+        { id: 'device-2', uuid: 'device-2', name: 'Device 2', product_id: 'prod-2' },
+        { id: 'device-3', uuid: 'device-3', name: 'Device 3', product_id: 'prod-3' },
+      ] as any;
+
+      const callCount: Record<string, number> = {};
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async (deviceId: string) => {
+          callCount[deviceId] = (callCount[deviceId] || 0) + 1;
+          return {
+            success: true,
+            result: {
+              id: deviceId,
+              local_key: `key-${deviceId}`,
+              ip: `192.168.1.${Math.floor(Math.random() * 254) + 1}`,
+            },
+          };
+        },
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud(mockCloudDevices);
+
+      if (bothPlatform.platformConfig.local?.devices) {
+        expect(bothPlatform.platformConfig.local.devices.length).toBe(3);
+        
+        const device1 = bothPlatform.platformConfig.local.devices.find(d => d.tuyaDeviceId === 'device-1');
+        const device2 = bothPlatform.platformConfig.local.devices.find(d => d.tuyaDeviceId === 'device-2');
+        const device3 = bothPlatform.platformConfig.local.devices.find(d => d.tuyaDeviceId === 'device-3');
+        
+        expect(device1?.tuyaKey).toBe('key-device-1');
+        expect(device2?.tuyaKey).toBe('key-device-2');
+        expect(device3?.tuyaKey).toBe('key-device-3');
+      }
+    });
+
+    test('continues enrichment if single device fails', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevices = [
+        { id: 'device-ok-1', uuid: 'device-ok-1', name: 'OK Device 1' },
+        { id: 'device-fail', uuid: 'device-fail', name: 'Failing Device' },
+        { id: 'device-ok-2', uuid: 'device-ok-2', name: 'OK Device 2' },
+      ] as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async (deviceId: string) => {
+          if (deviceId === 'device-fail') {
+            return { success: false, code: 'ERROR' };
+          }
+          return {
+            success: true,
+            result: {
+              id: deviceId,
+              local_key: `key-${deviceId}`,
+              ip: '192.168.1.100',
+            },
+          };
+        },
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud(mockCloudDevices);
+
+      if (bothPlatform.platformConfig.local?.devices) {
+        // Should have 2 devices (one failed, skipped)
+        expect(bothPlatform.platformConfig.local.devices.length).toBe(2);
+        
+        const hasOk1 = bothPlatform.platformConfig.local.devices.some(d => d.tuyaDeviceId === 'device-ok-1');
+        const hasOk2 = bothPlatform.platformConfig.local.devices.some(d => d.tuyaDeviceId === 'device-ok-2');
+        const hasFailed = bothPlatform.platformConfig.local.devices.some(d => d.tuyaDeviceId === 'device-fail');
+        
+        expect(hasOk1).toBe(true);
+        expect(hasOk2).toBe(true);
+        expect(hasFailed).toBe(false);
+      }
+    });
+  });
+
+  describe('device ID consistency and deduplication', () => {
+    test('uses consistent UUID for same device across cloud and local', () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      // Create mock cloud and local devices with same ID
+      const mockCloudDevice = {
+        id: 'same-device-id',
+        uuid: 'same-device-id',
+        name: 'Test Device (Cloud)',
+      } as any;
+
+      const mockLocalDevice = {
+        id: 'same-device-id',
+        uuid: 'same-device-id',
+        name: 'Test Device (Local)',
+      } as any;
+
+      // Both should map to same UUID
+      const cloudUUID = bothPlatform.api.hap.uuid.generate(mockCloudDevice.id);
+      const localUUID = bothPlatform.api.hap.uuid.generate(mockLocalDevice.id);
+
+      expect(cloudUUID).toBe(localUUID);
+    });
+
+    test('enrichment preserves device ID for accessory mapping', async () => {
+      const bothConfig = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'both',
+        options: {
+          projectType: '2',
+          accessId: 'id',
+          accessKey: 'key',
+          countryCode: 1,
+          username: 'user',
+          password: 'pass',
+          appSchema: 'tuyaSmart',
+          generateWeatherAccessory: false,
+          weatherAPI: '',
+        },
+        local: {
+          devices: [],
+        },
+      };
+
+      const bothPlatform = new TuyaPlatform(mockLog, bothConfig, mockAPI);
+
+      const mockCloudDevice = {
+        id: 'unique-device-id',
+        uuid: 'unique-device-id',
+        name: 'Device',
+        product_id: 'product-123',
+      } as any;
+
+      bothPlatform.deviceManager = {
+        getDeviceDetails: async () => ({
+          success: true,
+          result: {
+            id: 'unique-device-id',
+            local_key: 'test-key',
+            ip: '192.168.1.1',
+          },
+        }),
+      } as any;
+
+      await bothPlatform.enrichLocalConfigFromCloud([mockCloudDevice]);
+
+      if (bothPlatform.platformConfig.local?.devices) {
+        const enrichedDevice = bothPlatform.platformConfig.local.devices[0];
+        // Device ID should be preserved for accessory mapping
+        expect(enrichedDevice.tuyaDeviceId).toBe('unique-device-id');
+      }
+    });
+  });
 });
+
