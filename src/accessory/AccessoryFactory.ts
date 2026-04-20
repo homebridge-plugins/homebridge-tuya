@@ -92,6 +92,7 @@ export default class AccessoryFactory {
 
     handler.configureServices();
     handler.configureStatusActive();
+    handler.configureDeviceSpecificFeatures();
     handler.updateAllValues();
     handler.intialized = true;
 

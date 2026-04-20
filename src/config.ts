@@ -9,6 +9,7 @@ export interface TuyaPlatformDeviceSchemaConfig {
   onGet?: string;
   onSet?: string;
   hidden?: boolean;
+  extra?: boolean;
 }
 
 export interface TuyaPlatformDeviceConfig {
@@ -17,6 +18,7 @@ export interface TuyaPlatformDeviceConfig {
   schema?: Array<TuyaPlatformDeviceSchemaConfig>;
   unbridged?: boolean;
   adaptiveLighting?: boolean;
+  addExtraFeatures?: boolean;
 }
 
 export interface TuyaPlatformServiceInformationConfig {

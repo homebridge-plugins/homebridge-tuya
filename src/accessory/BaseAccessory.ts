@@ -8,6 +8,7 @@ import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty, TuyaDeviceSchemaMode
 import { TuyaPlatform } from '../platform';
 import { limit, sanitizeName } from '../util/util';
 import { PrefixLogger } from '../util/Logger';
+import { configureExtraCharactersitcs } from './characteristic/ExtraCharacteristicAdapter';
 
 const MANUFACTURER = 'Tuya Inc.';
 
@@ -260,6 +261,10 @@ class BaseAccessory {
     //
   }
 
+  configureDeviceSpecificFeatures() {
+    //
+  }
+
   async onDeviceInfoUpdate(info) {
     this.updateAllValues();
   }
@@ -370,4 +375,15 @@ export default class OverridedBaseAccessory extends BaseAccessory {
 
     await super.sendCommands(commands, debounce);
   }
+
+  configureDeviceSpecificFeatures() {
+    const config = this.platform.getDeviceConfig(this.device);
+    if (!config || !config.addExtraFeatures) {
+      return;
+    }
+    for (const schema of this.device.schema) {
+      configureExtraCharactersitcs(this, schema);
+    }
+  }
 }
+
