@@ -140,6 +140,14 @@
                                         "functionBody": "return (model.options && model.options.deviceOverrides);"
                                     }
                                 },
+                                "addExtraFeatures": {
+                                    "title": "Add Extra Features",
+                                    "description": "Show device‑specific features that aren’t part of the standard spec",
+                                    "type": "boolean",
+                                    "condition": {
+                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                    }
+                                },
                                 "garageDoorUseContactSensorForState": {
                                     "title": "Use Contact Sensor For Garage Door State",
                                     "description": "For garage door controllers only. Derive CurrentDoorState and TargetDoorState reads from doorcontact_state instead of switch_1.",
@@ -255,7 +263,7 @@
                                                             "type": "string"
                                                         },
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].extra);"
                                                         }
                                                     }
                                                 },
@@ -286,6 +294,14 @@
                                                 "placeholder": "value",
                                                 "condition": {
                                                     "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                }
+                                            },
+                                            "extra": {
+                                                "title": "Extra",
+                                                "type": "boolean",
+                                                "description": "Treat as Extra Switch",
+                                                "condition": {
+                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum');"
                                                 }
                                             }
                                         }
@@ -496,6 +512,9 @@
                                     "key": "options.deviceOverrides[].unbridged"
                                 },
                                 {
+                                    "key": "options.deviceOverrides[].addExtraFeatures"
+                                },
+                                {
                                     "key": "options.deviceOverrides[].garageDoorUseContactSensorForState"
                                 },
                                 {
@@ -520,6 +539,9 @@
                                                 },
                                                 {
                                                     "key": "options.deviceOverrides[].schema[].hidden"
+                                                },
+                                                {
+                                                    "key": "options.deviceOverrides[].schema[].extra"
                                                 },
                                                 {
                                                     "key": "options.deviceOverrides[].schema[].type"

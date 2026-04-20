@@ -31,17 +31,17 @@ export function toHapProperty(
     switch (key) {
       case 'min': {
         const multiple = Math.pow(10, property ? property['scale'] : 0);
-        hap['minValue'] = Math.max(-273.15, value / multiple);
+        hap['minValue'] = value / multiple;
         break;
       }
       case 'max': {
         const multiple = Math.pow(10, property ? property['scale'] : 0);
-        hap['maxValue'] = Math.min(400, value / multiple);
+        hap['maxValue'] = value / multiple;
         break;
       }
       case 'step': {
         const multiple = Math.pow(10, property ? property['scale'] : 0);
-        hap['minStep'] = Math.max(0.01, value / multiple);
+        hap['minStep'] = value / multiple;
         break;
       }
       case 'range': {
