@@ -50,6 +50,7 @@ import WetBulbGlobeTemperatureAccessory from './WetBulbGlobeTemperatureAccessory
 import IRControlHubSubAccessory from './IRControlHubSubAccessory';
 import LocationWeatherAccessory from './LocationWeatherAccessory';
 import TowelRackAccessory from './TowerRackAccessory';
+import BlindsAccessory from './BlindsAccessory';
 
 
 export default class AccessoryFactory {
@@ -228,6 +229,9 @@ function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformA
       return new DiffuserAccessory(platform, accessory);
     case 'ckmkzq':
       return new GarageDoorAccessory(platform, accessory);
+    case 'mg':
+    case 'mgmt':
+      return new BlindsAccessory(platform, accessory);
     case 'cl':
     case 'clkg':
       return new WindowCoveringAccessory(platform, accessory);
