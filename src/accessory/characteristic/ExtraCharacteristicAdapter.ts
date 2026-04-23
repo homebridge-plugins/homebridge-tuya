@@ -16,6 +16,7 @@ export function configureExtraCharactersitcs(accessory: BaseAccessory, schema: T
   if (schemaConfig && schemaConfig.hidden) {
     return;
   }
+
   if (isExtraSwitch(accessory, schema)) {
     createExtraSwitch(accessory, schema);
   } else if (isExtraEnumSwitch(accessory, schema)) {
@@ -37,6 +38,9 @@ function isExtraSchema(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
     }
     return false;
   }
+  if (accessory.supportedDPs.has(schema.code)) {
+    return false;
+  }
   return true;
 }
 
@@ -52,6 +56,7 @@ function isExtraCharacteristic(device: TuyaDevice, schemaConfig: TuyaPlatformDev
     // ignore case
     return schema.code.toLowerCase() === schemaConfig.newCode!.toLowerCase();
   });
+  console.log('isExtraSchema oldSchema:' + JSON.stringify(oldSchema) + ', newSchema:' + JSON.stringify(newSchema));
   return !oldSchema && newSchema;
 }
 
@@ -98,9 +103,16 @@ function createExtraSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
 function createExtraEnumSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
   const switches = configureEnumOn(accessory, schema);
   Object.entries(switches).forEach(([key, value]) => {
-    accessory.log.info('add extra enum switch:' + schema.code
-            + ', value:' + key
-            + ', index:' + accessory.accessory.services.indexOf(value));
+    const schemaConfig = accessory.platform.getDeviceConfig(accessory.device)?.schema?.find(item => {
+      return item.code === key;
+    });
+    if (schemaConfig && schemaConfig.hidden) {
+      accessory.accessory.removeService(value);
+    } else {
+      accessory.log.info('add extra enum switch:' + schema.code
+              + ', enum DP:' + key
+              + ', index:' + accessory.accessory.services.indexOf(value));
+    }
   },
   );
 }
@@ -129,15 +141,15 @@ function createExtraSlider(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
     dummyCode = schemaConfig.newCode;
     // to ignore generated dummy code
     schemaConfig.code = dummyCode;
+    const dummySchema: TuyaDeviceSchema = {
+      code: dummyCode,
+      type: TuyaDeviceSchemaType.Boolean,
+      mode: TuyaDeviceSchemaMode.READ_WRITE,
+      property: {},
+    };
+    configureOn(accessory, service, dummySchema);
   }
 
-  const dummySchema: TuyaDeviceSchema = {
-    code: dummyCode,
-    type: TuyaDeviceSchemaType.Boolean,
-    mode: TuyaDeviceSchemaMode.READ_WRITE,
-    property: {},
-  };
-  configureOn(accessory, service, dummySchema);
   configureName(accessory, service, schema.code);
 
   accessory.log.info('add extra slider:' + schema.code
