@@ -43,6 +43,8 @@ class BaseAccessory {
 
   public adaptiveLightingController?;
 
+  supportedDPs = new Set();
+
   constructor(
     public readonly platform: TuyaPlatform,
     public readonly accessory: PlatformAccessory,
@@ -178,6 +180,7 @@ class BaseAccessory {
         continue;
       }
 
+      this.supportedDPs.add(schema.code);
       return schema;
     }
     return undefined;
@@ -305,6 +308,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
       this.log.debug('Override schema %o => %o', oldSchema, schema);
     }
 
+    this.supportedDPs.add(schema.code);
     return schema;
   }
 
@@ -381,6 +385,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
     if (!config || !config.addExtraFeatures) {
       return;
     }
+    this.supportedDPs.forEach(item => this.log.info(`supported dp:${item}`));
     for (const schema of this.device.schema) {
       configureExtraCharactersitcs(this, schema);
     }

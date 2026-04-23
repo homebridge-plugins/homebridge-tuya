@@ -3,44 +3,49 @@ import { TuyaDeviceSchema, TuyaDeviceSchemaEnumProperty } from '../../device/Tuy
 import BaseAccessory from '../BaseAccessory';
 import { configureName } from './Name';
 
-export function configureEnumOn(accessory: BaseAccessory, schema?: TuyaDeviceSchema) : Record<string, Service> {
+export function configureEnumOn(accessory: BaseAccessory, schema: TuyaDeviceSchema) : Record<string, Service> {
   if (!schema || schema.type !== 'Enum') {
     return {};
   }
-  const modes = (schema.property as TuyaDeviceSchemaEnumProperty).range;
+  const enumCodes = (schema.property as TuyaDeviceSchemaEnumProperty).range;
   const switches:Record<string, Service> = {};
 
-  for (const index in modes) {
-    const mode = modes[index];
-    const service = accessory.accessory.getServiceById(accessory.Service.Switch, schema.code + '_' + mode)
-      || accessory.accessory.addService(accessory.Service.Switch, schema.code, schema.code + '_' + mode);
+  for (const index in enumCodes) {
+    const enumCode = enumCodes[index];
+    const enumDP = createEnumOnDPCode(schema, enumCode);
+    const service = accessory.accessory.getServiceById(accessory.Service.Switch, enumDP)
+      || accessory.accessory.addService(accessory.Service.Switch, schema.code, enumDP);
 
-    configureName(accessory, service, service.subtype || (mode + '_' + index));
+    configureName(accessory, service, service.subtype || enumDP);
     service.getCharacteristic(accessory.Characteristic.On)
       .onSet(async (value) => {
         if (value) {
-          // Mutually Exclusive Selection(radio button style)
-          modes.forEach(other => {
-            if (other !== mode) {
-              switches[other]
-                .getCharacteristic(accessory.Characteristic.On)
-                .updateValue(false);
-            }
-          });
-          accessory.log.info('value:' + value);
           await accessory.sendCommands([{
             code: schema.code,
-            value: mode,
+            value: enumCode,
           }], true);
+          // Mutually Exclusive Selection(radio button style)
+          Object.entries(switches).forEach(([key, service]) => {
+            if (key !== createEnumOnDPCode(schema, enumCode)) {
+              const characteristic = service.getCharacteristic(accessory.Characteristic.On);
+              if (characteristic.value) {
+                characteristic.updateValue(false);
+              }
+            }
+          });
         }
       })
       .onGet(() => {
         accessory.checkOnlineStatus();
         const status = accessory.getStatus(schema.code)!;
-        return status.value === mode;
+        return status.value === enumCode;
       });
 
-    switches[mode] = service;
+    switches[enumDP] = service;
   }
   return switches;
+}
+
+function createEnumOnDPCode(schema: TuyaDeviceSchema, enumCode: string) : string {
+  return `${schema.code}-${enumCode}`;
 }
