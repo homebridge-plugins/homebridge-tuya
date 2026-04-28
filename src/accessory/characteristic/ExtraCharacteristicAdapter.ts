@@ -101,7 +101,7 @@ function createExtraSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
 }
 
 function createExtraEnumSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
-  const switches = configureEnumOn(accessory, schema);
+  const switches = configureEnumOn(accessory, accessory.getSchema(schema.code) ?? schema);
   Object.entries(switches).forEach(([key, value]) => {
     const schemaConfig = accessory.platform.getDeviceConfig(accessory.device)?.schema?.find(item => {
       return item.code === key;
