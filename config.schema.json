@@ -140,8 +140,8 @@
                                         "functionBody": "return (model.options && model.options.deviceOverrides);"
                                     }
                                 },
-                                "addExtraFeatures": {
-                                    "title": "Add Extra Features",
+                                "addExtraFeaturesAutomatically": {
+                                    "title": "Add Extra Features Automatically",
                                     "description": "Show device‑specific features that aren’t part of the standard spec",
                                     "type": "boolean",
                                     "condition": {
@@ -255,7 +255,7 @@
                                                             "type": "string"
                                                         },
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].extra);"
+                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     }
                                                 },
@@ -273,9 +273,9 @@
                                             "extra": {
                                                 "title": "Extra",
                                                 "type": "boolean",
-                                                "description": "Treat as Extra Switch",
+                                                "description": "Treat as Extra Feature",
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum');"
+                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema);"
                                                 }
                                             }
                                         }
@@ -442,7 +442,7 @@
                                     "key": "options.deviceOverrides[].unbridged"
                                 },
                                 {
-                                    "key": "options.deviceOverrides[].addExtraFeatures"
+                                    "key": "options.deviceOverrides[].addExtraFeaturesAutomatically"
                                 },
                                 {
                                     "key": "options.deviceOverrides[].schema",

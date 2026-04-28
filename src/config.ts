@@ -18,7 +18,7 @@ export interface TuyaPlatformDeviceConfig {
   schema?: Array<TuyaPlatformDeviceSchemaConfig>;
   unbridged?: boolean;
   adaptiveLighting?: boolean;
-  addExtraFeatures?: boolean;
+  addExtraFeaturesAutomatically?: boolean;
 }
 
 export interface TuyaPlatformServiceInformationConfig {

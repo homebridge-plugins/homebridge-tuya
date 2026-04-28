@@ -382,13 +382,24 @@ export default class OverridedBaseAccessory extends BaseAccessory {
 
   configureDeviceSpecificFeatures() {
     const config = this.platform.getDeviceConfig(this.device);
-    if (!config || !config.addExtraFeatures) {
-      return;
-    }
     this.supportedDPs.forEach(item => this.log.info(`supported dp:${item}`));
+    const includeExtraFeatures = new Array<string>;
+    const isAuto = config && config.addExtraFeaturesAutomatically;
+    // Add a standard DP that needs to be treated as an Extra Feature
+    this.platform.getDeviceConfig(this.device)?.schema?.filter(item => item.extra).forEach(item => includeExtraFeatures.push(item.code));
     for (const schema of this.device.schema) {
-      configureExtraCharactersitcs(this, schema);
+      if (isAuto) {
+        configureExtraCharactersitcs(this, schema);
+        includeExtraFeatures.splice(includeExtraFeatures.indexOf(schema.code), 1);
+      } else {
+        if (includeExtraFeatures.includes(schema.code)) {
+          configureExtraCharactersitcs(this, schema);
+          includeExtraFeatures.splice(includeExtraFeatures.indexOf(schema.code), 1);
+        }
+      }
     }
+
+    includeExtraFeatures.forEach(item => this.log.warn(`Extra DP Code:${item} not found.`));
   }
 }
 
