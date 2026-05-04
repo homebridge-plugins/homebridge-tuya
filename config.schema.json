@@ -303,6 +303,55 @@
                                                 "condition": {
                                                     "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema);"
                                                 }
+                                            },
+                                            "extraRawSwitch": {
+                                                "title": "RawDataSwitches",
+                                                "type": "array",
+                                                "description": "Add switches for updating the byte‑code data.",
+                                                "condition": {
+                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Raw' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].extra);"
+                                                },
+                                                "items": {
+                                                    "type": "object",
+                                                    "required": ["configuredName", "notation", "value", "byteIndex"],
+                                                    "properties": {
+                                                        "configuredName": {
+                                                            "title": "Name",
+                                                            "type": "string"
+                                                        },
+                                                        "notation": {
+                                                            "title": "Notation",
+                                                            "type": "string",
+                                                            "default": "base64",
+                                                            "oneOf": [
+                                                                {
+                                                                    "title": "Base64",
+                                                                    "enum": [
+                                                                        "base64"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "title": "Hexadecimal",
+                                                                    "enum": [
+                                                                        "hex"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "value": {
+                                                            "title": "Value",
+                                                            "type": "string",
+                                                            "placeholder": "0x01",
+                                                            "pattern": "^0x([0-9a-fA-F]{2})+$"
+                                                        },
+                                                        "byteIndex": {
+                                                            "title": "ByteIndex",
+                                                            "type": "integer",
+                                                            "default": 0,
+                                                            "minimum": 0
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     },
@@ -578,6 +627,26 @@
                                                                             "key": "options.deviceOverrides[].schema[].property.range[]",
                                                                             "placeholder": "Range"
                                                                         }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "key": "options.deviceOverrides[].schema[].extraRawSwitch",
+                                                    "type": "array",
+                                                    "items": [
+                                                        {
+                                                            "type": "fieldset",
+                                                            "items": [
+                                                                { "key": "options.deviceOverrides[].schema[].extraRawSwitch[].configuredName" },
+                                                                {
+                                                                    "type": "flex",
+                                                                    "flex-flow": "row wrap",
+                                                                    "items": [
+                                                                        { "key": "options.deviceOverrides[].schema[].extraRawSwitch[].byteIndex", "flex-basis": "min-content" },
+                                                                        { "key": "options.deviceOverrides[].schema[].extraRawSwitch[].value" }
                                                                     ]
                                                                 }
                                                             ]

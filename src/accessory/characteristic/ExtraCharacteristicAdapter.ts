@@ -7,6 +7,7 @@ import { configureOn } from './On';
 import { configureEnumOn } from './EnumOn';
 import { toHapProperty } from '../../util/util';
 import { TuyaPlatformDeviceSchemaConfig } from '../../config';
+import { configureRawOn } from './RawOn';
 
 export function configureExtraCharactersitcs(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
   const schemaConfig = accessory.platform.getDeviceConfig(accessory.device)?.schema?.find(item => {
@@ -23,6 +24,8 @@ export function configureExtraCharactersitcs(accessory: BaseAccessory, schema: T
     createExtraEnumSwitch(accessory, schema);
   } else if (isExtraSlider(accessory, schema)) {
     createExtraSlider(accessory, schema);
+  } else if (isExtraRawSwitch(accessory, schema)) {
+    createExtraRawSwitch(accessory, schema);
   }
 }
 
@@ -60,11 +63,21 @@ function isExtraCharacteristic(device: TuyaDevice, schemaConfig: TuyaPlatformDev
   return !oldSchema && newSchema;
 }
 
+function isExtraRawSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
+  if (schema.mode !== 'rw') {
+    return false;
+  }
+  if (schema.type !== TuyaDeviceSchemaType.Raw) {
+    return false;
+  }
+  return isExtraSchema(accessory, schema);
+}
+
 function isExtraEnumSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
   if (schema.mode !== 'rw') {
     return false;
   }
-  if (schema.type !== 'Enum') {
+  if (schema.type !== TuyaDeviceSchemaType.Enum) {
     return false;
   }
   return isExtraSchema(accessory, schema);
@@ -74,7 +87,7 @@ function isExtraSlider(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
   if (schema.mode !== 'rw') {
     return false;
   }
-  if (schema.type !== 'Integer') {
+  if (schema.type !== TuyaDeviceSchemaType.Integer) {
     return false;
   }
   return isExtraSchema(accessory, schema);
@@ -84,20 +97,40 @@ function isExtraSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
   if (schema.mode !== 'rw') {
     return false;
   }
-  if (schema.type !== 'Boolean') {
+  if (schema.type !== TuyaDeviceSchemaType.Boolean) {
     return false;
   }
   return isExtraSchema(accessory, schema);
 }
 
 function createExtraSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
-  const service = accessory.accessory.getService(schema.code)
+  const service = accessory.accessory.getServiceById(schema.code, schema.code)
         || accessory.accessory.addService(accessory.Service.Switch, schema.code, schema.code);
 
   configureName(accessory, service, service.displayName);
   configureOn(accessory, service, schema);
   accessory.log.info('add extra switch:' + schema.code
         + ', index:' + accessory.accessory.services.indexOf(service));
+}
+
+function createExtraRawSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
+  const schemaConfig = accessory.platform.getDeviceConfig(accessory.device)?.schema?.find(item => {
+    return item.code === schema.code;
+  });
+  const switches = configureRawOn(accessory, schema, schemaConfig?.extraRawSwitch ?? []);
+  Object.entries(switches).forEach(([key, value]) => {
+    const schemaConfig = accessory.platform.getDeviceConfig(accessory.device)?.schema?.find(item => {
+      return item.code === key;
+    });
+    if (schemaConfig && schemaConfig.hidden) {
+      accessory.accessory.removeService(value);
+    } else {
+      accessory.log.info('add extra raw switch:' + schema.code
+              + ', enum DP:' + key
+              + ', index:' + accessory.accessory.services.indexOf(value));
+    }
+  },
+  );
 }
 
 function createExtraEnumSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
