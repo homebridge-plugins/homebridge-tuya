@@ -79,7 +79,7 @@ export default class SwitchAccessory extends BaseAccessory {
       return;
     }
 
-    const service = this.accessory.getService(schema.code)
+    const service = this.accessory.getServiceById(schema.code, schema.code)
       || this.accessory.addService(this.Service.Switch, schema.code, schema.code);
 
     configureName(this, service, schema.code);

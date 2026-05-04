@@ -1,10 +1,10 @@
 import { Service } from 'homebridge';
-import { TuyaDeviceSchema, TuyaDeviceSchemaEnumProperty } from '../../device/TuyaDevice';
+import { TuyaDeviceSchema, TuyaDeviceSchemaEnumProperty, TuyaDeviceSchemaType } from '../../device/TuyaDevice';
 import BaseAccessory from '../BaseAccessory';
 import { configureName } from './Name';
 
 export function configureEnumOn(accessory: BaseAccessory, schema: TuyaDeviceSchema) : Record<string, Service> {
-  if (!schema || schema.type !== 'Enum') {
+  if (!schema || schema.type !== TuyaDeviceSchemaType.Enum) {
     return {};
   }
   const enumCodes = (schema.property as TuyaDeviceSchemaEnumProperty).range;

@@ -10,6 +10,7 @@ export interface TuyaPlatformDeviceSchemaConfig {
   onSet?: string;
   hidden?: boolean;
   extra?: boolean;
+  extraRawSwitch?: Array<TuyaPlatformExtraRawSwitchConfig>;
 }
 
 export interface TuyaPlatformDeviceConfig {
@@ -95,3 +96,10 @@ export const homeOptionsSchema = {
     debugLevel: { 'type': 'string' },
   },
 };
+
+export interface TuyaPlatformExtraRawSwitchConfig {
+  configuredName: string;
+  notation: string;
+  value: string;
+  byteIndex: number;
+}
