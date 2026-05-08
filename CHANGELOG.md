@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.2.3] - (2026.5.8)
+
+### Changed
+ - Updated so that switch names are not sanitized when the plugin restarts.
+This prevents the plugin from unnecessarily updating the name set by the user in the Home app.
+Since information from the Home app is not sent to the plugin, I recommend changing device names through the plugin settings to avoid unintended name updates.
+ - Fixed an issue where switch names were not being sanitized for devices that contain multiple switches.
+This will suppress the Homebridge warning logs.
+
+## [2.2.2] - (2026.4.8)
+
+### Fixed
+ - Fix an issue where the Configured Name was sometimes not applied
+
+## [2.2.1] - (2026.3.9)
+
+### Fixed
+ - Homebridge V2: supported.
+ - Accessory names containing invalid characters are now automatically sanitized to be HomeKit-compliant. This prevents the "invalid  'ConfiguredName'" warning and reduces the risk of accessories failing to be added or becoming unresponsive in the Home app.
+ - Logging added to show when names are corrected.
+
 ## [2.2.0] - (2026.2.23)
 
 ### Fixed
