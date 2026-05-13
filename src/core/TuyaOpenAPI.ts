@@ -5,6 +5,7 @@ import https from 'https';
 import Crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import retry from 'async-await-retry';
+import dns from 'dns';
 
 // eslint-disable-next-line
 // @ts-ignore
@@ -69,6 +70,14 @@ type TuyaOpenAPIResponseError = {
   tid: string;
 };
 
+const ipv4Agent = new https.Agent({
+  family: 4,
+  lookup: (hostname, options, callback) => {
+    // Node v24 の multi-family 接続を避け、IPv4 のみ解決
+    return dns.lookup(hostname, { family: 4 }, callback);
+  },
+});
+
 export type TuyaOpenAPIResponse = TuyaOpenAPIResponseSuccess | TuyaOpenAPIResponseError;
 
 export default class TuyaOpenAPI {
@@ -87,6 +96,7 @@ export default class TuyaOpenAPI {
     public log: Logger = console,
     public lang = 'en',
     public debug = false,
+    public forceIPv4 = false,
   ) {
     this.log = new PrefixLogger(log, TuyaOpenAPI.name, debug);
   }
@@ -286,13 +296,16 @@ export default class TuyaOpenAPI {
     }
 
     const res: TuyaOpenAPIResponse = await retry(async () => new Promise((resolve, reject) => {
-
-      const req = https.request({
+      const requestOptions = {
         host: new URL(this.endpoint).host,
         method,
         headers,
         path,
-      }, res => {
+      };
+      if (this.forceIPv4) {
+        requestOptions['agent'] = ipv4Agent;
+      }
+      const req = https.request(requestOptions, res => {
         if (res.statusCode !== 200) {
           this.log.warn('Status: %d %s', res.statusCode, res.statusMessage);
           return;

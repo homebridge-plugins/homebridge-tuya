@@ -262,7 +262,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     let res;
     const { endpoint, accessId, accessKey, debug, debugLevel } = this.options;
     const debugMode = debug && ((debugLevel ?? '').length > 0 ? debugLevel?.includes('api') : true);
-    const api = new TuyaOpenAPI(endpoint, accessId, accessKey, this.log, 'en', debugMode);
+    const api = new TuyaOpenAPI(endpoint, accessId, accessKey, this.log, 'en', debugMode, this.options.forceIPv4);
     const deviceManager = new TuyaCustomDeviceManager(api, debugMode);
 
     this.log.info('Get token.');
@@ -357,7 +357,8 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       accessKey,
       this.log,
       'en',
-      debugMode);
+      debugMode,
+      this.options.forceIPv4);
     const deviceManager = new TuyaHomeDeviceManager(api, debugMode);
 
     this.log.info('Log in to Tuya Cloud.');
