@@ -58,6 +58,7 @@ export interface TuyaPlatformCustomConfigOptions {
   weatherAPI: string;
   debug?: boolean;
   debugLevel?: string;
+  forceIPv4: boolean;
 }
 
 // ── Cloud project-type 2 (Smart Home / app login) ────────────────────────────
@@ -78,6 +79,7 @@ export interface TuyaPlatformHomeConfigOptions {
   weatherAPI: string;
   debug?: boolean;
   debugLevel?: string;
+  forceIPv4: boolean;
 }
 
 export type TuyaPlatformCloudConfigOptions =
