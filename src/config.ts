@@ -42,6 +42,7 @@ export interface TuyaPlatformCustomConfigOptions {
   weatherAPI: string;
   debug?: boolean;
   debugLevel?: string;
+  forceIPv4: boolean;
 }
 
 export interface TuyaPlatformHomeConfigOptions {
@@ -60,6 +61,7 @@ export interface TuyaPlatformHomeConfigOptions {
   weatherAPI: string;
   debug?: boolean;
   debugLevel?: string;
+  forceIPv4: boolean;
 }
 
 export type TuyaPlatformConfigOptions = TuyaPlatformCustomConfigOptions | TuyaPlatformHomeConfigOptions;

@@ -5,6 +5,7 @@ import CryptoJS from 'crypto-js';
 
 import TuyaOpenAPI from './TuyaOpenAPI';
 import Logger, { PrefixLogger } from '../util/Logger';
+import dns from 'dns';
 
 const GCM_TAG_LENGTH = 16;
 
@@ -38,6 +39,7 @@ export default class TuyaOpenMQ {
     public api: TuyaOpenAPI,
     public log: Logger = new PrefixLogger(console, 'console', false),
     public debug = false,
+    public forceIPv4 = api.forceIPv4,
   ) {
     this.log = new PrefixLogger(log, TuyaOpenMQ.name, debug);
   }
@@ -67,11 +69,19 @@ export default class TuyaOpenMQ {
 
     const { url, client_id, username, password, expire_time, source_topic } = res.result;
     this.log.debug('Connecting to:', url);
-    const client = mqtt.connect(url, {
+    const clientOptions:mqtt.IClientOptions = {
       clientId: client_id,
       username: username,
       password: password,
-    });
+    };
+    if (this.forceIPv4) {
+      clientOptions['family'] = 4;
+      clientOptions['lookup'] = (hostname, options, callback) => {
+        // Node v24 の multi-family 接続を避け、IPv4 のみ解決
+        return dns.lookup(hostname, { family: 4 }, callback);
+      };
+    }
+    const client = mqtt.connect(url, clientOptions);
 
     client.on('connect', this._onConnect.bind(this));
     client.on('error', this._onError.bind(this));

@@ -349,6 +349,11 @@
                         "condition": {
                             "functionBody": "return (model.options && model.options.debug);"
                         }
+                    },
+                    "forceIPv4": {
+                        "title": "Forcing IPv4 connection",
+                        "type": "boolean",
+                        "default": false
                     }
                 }
             }
@@ -559,6 +564,7 @@
             "items": [
                 "options.generateWeatherAccessory",
                 "options.weatherAPI",
+                "options.forceIPv4",
                 "options.debug",
                 "options.debugLevel"
             ]
