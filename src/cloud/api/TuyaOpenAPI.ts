@@ -268,74 +268,99 @@ export default class TuyaOpenAPI {
   }
 
   async request(method: string, path: string, params?, body?) {
-    await this._refreshAccessTokenIfNeed(path);
+    try {
+      await this._refreshAccessTokenIfNeed(path);
 
-    const now = new Date().getTime();
-    const nonce = generateUUID();
-    const accessToken = this.tokenInfo.access_token || '';
-    const stringToSign = this._getStringToSign(method, path, params, body);
-    const headers = {
-      't': `${now}`,
-      'client_id': this.accessId,
-      'nonce': nonce,
-      'Signature-Headers': 'client_id',
-      'sign': this._getSign(this.accessId, this.accessKey, this.isTokenManagementAPI(path) ? '' : this.tokenInfo.access_token, now, nonce, stringToSign),
-      'sign_method': 'HMAC-SHA256',
-      'access_token': accessToken,
-      'lang': this.lang,
-      'dev_lang': 'javascript',
-      'dev_channel': 'homebridge',
-      'devVersion': version,
-    };
-    this.log.debug('Request:\nmethod = %s\nendpoint = %s\npath = %s\nquery = %s\nheaders = %s\nbody = %s',
-      method, this.endpoint, path, JSON.stringify(params, null, 2), JSON.stringify(headers, null, 2), JSON.stringify(body, null, 2));
-
-    if (params) {
-      path += '?' + new URLSearchParams(params).toString();
-    }
-
-    const res: TuyaOpenAPIResponse = await retry(async () => new Promise((resolve, reject) => {
-      const requestOptions = {
-        host: new URL(this.endpoint).host,
-        method,
-        headers,
-        path,
+      const now = new Date().getTime();
+      const nonce = generateUUID();
+      const accessToken = this.tokenInfo.access_token || '';
+      const stringToSign = this._getStringToSign(method, path, params, body);
+      const headers = {
+        't': `${now}`,
+        'client_id': this.accessId,
+        'nonce': nonce,
+        'Signature-Headers': 'client_id',
+        'sign': this._getSign(this.accessId, this.accessKey, this.isTokenManagementAPI(path) ? '' : this.tokenInfo.access_token, now, nonce, stringToSign),
+        'sign_method': 'HMAC-SHA256',
+        'access_token': accessToken,
+        'lang': this.lang,
+        'dev_lang': 'javascript',
+        'dev_channel': 'homebridge',
+        'devVersion': version,
       };
-      if (this.forceIPv4) {
-        requestOptions['agent'] = ipv4Agent;
+      this.log.debug('Request:\nmethod = %s\nendpoint = %s\npath = %s\nquery = %s\nheaders = %s\nbody = %s',
+        method, this.endpoint, path, JSON.stringify(params, null, 2), JSON.stringify(headers, null, 2), JSON.stringify(body, null, 2));
+
+      if (params) {
+        path += '?' + new URLSearchParams(params).toString();
       }
-      const req = https.request(requestOptions, res => {
-        if (res.statusCode !== 200) {
-          this.log.warn('Status: %d %s', res.statusCode, res.statusMessage);
-          return;
+
+      const res: TuyaOpenAPIResponse = await retry(async () => new Promise((resolve, reject) => {
+        const requestOptions = {
+          host: new URL(this.endpoint).host,
+          method,
+          headers,
+          path,
+        };
+        if (this.forceIPv4) {
+          this.log.debug('forcing ipv4 connection');
+          requestOptions['agent'] = ipv4Agent;
         }
-        res.setEncoding('utf8');
-        let rawData = '';
-        res.on('data', (chunk) => {
-          rawData += chunk;
+        const req = https.request(requestOptions, res => {
+          if (res.statusCode !== 200) {
+            this.log.warn('Status: %d %s', res.statusCode, res.statusMessage);
+            return;
+          }
+          res.setEncoding('utf8');
+          let rawData = '';
+          res.on('data', (chunk) => {
+            rawData += chunk;
+          });
+          res.on('end', () => {
+            resolve(JSON.parse(rawData));
+          });
         });
-        res.on('end', () => {
-          resolve(JSON.parse(rawData));
-        });
-      });
 
-      if (body) {
-        req.write(JSON.stringify(body));
+        if (body) {
+          req.write(JSON.stringify(body));
+        }
+
+        req.on('error', e => {
+          this.log.error('Network error: %s. Retrying...', e.message);
+          reject(e);
+        });
+        req.end();
+      }), { retriesMax: 10, interval: 100, exponential: true, factor: 2, jitter: 100 });
+
+      this.log.debug('Response:\npath = %s\ndata = %s', path, JSON.stringify(res, null, 2));
+      if (res && res.success !== true && API_ERROR_MESSAGES[res.code]) {
+        this.log.error(API_ERROR_MESSAGES[res.code]);
       }
 
-      req.on('error', e => {
-        this.log.error('Network error: %s. Retrying...', e.message);
-        reject(e);
-      });
-      req.end();
-    }), { retriesMax: 10, interval: 100, exponential: true, factor: 2, jitter: 100 });
+      return res;
+    } catch (err:any) {
+      this.log.error('Request failed:', err);
 
-    this.log.debug('Response:\npath = %s\ndata = %s', path, JSON.stringify(res, null, 2));
-    if (res && res.success !== true && API_ERROR_MESSAGES[res.code]) {
-      this.log.error(API_ERROR_MESSAGES[res.code]);
+      // name
+      this.log.error('Error name:', err?.name ?? '(no name)');
+
+      // message
+      this.log.error('Error message:', err?.message ?? '(no message)');
+
+      // code (ETIMEDOUT など)
+      this.log.error('Error code:', err?.code ?? '(no code)');
+
+      // stack
+      this.log.error('Stack:', err?.stack ?? '(no stack)');
+
+      // HTTP クライアントが返すレスポンス
+      if (err?.response) {
+        this.log.error('Response status:', err.response.status);
+        this.log.error('Response data:', JSON.stringify(err.response.data));
+      }
+      this.log.error(`method:${method}, path:${path}, params:${params}, body:${body}`);
+      return { success: false, result: {}, msg: 'error', code: 400 }
     }
-
-    return res;
   }
 
   /**

@@ -175,6 +175,16 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
 
     this.log.debug('Finished initializing platform');
 
+    process.on('uncaughtException', (err) => {
+      this.log.error('Uncaught exception: %o', err);
+      process.exit(1);
+    });
+
+    process.on('unhandledRejection', (reason) => {
+      this.log.error('Unhandled rejection: %o', reason);
+      process.exit(1);
+    });
+
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
     // in order to ensure they weren't added to homebridge already. This event can also be used
@@ -445,7 +455,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       try {
         // Skip if already manually configured in local section
         const existingConfig = this.platformConfig.local.devices.find(
-          cfg => cfg.tuyaDeviceId === device.id || cfg.tuyaDeviceId === device.uuid
+          cfg => cfg.tuyaDeviceId === device.id || cfg.tuyaDeviceId === device.uuid,
         );
         if (existingConfig && existingConfig.tuyaKey) {
           this.log.debug(`[Hybrid] Device ${device.name} (${device.id}) already has manual local config, skipping cloud enrichment`);

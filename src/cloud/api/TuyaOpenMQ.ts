@@ -74,6 +74,7 @@ export default class TuyaOpenMQ {
       password: password,
     };
     if (this.forceIPv4) {
+      this.log.debug('forcing ipv4 connection');
       clientOptions['family'] = 4;
       clientOptions['lookup'] = (hostname, options, callback) => {
         // Node v24 の multi-family 接続を避け、IPv4 のみ解決
