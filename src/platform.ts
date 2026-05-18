@@ -175,13 +175,19 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
 
     this.log.debug('Finished initializing platform');
 
+    const formatError = (e) => {
+      if (e instanceof Error) {
+        return `${e.message}\n${e.stack}`;
+      }
+      return JSON.stringify(e);
+    }
     process.on('uncaughtException', (err) => {
-      this.log.error('Uncaught exception: %o', err);
+      this.log.error('Uncaught exception: %o', formatError(err));
       process.exit(1);
     });
 
     process.on('unhandledRejection', (reason) => {
-      this.log.error('Unhandled rejection: %o', reason);
+      this.log.error('Unhandled rejection: %o', formatError(reason));
       process.exit(1);
     });
 

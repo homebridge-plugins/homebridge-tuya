@@ -2,7 +2,7 @@ import mqtt from 'mqtt';
 import { createDecipheriv } from 'crypto';
 
 import TuyaOpenAPI from './TuyaOpenAPI';
-import Logger, { PrefixLogger } from '../../shared/util/Logger';
+import Logger, { ExLogger, PrefixLogger } from '../../shared/util/Logger';
 import { generateUUID } from '../../shared/util/util';
 import dns from 'dns';
 
@@ -33,14 +33,15 @@ export default class TuyaOpenMQ {
   public linkId = generateUUID();
 
   public timer?: NodeJS.Timeout;
+  public log: ExLogger;
 
   constructor(
     public api: TuyaOpenAPI,
-    public log: Logger = new PrefixLogger(console, 'console', false),
+    public logger: Logger = new PrefixLogger(console, 'console', false),
     public debug = false,
     public forceIPv4 = api.forceIPv4,
   ) {
-    this.log = new PrefixLogger(log, TuyaOpenMQ.name, debug);
+    this.log = new PrefixLogger(logger, TuyaOpenMQ.name, debug);
   }
 
   start() {
@@ -50,10 +51,12 @@ export default class TuyaOpenMQ {
   stop() {
     if (this.timer) {
       clearTimeout(this.timer);
+      this.timer = undefined;
     }
     if (this.client) {
       this.client.removeAllListeners();
-      this.client.end();
+      this.client.end(true);
+      this.client = undefined;
     }
   }
 
@@ -61,18 +64,22 @@ export default class TuyaOpenMQ {
     this.stop();
 
     const res = await this._getMQConfig('mqtt');
-    if (res.success === false) {
+    if (!res.success) {
       this.log.warn('Get MQTT config failed. code = %s, msg = %s', res.code, res.msg);
       return;
     }
+    this.log.success('MQTT config retrieved.');
 
     const { url, client_id, username, password, expire_time, source_topic } = res.result;
     this.log.debug('Connecting to:', url);
-    const clientOptions:mqtt.IClientOptions = {
+    const clientOptions: mqtt.IClientOptions = {
       clientId: client_id,
       username: username,
       password: password,
+      keepalive: 300,
+      reconnectPeriod: 5000,
     };
+
     if (this.forceIPv4) {
       this.log.debug('forcing ipv4 connection');
       clientOptions['family'] = 4;
@@ -87,37 +94,50 @@ export default class TuyaOpenMQ {
     client.on('error', this._onError.bind(this));
     client.on('end', this._onEnd.bind(this));
     client.on('message', this._onMessage.bind(this));
-    client.subscribe(source_topic.device);
 
     this.client = client;
     this.config = res.result;
 
-    // reconnect every 2 hours required
+    // Reconnect before the token expires.
     this.timer = setTimeout(this._connect.bind(this), (expire_time - 60) * 1000);
 
   }
 
   async _getMQConfig(linkType: string) {
-    const res = await this.api.post('/v1.0/iot-03/open-hub/access-config', {
-      'uid': this.api.tokenInfo.uid,
-      'link_id': this.linkId,
-      'link_type': linkType,
-      'topics': 'device',
-      'msg_encrypted_version': this.version,
+    return await this.api.post('/v1.0/iot-03/open-hub/access-config', {
+      uid: this.api.tokenInfo.uid,
+      link_id: this.linkId,
+      link_type: linkType,
+      topics: 'device',
+      msg_encrypted_version: this.version,
     });
-    return res;
   }
 
   _onConnect() {
     this.log.debug('Connected');
+
+    if (!this.client || !this.config) {
+      return;
+    }
+
+    this.client.subscribe(this.config.source_topic.device, (err) => {
+      if (err) {
+        this.log.error('Subscribe error:', err);
+      }
+    });
   }
 
   _onError(error: Error) {
-    this.log.error('Error:', error);
+    this.log.error('MQTT Error:', error);
+
+    if (this.client) {
+      this.client.end(true);
+    }
   }
 
   _onEnd() {
-    this.log.debug('End');
+    this.log.warn('MQTT connection ended. Reconnecting...');
+    setTimeout(() => this._connect(), 3000);
   }
 
   async _onMessage(topic: string, payload: Buffer) {
@@ -137,7 +157,6 @@ export default class TuyaOpenMQ {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private consumedQueue: any[] = [];
   _fixWrongOrderMessage(protocol: number, message, t: number) {
     if (protocol !== 4) {
@@ -145,9 +164,8 @@ export default class TuyaOpenMQ {
     }
 
     const currentPayload = { protocol, message, t };
+    const lastPayload = this.consumedQueue[this.consumedQueue.length - 1];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const lastPayload : any = this.consumedQueue[this.consumedQueue.length - 1];
     if (lastPayload && currentPayload.t < lastPayload.t) {
       this.log.debug('Message received with wrong order.');
       this.log.debug('LastMessage: dataId = %s, t = %s', lastPayload.message.dataId, lastPayload.t);
@@ -172,15 +190,14 @@ export default class TuyaOpenMQ {
           }
         }
       }
-
       return;
     }
 
     this.consumedQueue.push(currentPayload);
 
     while (this.consumedQueue.length > 0) {
-      let t = this.consumedQueue[0].t as number;
-      if (t > Math.pow(10, 12)) { // timestamp format always changing, seconds or milliseconds is not certain :(
+      let t = this.consumedQueue[0].t;
+      if (t > 1e12) {
         t = t / 1000;
       }
 
