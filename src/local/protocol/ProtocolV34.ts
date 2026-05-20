@@ -60,8 +60,12 @@ export class ProtocolV34 implements Protocol {
     // v3.4 uses HMAC-SHA256 (sessionKey for normal frames, deviceKey during key exchange)
     const hmacKey = sessionKey ?? deviceKey;
     const msg = unpackMessage55AA(frame, hmacKey, false);
-    if (!msg) return null;
-    if (!msg.hmacOk) return null;
+    if (!msg) {
+      return null;
+    }
+    if (!msg.hmacOk) {
+      return null;
+    }
 
     let payload = msg.payload;
 
@@ -116,21 +120,27 @@ export class ProtocolV34 implements Protocol {
     localNonce: Buffer,
     realKey: Buffer,
   ): { step3Payload: Buffer; sessionKey: Buffer } | null {
-    if (step2Payload.length < 48) return null;
+    if (step2Payload.length < 48) {
+      return null;
+    }
 
     const remoteNonce = step2Payload.subarray(0, 16);
     const receivedHmac = step2Payload.subarray(16, 48);
 
     // Verify HMAC(localNonce, realKey)
     const expectedHmac = hmac(localNonce, realKey);
-    if (!receivedHmac.equals(expectedHmac)) return null;
+    if (!receivedHmac.equals(expectedHmac)) {
+      return null;
+    }
 
     // Step 3 payload: HMAC(remoteNonce, realKey)
     const step3Payload = hmac(remoteNonce, realKey);
 
     // Finalise: sessionKey = AES-ECB-encrypt(localNonce XOR remoteNonce, realKey)
     const xored = Buffer.allocUnsafe(16);
-    for (let i = 0; i < 16; i++) xored[i] = localNonce[i] ^ remoteNonce[i];
+    for (let i = 0; i < 16; i++) {
+      xored[i] = localNonce[i] ^ remoteNonce[i];
+    }
     const sessionKey = encryptECBNoPad(xored, realKey);
 
     return { step3Payload, sessionKey };

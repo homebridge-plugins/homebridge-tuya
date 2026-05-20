@@ -92,7 +92,7 @@ function bytesToBase64(bytes: number[]): string {
   for (let i = 0; i < bytes.length; i++) {
     bin += String.fromCharCode(bytes[i]);
   }
-  // eslint-disable-next-line no-undef
+
   return btoa(bin);
 }
 
@@ -100,7 +100,7 @@ function base64ToBytes(b64: string): number[] {
   if (typeof Buffer !== 'undefined' && typeof Buffer.from === 'function') {
     return Array.from(Buffer.from(b64, 'base64'));
   }
-  // eslint-disable-next-line no-undef
+
   const bin = atob(b64);
   const out = new Array(bin.length);
   for (let i = 0; i < bin.length; i++) {

@@ -1,39 +1,45 @@
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-import { Validator } from 'jsonschema';
+import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic, APIEvent } from 'homebridge';
+import { Validator, ValidatorResult } from 'jsonschema';
 import path from 'path';
 import fs from 'fs';
+import { v5 as uuidv5 } from 'uuid';
 
 // Cloud imports (from src/cloud/)
 import TuyaDevice, { TuyaDeviceStatus } from './cloud/device/TuyaDevice';
-import TuyaDeviceManager from './cloud/device/TuyaDeviceManager';
 import TuyaCustomDeviceManager from './cloud/device/TuyaCustomDeviceManager';
 import TuyaHomeDeviceManager from './cloud/device/TuyaHomeDeviceManager';
-import TuyaOpenAPI, { LOGIN_ERROR_MESSAGES } from './cloud/api/TuyaOpenAPI';
+import TuyaOpenAPI from './cloud/api/TuyaOpenAPI';
 
 // Local imports (from src/local/)
 import LocalDeviceManager from './local/LocalDeviceManager';
 
 // Shared imports (from src/shared/)
-import AccessoryFactory from './shared/accessories/AccessoryFactory';
-import BaseAccessory from './shared/accessories/BaseAccessory';
+import TuyaDeviceManager from './shared/TuyaDeviceManager';
+import ConfigMigrator from './shared/util/ConfigMigrator';
+import AccessoryFactory from './shared/accessory/AccessoryFactory';
+import BaseAccessory from './shared/accessory/BaseAccessory';
 import { sanitizeName } from './shared/util/util';
-import { ConfigHash } from './shared/util/ConfigHash';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import {
   TuyaPlatformConfig,
-  TuyaPlatformCloudConfigOptions,
+  TuyaPlatformCloudConfig,
   customOptionsSchema,
   homeOptionsSchema,
+  TuyaPluginMode,
+  TuyaPlatformCustomConfig,
+  TuyaPlatformHomeConfig,
+  LocalConfig,
+  TuyaPlatformDeviceConfig,
 } from './config';
+import { initLogger } from './shared/util/Logger';
+import TuyaCloudDeviceManager from './cloud/device/TuyaCloudDeviceManager';
+import TuyaHybridDeviceManager from './shared/TuyaHybridDeviceManager';
 
-/** Generic API response type used throughout platform initialization */
-type ApiResponse<T = any> = {
-  success: boolean;
-  code?: string | number;
-  msg?: string;
-  result?: T;
-};
+export type TuyaPluginAccessoryContext = {
+  deviceID: string;
+  deviceConfigHash: string;
+}
 
 /**
  * TuyaPlatform — unified Homebridge platform supporting both Tuya Cloud (REST/MQTT)
@@ -45,37 +51,36 @@ type ApiResponse<T = any> = {
  *   "both"   — cloud + local simultaneously
  */
 export class TuyaPlatform implements DynamicPlatformPlugin {
+  private static readonly PLATFORM_UUID = '8CC2405F-4DB0-4586-B32F-A38CC156164D';
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+  private readonly platformAccessories = new Map<string, PlatformAccessory<TuyaPluginAccessoryContext>>();
+
+  /** platform ID */
+  private platformID = uuidv5(this.config.name ?? 'TuyaPlatform', TuyaPlatform.PLATFORM_UUID);
 
   /** Cast config to our typed shape for easy access. */
   public platformConfig = this.config as TuyaPlatformConfig;
 
-  /** Cloud credentials block (options.projectType, accessId, etc.) */
-  public options = (this.config as TuyaPlatformConfig).options as TuyaPlatformCloudConfigOptions;
-
   /** Active communication mode. Defaults to "cloud" for backward compatibility. */
-  public mode = (this.config as TuyaPlatformConfig).mode ?? 'cloud';
+  public mode = (this.config as TuyaPlatformConfig).mode ?? TuyaPluginMode.cloud;
 
-  // this is used to track restored cached accessories
-  public cachedAccessories: PlatformAccessory[] = [];
-
-  /** Cloud device manager — active when mode is "cloud" or "both". */
-  public deviceManager?: TuyaDeviceManager;
-
-  /** Local device manager — active when mode is "local" or "both". */
-  public localDeviceManager?: LocalDeviceManager;
-
-  /** Config change detector (used by both local and cloud). */
-  public configHash?: ConfigHash;
+  /** Device manager */
+  public deviceManager!: TuyaDeviceManager;
 
   /** All active accessory handler instances. */
   public accessoryHandlers: BaseAccessory[] = [];
 
+  /** for writing device list */
+  private tid:NodeJS.Timeout | undefined;
+
+  /** for debug */
+  public debug: boolean = false;
+  public debugLevel: string | undefined;
 
   validate() {
     // Local-only mode does not need cloud options
-    if (this.mode === 'local') {
+    if (this.mode === TuyaPluginMode.local) {
       if (!this.platformConfig.local) {
         this.log.error('mode is "local" but no "local" config block found.');
         return false;
@@ -84,22 +89,22 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     }
 
     // Both mode requires a local block in addition to cloud options
-    if (this.mode === 'both' && !this.platformConfig.local) {
+    if (this.mode === TuyaPluginMode.both && !this.platformConfig.local) {
       this.log.error('mode is "both" but no "local" config block found.');
       return false;
     }
 
     // Cloud or "both" mode requires cloud options
-    let result;
-    if (!this.options) {
-      this.log.error('Not configured — "options" block is required for cloud mode, exit.');
+    let result: ValidatorResult;
+    if (!this.platformConfig.cloud) {
+      this.log.error('Not configured — "cloud" block is required for cloud mode, exit.');
       return false;
-    } else if (this.options.projectType === '1') {
-      result = new Validator().validate(this.options, customOptionsSchema);
-    } else if (this.options.projectType === '2') {
-      result = new Validator().validate(this.options, homeOptionsSchema);
+    } else if (this.platformConfig.cloud.projectType === '1') {
+      result = new Validator().validate(this.platformConfig.cloud, customOptionsSchema);
+    } else if (this.platformConfig.cloud.projectType === '2') {
+      result = new Validator().validate(this.platformConfig.cloud, homeOptionsSchema);
     } else {
-      this.log.error(`Unsupported projectType: ${this.options['projectType']}, exit.`);
+      this.log.error(`Unsupported projectType: ${this.platformConfig.cloud['projectType']}, exit.`);
       return false;
     }
     result.errors.forEach(error => this.log.error(error.stack));
@@ -107,20 +112,21 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       return false;
     }
 
-    if (!this.validateDeviceOverrides() || !this.validateSchema()) {
+    if (!this.validateDeviceOverrides(this.platformConfig.cloud.deviceOverrides!)
+      || !this.validateSchema(this.platformConfig.cloud.deviceOverrides!)) {
       return false;
     }
 
     return true;
   }
 
-  validateDeviceOverrides() {
-    if (!this.options.deviceOverrides) {
+  validateDeviceOverrides(deviceOverrides: TuyaPlatformDeviceConfig[]) {
+    if (!deviceOverrides) {
       return true;
     }
 
     const idMap = new Map();
-    for (const item of this.options.deviceOverrides) {
+    for (const item of deviceOverrides) {
       if (idMap.has(item.id)) {
         idMap.get(item.id)?.push(item);
       } else {
@@ -136,12 +142,12 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     return true;
   }
 
-  validateSchema() {
-    if (!this.options.deviceOverrides) {
+  validateSchema(deviceOverrides: TuyaPlatformDeviceConfig[]) {
+    if (!deviceOverrides) {
       return true;
     }
 
-    for (const deviceOverride of this.options.deviceOverrides) {
+    for (const deviceOverride of deviceOverrides) {
       if (!deviceOverride.schema) {
         continue;
       }
@@ -168,14 +174,17 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    initLogger(log);
+    this.platformConfig = new ConfigMigrator(!!this.platformConfig.common?.debug).migrate(config);
+    this.debug = this.platformConfig.common?.debug ?? false;
+    this.debugLevel = this.platformConfig.common?.debugLevel ?? undefined;
 
     if (!this.validate()) {
       return;
     }
 
-    this.log.debug('Finished initializing platform');
-
-    const formatError = (e) => {
+    // Error/Exception handling.
+    const formatError = (e: unknown) => {
       if (e instanceof Error) {
         return `${e.message}\n${e.stack}`;
       }
@@ -191,14 +200,21 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       process.exit(1);
     });
 
+    this.log.debug('Finished initializing platform');
+
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
     // in order to ensure they weren't added to homebridge already. This event can also be used
     // to start discovery of new accessories.
-    this.api.on('didFinishLaunching', async () => {
+    this.api.on(APIEvent.DID_FINISH_LAUNCHING, async () => {
       this.log.debug('Executed didFinishLaunching callback');
       // run the method to discover / register your devices as accessories
       await this.initDevices();
+    });
+
+    this.api.on(APIEvent.SHUTDOWN, async () => {
+      this.log.debug('Executed shutdown callback');
+      await this.saveDeviceList();
     });
   }
 
@@ -209,9 +225,28 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
-    AccessoryFactory.configAccessory(this, accessory);
     // add the restored accessory to the accessories cache so we can track if it has already been registered
-    this.cachedAccessories.push(accessory);
+    this.platformAccessories.set(accessory.UUID, accessory as PlatformAccessory<TuyaPluginAccessoryContext>);
+  }
+
+  async saveDeviceList() {
+    if (!this.deviceManager) {
+      return;
+    }
+    if (this.tid !== undefined) {
+      clearTimeout(this.tid);
+      this.tid = undefined;
+    }
+    this.tid = setTimeout(async () => {
+      const file = path.join(this.api.user.persistPath(), `TuyaDeviceList.${this.platformID}-${this.mode}.json`);
+      this.log.info('Device list saved at %s', file);
+      if (!fs.existsSync(this.api.user.persistPath())) {
+        await fs.promises.mkdir(this.api.user.persistPath());
+      }
+      const devices = [...this.platformAccessories.values()].map(accessory => this.deviceManager.getDevice(accessory.context.deviceID));
+      await fs.promises.writeFile(file, JSON.stringify(devices, null, 2));
+      this.tid = undefined;
+    }, 5000);
   }
 
   /**
@@ -220,555 +255,144 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
    * must not be registered again to prevent "duplicate UUID" errors.
    */
   async initDevices() {
-    const cloudEnabled = this.mode === 'cloud' || this.mode === 'both';
-    const localEnabled = this.mode === 'local' || this.mode === 'both';
-
-    // For "both" mode, initialize cloud FIRST to fetch device details for enrichment
-    let cloudDevices: TuyaDevice[] | undefined;
-    if (cloudEnabled && this.options && this.mode === 'both') {
-      this.log.info('[Cloud] Initializing cloud device manager for hybrid mode enrichment…');
-      if (this.options.projectType === '1') {
-        cloudDevices = await this.initCustomProject();
-      } else if (this.options.projectType === '2') {
-        cloudDevices = await this.initHomeProject();
-      }
+    let deviceManager!:TuyaDeviceManager;
+    if (this.mode === TuyaPluginMode.cloud) {
+      deviceManager = await this.initCloudMode(this.platformConfig.cloud!);
+    } else if (this.mode === TuyaPluginMode.local) {
+      deviceManager = await this.initLocalMode(this.platformConfig.local!);
+    } else if (this.mode === TuyaPluginMode.both) {
+      deviceManager = await this.initBothMode(this.platformConfig.cloud!, this.platformConfig.local!);
     }
 
-    // ── Local devices ────────────────────────────────────────────────────────
-    if (localEnabled && this.platformConfig.local) {
-      // If "both" mode and we successfully got cloud devices, enrich local config
-      if (this.mode === 'both' && cloudDevices && this.deviceManager) {
-        this.log.info('[Local] Enriching local config with cloud device details…');
-        await this.enrichLocalConfigFromCloud(cloudDevices);
-      }
+    this.deviceManager = deviceManager;
 
-      this.log.info('[Local] Initialising local device manager…');
-      this.localDeviceManager = new LocalDeviceManager(
-        this.platformConfig.local,
-        this.log,
-        this.api.user.storagePath(),
-      );
-      await this.localDeviceManager.initLocalDevices();
-      this.localDeviceManager.connectAllDevices();
-
-      this.localDeviceManager.on(TuyaDeviceManager.Events.DEVICE_ADD, (device) => this.addAccessory(device, 'local'));
-      this.localDeviceManager.on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.updateAccessoryInfo.bind(this));
-      this.localDeviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.updateAccessoryStatus.bind(this));
-      this.localDeviceManager.on(TuyaDeviceManager.Events.DEVICE_DELETE, this.removeAccessory.bind(this));
-
-      const localDevices = [...this.localDeviceManager.devices.values()];
-      this.log.info(`[Local] Registered ${localDevices.length} local device(s).`);
-      for (const device of localDevices) {
-        this.addAccessory(device, 'local');
-      }
-    }
-
-    // ── Cloud devices (if not already initialized in "both" mode) ──────────────
-    if (cloudEnabled && this.options && this.mode !== 'both') {
-      let devices: TuyaDevice[] | undefined;
-
-      if (this.options.projectType === '1') {
-        devices = await this.initCustomProject();
-      } else if (this.options.projectType === '2') {
-        devices = await this.initHomeProject();
-      } else {
-        this.log.warn(`Unsupported projectType: ${this.options['projectType']}.`);
-      }
-
-      if (devices && this.deviceManager) {
-        // Initialize config hash tracker for cloud devices
-        this.configHash = new ConfigHash(this.api.user.storagePath(), 'tuya-cloud-configs');
-
-        // Apply device config overrides
-        for (const device of devices) {
-          const deviceConfig = this.getDeviceConfig(device, 'cloud');
-          if (deviceConfig?.category) {
-            this.log.warn('Override %o category from %o to %o', device.name, device.category, deviceConfig.category);
-            device.category = deviceConfig.category;
-          }
-          if (deviceConfig?.unbridged) {
-            this.log.warn('Unbridge %o category %o', device.name, device.category);
-            device.unbridged = deviceConfig.unbridged;
-          }
-
-          // Check if config has changed since last run
-          // Hash the device override fields that affect accessory structure
-          const configToHash = {
-            deviceId: device.id,
-            customCategory: deviceConfig?.category,
-            unbridged: deviceConfig?.unbridged ?? false,
-            schemaOverrides: deviceConfig?.schema ? JSON.stringify(deviceConfig.schema) : undefined,
-            adaptiveLighting: deviceConfig?.adaptiveLighting ?? false,
-          };
-          const { changed: configChanged } = this.configHash.hasConfigChanged(device.id, configToHash);
-          (device as any).configChanged = configChanged;
-          if (configChanged) {
-            this.log.info(`[Cloud] Device config changed for "${device.name}" (${device.id}), will rebuild services`);
-          }
-        }
-
-        await this.deviceManager.updateInfraredRemotes(devices);
-
-        this.log.info(`[Cloud] Got ${devices.length} device(s) and scene(s).`);
-        const file = path.join(this.api.user.persistPath(), `TuyaDeviceList.${this.deviceManager.api.tokenInfo.uid}.json`);
-        this.log.info('Device list saved at %s', file);
-        if (!fs.existsSync(this.api.user.persistPath())) {
-          await fs.promises.mkdir(this.api.user.persistPath());
-        }
-        await fs.promises.writeFile(file, JSON.stringify(devices, null, 2));
-
-        for (const device of devices) {
-          this.addAccessory(device, 'cloud');
-        }
-
-        this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_ADD, (device) => this.addAccessory(device, 'cloud'));
-        this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.updateAccessoryInfo.bind(this));
-        this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.updateAccessoryStatus.bind(this));
-        this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_DELETE, this.removeAccessory.bind(this));
-      }
-    } else if (cloudEnabled && this.mode === 'both' && cloudDevices && this.deviceManager) {
-      // "both" mode: finish setting up cloud devices that were already initialized
-      this.configHash = new ConfigHash(this.api.user.storagePath(), 'tuya-cloud-configs');
-
-      // Apply device config overrides
-      for (const device of cloudDevices) {
-        const deviceConfig = this.getDeviceConfig(device, 'cloud');
-        if (deviceConfig?.category) {
-          this.log.warn('Override %o category from %o to %o', device.name, device.category, deviceConfig.category);
-          device.category = deviceConfig.category;
-        }
-        if (deviceConfig?.unbridged) {
-          this.log.warn('Unbridge %o category %o', device.name, device.category);
-          device.unbridged = deviceConfig.unbridged;
-        }
-
-        // Check if config has changed since last run
-        const configToHash = {
-          deviceId: device.id,
-          customCategory: deviceConfig?.category,
-          unbridged: deviceConfig?.unbridged ?? false,
-          schemaOverrides: deviceConfig?.schema ? JSON.stringify(deviceConfig.schema) : undefined,
-          adaptiveLighting: deviceConfig?.adaptiveLighting ?? false,
-        };
-        const { changed: configChanged } = this.configHash.hasConfigChanged(device.id, configToHash);
-        (device as any).configChanged = configChanged;
-        if (configChanged) {
-          this.log.info(`[Cloud] Device config changed for "${device.name}" (${device.id}), will rebuild services`);
-        }
-      }
-
-      await this.deviceManager.updateInfraredRemotes(cloudDevices);
-
-      this.log.info(`[Cloud] Got ${cloudDevices.length} device(s) and scene(s).`);
-      const file = path.join(this.api.user.persistPath(), `TuyaDeviceList.${this.deviceManager.api.tokenInfo.uid}.json`);
-      this.log.info('Device list saved at %s', file);
-      if (!fs.existsSync(this.api.user.persistPath())) {
-        await fs.promises.mkdir(this.api.user.persistPath());
-      }
-      await fs.promises.writeFile(file, JSON.stringify(cloudDevices, null, 2));
-
-      for (const device of cloudDevices) {
-        this.addAccessory(device, 'cloud');
-      }
-
-      this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_ADD, (device) => this.addAccessory(device, 'cloud'));
-      this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.updateAccessoryInfo.bind(this));
-      this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.updateAccessoryStatus.bind(this));
-      if (this.localDeviceManager) {
-        this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, (device, status) => {
-          this.localDeviceManager?.handleCloudStatusUpdate(device.id, status);
-        });
-      }
-      this.deviceManager.on(TuyaDeviceManager.Events.DEVICE_DELETE, this.removeAccessory.bind(this));
-    }
-
-    // Remove stale cached accessories not claimed by any device
-    for (const cachedAccessory of this.cachedAccessories) {
-      this.log.warn('Removing unused accessory from cache:', cachedAccessory.displayName);
-      this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [cachedAccessory]);
-    }
-    this.cachedAccessories = [];
-  }
-
-  getDeviceConfig(device: TuyaDevice, source?: 'local' | 'cloud') {
-    if (!this.options.deviceOverrides) {
-      return undefined;
-    }
-
-    // Find matching override, respecting source filtering
-    // Since deviceOverrides are in the cloud config, they default to cloud-only
-    const effectiveSource = source || 'cloud';
-    const matches = this.options.deviceOverrides.filter(config => {
-      const sourceMatch = config.source
-        ? (config.source === 'both' || config.source === effectiveSource)  // explicit source
-        : effectiveSource === 'cloud';                                    // default: cloud-only
-      const idMatch = config.id === device.id || config.id === device.uuid ||
-                      config.id === device.product_id || config.id === 'global';
-      return sourceMatch && idMatch;
-    });
-
-    // Return device-specific config, then product, then global
-    return matches.find(config => config.id === device.id || config.id === device.uuid) ||
-           matches.find(config => config.id === device.product_id) ||
-           matches.find(config => config.id === 'global');
-  }
-
-  getDeviceSchemaConfig(device: TuyaDevice, code: string, source?: 'local' | 'cloud') {
-    const deviceConfig = this.getDeviceConfig(device, source);
-    if (!deviceConfig || !deviceConfig.schema) {
-      return undefined;
-    }
-
-    // migrate old config
-    deviceConfig.schema.forEach(item => {
-      if (item['oldCode']) {
-        item.newCode = item.code;
-        item.code = item['oldCode'];
-        item['oldCode'] = undefined;
-      }
-    });
-
-    // ignore case - allow both old (code) and migrated (newCode) names
-    const schemaConfig = deviceConfig.schema.find(item => {
-      if (!code) {
-        return false;
-      }
-      const target = code.toString().toLowerCase();
-      const legacyCode = item.code?.toString().toLowerCase();
-      const migratedCode = item.newCode?.toString().toLowerCase();
-      return legacyCode === target || migratedCode === target;
-    });
-    if (!schemaConfig) {
-      return undefined;
-    }
-
-    return schemaConfig;
-  }
-
-  /**
-   * Enrich local device config with cloud device details (local_key, ip, etc.)
-   * Called during "both" mode initialization to populate local credentials from cloud API
-   */
-  async enrichLocalConfigFromCloud(devices: TuyaDevice[]): Promise<void> {
-    if (!this.deviceManager || !this.platformConfig.local || !this.platformConfig.local.devices) {
-      return;
-    }
-
-    // Create a map of cloud devices by ID for quick lookup
-    const cloudDeviceMap = new Map<string, TuyaDevice>(devices.map(d => [d.id, d]));
+    const devices = await this.deviceManager.pullDevices();
+    this.deviceManager.updateInfraredRemotes(devices);
 
     for (const device of devices) {
-      try {
-        // Skip if already manually configured in local section
-        const existingConfig = this.platformConfig.local.devices.find(
-          cfg => cfg.tuyaDeviceId === device.id || cfg.tuyaDeviceId === device.uuid,
-        );
-        if (existingConfig && existingConfig.tuyaKey) {
-          this.log.debug(`[Hybrid] Device ${device.name} (${device.id}) already has manual local config, skipping cloud enrichment`);
-          continue;
-        }
-
-        // Fetch device details from cloud API (includes local_key)
-        const detailRes = await this.deviceManager.getDeviceDetails(device.id);
-        if (!detailRes.success || !detailRes.result) {
-          this.log.debug(`[Hybrid] Could not fetch device details for ${device.name} (${device.id}) from cloud API`);
-          continue;
-        }
-
-        const details = detailRes.result;
-        const deviceId = device.id || device.uuid;
-        const localKey = details.local_key || details.localKey;
-        const ip = details.ip || details.address;
-
-        if (!deviceId) {
-          this.log.warn(`[Hybrid] Skipping enrichment for ${device.name} because cloud device ID is missing`);
-          continue;
-        }
-
-        if (!localKey) {
-          this.log.debug(`[Hybrid] No local_key available for ${device.name} (${deviceId}), will use cloud-only`);
-          continue;
-        }
-
-        if (existingConfig) {
-          // Update existing manual config with cloud-provided local_key and optional IP
-          existingConfig.tuyaKey = localKey;
-          if (ip) {
-            existingConfig.ip = ip;
-          }
-          this.log.info(`[Hybrid] Enriched local config for ${device.name} (${deviceId}) with cloud-provided local_key and ip`);
-        } else {
-          // Create new local device config entry from cloud device details
-          const localDeviceConfig: any = {
-            tuyaDeviceId: deviceId,
-            tuyaKey: localKey,
-            name: device.name || `LocalDevice-${deviceId.slice(0, 8)}`,
-            category: device.category,
-          };
-          if (ip) {
-            localDeviceConfig.ip = ip;
-          }
-          if (device.product_id) {
-            localDeviceConfig.productId = device.product_id;
-          }
-
-          if (!this.platformConfig.local.devices) {
-            this.platformConfig.local.devices = [];
-          }
-          this.platformConfig.local.devices.push(localDeviceConfig);
-          this.log.info(`[Hybrid] Added cloud device ${device.name} (${deviceId}) to local config with local_key`);
-        }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        this.log.warn(`[Hybrid] Error enriching device ${device.name} (${device.id}): ${msg}`);
-        // Continue with next device - this is non-fatal
-      }
-    }
-  }
-
-  async initCustomProject() {
-    if (this.options.projectType !== '1') {
-      return undefined;
+      this.addAccessory(device);
     }
 
-    const DEFAULT_USER = 'homebridge';
-    const DEFAULT_PASS = 'homebridge';
+    deviceManager!.on(TuyaDeviceManager.Events.DEVICE_ADD, this.addAccessory.bind(this));
+    deviceManager!.on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.updateAccessoryInfo.bind(this));
+    deviceManager!.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.updateAccessoryStatus.bind(this));
+    deviceManager!.on(TuyaDeviceManager.Events.DEVICE_DELETE, this.removeAccessory.bind(this));
 
-    let res: ApiResponse<any>;
-    const { endpoint, accessId, accessKey, debug, debugLevel } = this.options;
-    const debugMode = debug && ((debugLevel ?? '').length > 0 ? debugLevel?.includes('api') : true);
-    const api = new TuyaOpenAPI(endpoint, accessId, accessKey, this.log, 'en', debugMode, this.options.forceIPv4);
-    const deviceManager = new TuyaCustomDeviceManager(api, debugMode);
-
-    this.log.info('Get token.');
-    res = await api.getToken();
-    if (res.success === false) {
-      this.log.error(`Get token failed. code=${res.code}, msg=${res.msg}`);
-      return undefined;
-    }
-
-
-    this.log.info(`Search default user "${DEFAULT_USER}"`);
-    res = await api.customGetUserInfo(DEFAULT_USER);
-    if (res.success === false) {
-      this.log.error(`Search user failed. code=${res.code}, msg=${res.msg}`);
-      return undefined;
-    }
-
-
-    if (!res.result.user_name) {
-      this.log.info(`Default user "${DEFAULT_USER}" not exist.`);
-      this.log.info(`Creating default user "${DEFAULT_USER}".`);
-      res = await api.customCreateUser(DEFAULT_USER, DEFAULT_PASS);
-      if (res.success === false) {
-        this.log.error(`Create default user failed. code=${res.code}, msg=${res.msg}`);
-        return undefined;
-      }
+    if (this.mode !== TuyaPluginMode.cloud) {
+      // When running in local mode, a short delay is added before detecting the change.
+      setTimeout(this.finishDeviceInitializing.bind(this), (this.platformConfig.local?.discoverTimeout ?? 5) * 1000);
     } else {
-      this.log.info(`Default user "${DEFAULT_USER}" exists.`);
+      this.finishDeviceInitializing();
     }
-    const uid = res.result.user_id;
-
-
-    this.log.info('Fetching asset list.');
-    res = await deviceManager.getAssetList();
-    if (res.success === false) {
-      this.log.error(`Fetching asset list failed. code=${res.code}, msg=${res.msg}`);
-      return undefined;
-    }
-
-    const assetIDList: string[] = [];
-    for (const { asset_id, asset_name } of res.result.list) {
-      this.log.info(`Got asset_id=${asset_id}, asset_name=${asset_name}`);
-      assetIDList.push(asset_id);
-    }
-
-    if (assetIDList.length === 0) {
-      this.log.warn('Asset list is empty. exit.');
-      return undefined;
-    }
-
-
-    this.log.info('Authorize asset list.');
-    res = await deviceManager.authorizeAssetList(uid, assetIDList, true);
-    if (res.success === false) {
-      this.log.error(`Authorize asset list failed. code=${res.code}, msg=${res.msg}`);
-      return undefined;
-    }
-
-
-    this.log.info(`Log in with user "${DEFAULT_USER}".`);
-    res = await api.customLogin(DEFAULT_USER, DEFAULT_USER);
-    if (res.success === false) {
-      this.log.error(`Login failed. code=${res.code}, msg=${res.msg}`);
-      if (res.code && LOGIN_ERROR_MESSAGES[res.code]) {
-        this.log.error(LOGIN_ERROR_MESSAGES[res.code]);
-      }
-      return undefined;
-    }
-
-    this.log.info('Start MQTT connection.');
-    deviceManager.mq.start();
-
-    this.log.info('Fetching device list.');
-    deviceManager.ownerIDs = assetIDList;
-    const devices = await deviceManager.updateDevices(assetIDList);
-
-    this.deviceManager = deviceManager;
-    return devices;
   }
 
-  async initHomeProject() {
-    if (this.options.projectType !== '2') {
-      return undefined;
+  async initCloudMode(cloudConfig: TuyaPlatformCloudConfig) : Promise<TuyaCloudDeviceManager> {
+    this.log.info('[Cloud] Initializing cloud device manager…');
+    let deviceManager!:TuyaCloudDeviceManager;
+    if (cloudConfig.projectType === '1') {
+      deviceManager = await this.initCustomProject(cloudConfig as TuyaPlatformCustomConfig);
+    } else if (cloudConfig.projectType === '2') {
+      deviceManager = await this.initHomeProject(cloudConfig as TuyaPlatformHomeConfig);
     }
-
-    let res: ApiResponse<any>;
-    const { accessId, accessKey, countryCode, username, password, appSchema, endpoint, debug, debugLevel } = this.options;
-    const debugMode = debug && ((debugLevel ?? '').length > 0 ? debugLevel?.includes('api') : true);
-    const api = new TuyaOpenAPI(
-      (endpoint && endpoint.length > 0) ? endpoint : TuyaOpenAPI.getDefaultEndpoint(countryCode),
-      accessId,
-      accessKey,
-      this.log,
-      'en',
-      debugMode,
-      this.options.forceIPv4);
-    const deviceManager = new TuyaHomeDeviceManager(api, debugMode);
-
-    this.log.info('Log in to Tuya Cloud.');
-    res = await api.homeLogin(countryCode, username, password, appSchema);
-    if (res.success === false) {
-      this.log.error(`Login failed. code=${res.code}, msg=${res.msg}`);
-      if (res.code && LOGIN_ERROR_MESSAGES[res.code]) {
-        this.log.error(LOGIN_ERROR_MESSAGES[res.code]);
-      }
-      return undefined;
-    }
-
-    this.log.info('Start MQTT connection.');
-    deviceManager.mq.start();
-
-    this.log.info('Fetching home list.');
-    res = await deviceManager.getHomeList();
-    if (res.success === false) {
-      this.log.error(`Fetching home list failed. code=${res.code}, msg=${res.msg}`);
-      return undefined;
-    }
-
-    const homeIDList: number[] = [];
-    for (const { home_id, name } of res.result) {
-      this.log.info(`Got home_id=${home_id}, name=${name}`);
-      if (this.options.homeWhitelist) {
-        if (this.options.homeWhitelist.includes(home_id)) {
-          this.log.info(`Found home_id=${home_id} in whitelist; including devices from this home.`);
-          homeIDList.push(home_id);
-        } else {
-          this.log.info(`Did not find home_id=${home_id} in whitelist; excluding devices from this home.`);
-        }
-      } else {
-        homeIDList.push(home_id);
-      }
-    }
-
-    if (homeIDList.length === 0) {
-      this.log.warn('Home list is empty.');
-    }
-
-    this.log.info('Fetching device list.');
-    deviceManager.ownerIDs = homeIDList.map(homeID =>homeID.toString());
-    const devices = await deviceManager.updateDevices(homeIDList);
-
-    this.log.info('Fetching scene list.');
-    for (const homeID of homeIDList) {
-      const scenes = await deviceManager.getSceneList(homeID);
-      for (const scene of scenes) {
-        this.log.info(`Got scene_id=${scene.id}, name=${scene.name}`);
-      }
-      devices.push(...scenes);
-    }
-
-    this.deviceManager = deviceManager;
-
-    if (this.options.generateWeatherAccessory) {
-      const targetDevice = devices.find(device => device.lat && device.lon);
-      if (targetDevice) {
-        devices.push(this.createWeatherDevice(targetDevice, res.result));
-      }
-    }
-
-    return devices;
+    return deviceManager;
   }
 
-  addAccessory(device: TuyaDevice, source?: 'local' | 'cloud') {
-    // Apply device override config before checking if hidden
-    const deviceConfig = this.getDeviceConfig(device, source);
-    if (deviceConfig?.category) {
-      this.log.warn('Override %o category from %o to %o', device.name, device.category, deviceConfig.category);
-      device.category = deviceConfig.category;
-    }
-    if (deviceConfig?.unbridged) {
-      this.log.warn('Unbridge %o category %o', device.name, device.category);
-      device.unbridged = deviceConfig.unbridged;
-    }
+  async initLocalMode(localConfig: LocalConfig) : Promise<LocalDeviceManager> {
+    this.log.info('[Local] Initializing local device manager…');
+    return new LocalDeviceManager(localConfig, !!this.debug);
+  }
 
+  async initBothMode(cloudConfig: TuyaPlatformCloudConfig, localConfig: LocalConfig) : Promise<TuyaDeviceManager> {
+    this.log.debug('[Hybrid] Initializing...');
+    const { accessId, accessKey, endpoint, forceIPv4 } = cloudConfig;
+    const debugMode = !!this.debugLevel ? this.debugLevel.includes('api') : this.debug;
+    const _endpoint = (endpoint && endpoint.length > 0) ? endpoint : TuyaOpenAPI.getDefaultEndpoint(cloudConfig['countryCode']);
+    const api = new TuyaOpenAPI(_endpoint, accessId, accessKey, 'en', debugMode, forceIPv4);
+    return new TuyaHybridDeviceManager(api, cloudConfig, localConfig, !!this.debug);
+  }
+
+  async initCustomProject(config: TuyaPlatformCustomConfig) : Promise<TuyaCustomDeviceManager> {
+    const { endpoint, accessId, accessKey, forceIPv4 } = config;
+    const debugMode = !!this.debugLevel ? this.debugLevel.includes('api') : this.debug;
+    const api = new TuyaOpenAPI(endpoint, accessId, accessKey, 'en', debugMode, forceIPv4);
+    return new TuyaCustomDeviceManager(api, config, debugMode);
+  }
+
+  async initHomeProject(config: TuyaPlatformHomeConfig) : Promise<TuyaHomeDeviceManager> {
+    const { accessId, accessKey, countryCode, endpoint, forceIPv4 } = config;
+    const debugMode = !!this.debugLevel ? this.debugLevel.includes('api') : this.debug;
+    const _endpoint = (endpoint && endpoint.length > 0) ? endpoint : TuyaOpenAPI.getDefaultEndpoint(countryCode);
+    const api = new TuyaOpenAPI(_endpoint, accessId, accessKey, 'en', debugMode, forceIPv4);
+    return new TuyaHomeDeviceManager(api, config, debugMode);
+  }
+
+  addAccessory(device: TuyaDevice) {
     if (device.category === 'hidden') {
       this.log.info('Hide Accessory:', device.name);
-      return;
+      return null;
     }
 
     const uuid = this.api.hap.uuid.generate(device.id);
-    const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
+    const existingAccessory = this.platformAccessories.get(uuid);
     if (existingAccessory && !device.unbridged) {
-      this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-
-      // Update context
-      if (!existingAccessory.context || !existingAccessory.context.deviceID) {
-        this.log.info('Update accessory context:', existingAccessory.displayName);
-        existingAccessory.context.deviceID = device.id;
-        this.api.updatePlatformAccessories([existingAccessory]);
-      }
+      this.log.debug('Restoring existing accessory from cache:', existingAccessory.displayName);
 
       // create the accessory handler for the restored accessory
       const handler = AccessoryFactory.createAccessory(this, existingAccessory, device);
       this.accessoryHandlers.push(handler);
 
-      const index = this.cachedAccessories.indexOf(existingAccessory);
-      if (index >= 0) {
-        this.cachedAccessories.splice(index, 1);
-      }
+      // Always apply the user settings to ensure that any changes made after the cache was created are properly reflected.
+      AccessoryFactory.configAccessory(this, existingAccessory);
 
+      this.syncDeviceAndAccessory(device, existingAccessory);
+      this.saveDeviceList();
+      return existingAccessory;
     } else {
       // the accessory does not yet exist, so we need to create it
-      this.log.info('Adding new accessory:', device.name);
+      this.log.debug('Adding new accessory:', device.name);
 
       // create a new accessory (sanitize name to conform to HAP rules)
       const safeName = sanitizeName(device.name) ?? (device.id || 'Tuya Device');
-      const accessory = new this.api.platformAccessory(safeName, uuid);
+      const accessory = new this.api.platformAccessory<TuyaPluginAccessoryContext>(safeName, uuid);
       accessory.context.deviceID = device.id;
+
+      // Initialize config hash tracker for device
+      const currentHash = this.deviceManager.createDeviceConfigHash(device);
+      accessory.context.deviceConfigHash = currentHash;
 
       // create the accessory handler for the newly create accessory
       const handler = AccessoryFactory.createAccessory(this, accessory, device);
       this.accessoryHandlers.push(handler);
 
+      AccessoryFactory.configAccessory(this, accessory);
+
       // link the accessory to your platform
       if (device.unbridged) {
+        this.log.success(`(unbridged) publish accessory: ${accessory.displayName}`);
         this.api.publishExternalAccessories(PLUGIN_NAME, [accessory]);
       } else {
+        this.log.success(`publish accessory: ${accessory.displayName}`);
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
-      AccessoryFactory.configAccessory(this, accessory);
+      this.platformAccessories.set(accessory.UUID, accessory);
+      this.saveDeviceList();
+      return accessory;
     }
   }
 
-  updateAccessoryInfo(device: TuyaDevice, info) {
+  updateAccessoryInfo(device: TuyaDevice, info: any) {
     const handler = this.getAccessoryHandler(device.id);
     if (!handler) {
       return;
     }
 
-    // this.log.debug('onDeviceInfoUpdate devId = %s, status = %o}', device.id, info);
-    handler.onDeviceInfoUpdate(info);
+    const accessory = this.platformAccessories.get(this.api.hap.uuid.generate(device.id))!;
+
+    handler.onDeviceInfoUpdate(info).then(() => {
+      this.syncDeviceAndAccessory(device, accessory);
+    });
+
+    this.saveDeviceList();
   }
 
   updateAccessoryStatus(device: TuyaDevice, status: TuyaDeviceStatus[]) {
@@ -779,6 +403,8 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
 
     // this.log.debug('onDeviceStatusUpdate devId = %s, status = %o}', device.id, status);
     handler.onDeviceStatusUpdate(status);
+
+    // Status updates occur frequently, so the saveDeviceList process is not performed.
   }
 
   removeAccessory(deviceID: string) {
@@ -792,23 +418,131 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       this.accessoryHandlers.splice(index, 1);
     }
 
+    this.saveDeviceList();
+
     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [handler.accessory]);
     this.log.info('Removing existing accessory from cache:', handler.accessory.displayName);
+    this.platformAccessories.delete(handler.accessory.UUID);
+  }
+
+  async finishDeviceInitializing() {
+    // Remove stale cached accessories not claimed by any device
+    for (const [uuid, accessory] of this.platformAccessories) {
+      if (this.deviceManager.getDevice(accessory.context.deviceID) === undefined) {
+        this.log.warn('Removing unused accessory from cache:', accessory.displayName);
+        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        this.platformAccessories.delete(uuid);
+      }
+    }
   }
 
   getAccessoryHandler(deviceID: string) {
     return this.accessoryHandlers.find(handler => handler.device?.id === deviceID);
   }
 
-  createWeatherDevice(device: TuyaDevice, result: { home_id: string; name: string }[]): TuyaDevice {
-    const key = `weather-${device.owner_id}`;
-    const uuid = this.api.hap.uuid.generate(key);
-    this.log.info(`add weather device:${key}`);
-    const virtualDevice = this.deviceManager!.createVirtualDevice(device, uuid);
-    virtualDevice.product_id = 'virtual-product-id-weather';
-    virtualDevice.category = 'wsdcg';
-    virtualDevice.name = `Weather(${result.find(home => home.home_id === device.owner_id)?.name})`;
-    return virtualDevice;
+  /**
+   * When device information is updated due to changes in the plugin settings,
+   *  the updated data must be reflected in the accessory cache.
+   * @param device
+   * @param accessory
+   */
+  async syncDeviceAndAccessory(device:TuyaDevice, accessory: PlatformAccessory) {
+    this.log.debug(`sync device to accessory cache. device: ${device.name}, accessory cache: ${accessory.displayName}`);
+
+    // A code value used to detect changes in the plugin settings.
+    const currentHash = this.deviceManager.createDeviceConfigHash(device);
+    if (currentHash !== accessory.context.deviceConfigHash) {
+      this.log.info(`Device config changed for "${device.name}" (${device.id}), will rebuild services`);
+      accessory.context.deviceConfigHash = currentHash;
+
+      // To reflect configuration changes without discarding the existing
+      // cache instance as much as possible, the latest configuration data is created as a separate accessory.
+      const cloneDevice = structuredClone(device);
+      this.deviceManager.devices.push(cloneDevice);
+      cloneDevice.id = 'dummyID' + cloneDevice.id;
+      cloneDevice.name = 'dummy';
+      let cloudConfig = this.platformConfig.cloud?.deviceOverrides?.find(i => i.id === device.id);
+      let localConfig = this.platformConfig.local?.devices?.find(i => i.tuyaDeviceId === device.id);
+      let serviceConfig = this.platformConfig.cloud?.serviceInformationOverrides?.find(i => i.device_id === device.id);
+      if (cloudConfig) {
+        cloudConfig = structuredClone(cloudConfig);
+        cloudConfig.id = cloneDevice.id;
+        this.platformConfig.cloud!.deviceOverrides!.push(cloudConfig);
+      }
+      if (localConfig) {
+        localConfig = structuredClone(localConfig);
+        localConfig.tuyaDeviceId = cloneDevice.id;
+        this.platformConfig.local!.devices!.push(localConfig);
+      }
+      if (serviceConfig) {
+        serviceConfig = structuredClone(serviceConfig);
+        serviceConfig.device_id = cloneDevice.id;
+        this.platformConfig.cloud!.serviceInformationOverrides!.push(serviceConfig);
+      }
+      const freshAccessory = this.addAccessory(cloneDevice);
+      // The dummy item should be removed immediately.
+      this.removeAccessory(cloneDevice.id);
+      this.deviceManager.devices.splice(this.deviceManager.devices.indexOf(cloneDevice), 1);
+      if (cloudConfig) {
+        this.platformConfig.cloud!.deviceOverrides!.splice(
+          this.platformConfig.cloud!.deviceOverrides!.indexOf(cloudConfig), 1,
+        );
+      }
+      if (localConfig) {
+        localConfig.tuyaDeviceId = cloneDevice.id;
+        this.platformConfig.local!.devices!.splice(
+          this.platformConfig.local!.devices!.indexOf(localConfig), 1,
+        );
+      }
+      if (serviceConfig) {
+        serviceConfig.device_id = cloudConfig!.id;
+        this.platformConfig.cloud!.serviceInformationOverrides!.splice(
+          this.platformConfig.cloud!.serviceInformationOverrides!.indexOf(serviceConfig), 1,
+        );
+      }
+
+      if (freshAccessory === null) {
+        // hidden
+        this.removeAccessory(device.id);
+        return;
+      }
+
+      const newServices = freshAccessory.services;
+      const oldServices = accessory.services;
+
+      for (const oldService of oldServices) {
+        const existsInNew = newServices.some(
+          newService => newService.UUID === oldService.UUID,
+        );
+
+        if (!existsInNew) {
+          accessory.removeService(oldService);
+          continue;
+        }
+
+        const newService = newServices.find(
+          s => s.UUID === oldService.UUID,
+        );
+
+        if (!newService) {
+          continue;
+        }
+
+        for (const oldChar of oldService.characteristics) {
+          const existsCharInNew = newService.characteristics.some(
+            newChar => newChar.UUID === oldChar.UUID,
+          );
+
+          if (!existsCharInNew) {
+            oldService.removeCharacteristic(oldChar);
+          }
+        }
+      }
+    }
+
+    this.log.success(`(update) publish accessory: ${accessory.displayName}`);
+    this.api.updatePlatformAccessories([accessory]);
+
   }
 }
 

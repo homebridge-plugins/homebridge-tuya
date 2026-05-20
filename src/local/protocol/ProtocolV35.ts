@@ -56,7 +56,9 @@ export class ProtocolV35 implements Protocol {
     // Use deviceKey as fallback during key exchange (before session key is established)
     const key = sessionKey ?? deviceKey;
     const msg = unpackMessage6699(frame, key);
-    if (!msg) return null;
+    if (!msg) {
+      return null;
+    }
 
     let payload = msg.payload;
 
@@ -87,14 +89,18 @@ export class ProtocolV35 implements Protocol {
     localNonce: Buffer,
     realKey: Buffer,
   ): { step3Payload: Buffer; sessionKey: Buffer } | null {
-    if (step2Payload.length < 48) return null;
+    if (step2Payload.length < 48) {
+      return null;
+    }
 
     const remoteNonce = step2Payload.subarray(0, 16);
     const receivedHmac = step2Payload.subarray(16, 48);
 
     // Verify HMAC(localNonce, realKey)
     const expectedHmac = hmac(localNonce, realKey);
-    if (!receivedHmac.equals(expectedHmac)) return null;
+    if (!receivedHmac.equals(expectedHmac)) {
+      return null;
+    }
 
     // Step 3: HMAC(remoteNonce, realKey)
     const step3Payload = hmac(remoteNonce, realKey);
@@ -105,7 +111,9 @@ export class ProtocolV35 implements Protocol {
     //   encrypted = GCM-encrypt(xored, realKey, iv=iv)
     //   sessionKey = encrypted[12:28]  (first 16 bytes of ciphertext, after IV)
     const xored = Buffer.allocUnsafe(16);
-    for (let i = 0; i < 16; i++) xored[i] = localNonce[i] ^ remoteNonce[i];
+    for (let i = 0; i < 16; i++) {
+      xored[i] = localNonce[i] ^ remoteNonce[i];
+    }
     const iv = localNonce.subarray(0, 12);
     const { ciphertext } = encryptGCM(xored, realKey, iv);
     const sessionKey = ciphertext.subarray(0, 16);

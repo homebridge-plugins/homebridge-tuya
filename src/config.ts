@@ -32,7 +32,8 @@ export interface TuyaPlatformDeviceConfig {
    * - 'local': apply only to devices from local LAN discovery
    * - 'both': apply to devices from both sources
    */
-  source?: 'local' | 'cloud' | 'both';}
+  configFor?: TuyaPluginMode;
+}
 
 export interface TuyaPlatformServiceInformationConfig {
   device_id: string;
@@ -45,7 +46,7 @@ export interface TuyaPlatformServiceInformationConfig {
 
 // ── Cloud project-type 1 (Custom / IoT project) ───────────────────────────────
 
-export interface TuyaPlatformCustomConfigOptions {
+export interface TuyaPlatformCustomConfig {
   projectType: '1';
   endpoint: string;
   accessId: string;
@@ -56,14 +57,12 @@ export interface TuyaPlatformCustomConfigOptions {
   serviceInformationOverrides?: Array<TuyaPlatformServiceInformationConfig>;
   generateWeatherAccessory: boolean;
   weatherAPI: string;
-  debug?: boolean;
-  debugLevel?: string;
   forceIPv4: boolean;
 }
 
 // ── Cloud project-type 2 (Smart Home / app login) ────────────────────────────
 
-export interface TuyaPlatformHomeConfigOptions {
+export interface TuyaPlatformHomeConfig {
   projectType: '2';
   endpoint?: string;
   accessId: string;
@@ -77,17 +76,17 @@ export interface TuyaPlatformHomeConfigOptions {
   serviceInformationOverrides?: Array<TuyaPlatformServiceInformationConfig>;
   generateWeatherAccessory: boolean;
   weatherAPI: string;
-  debug?: boolean;
-  debugLevel?: string;
   forceIPv4: boolean;
 }
 
-export type TuyaPlatformCloudConfigOptions =
-  | TuyaPlatformCustomConfigOptions
-  | TuyaPlatformHomeConfigOptions;
+export type TuyaPlatformCloudConfig =
+  | TuyaPlatformCustomConfig
+  | TuyaPlatformHomeConfig
 
-/** @deprecated Use TuyaPlatformCloudConfigOptions */
-export type TuyaPlatformConfigOptions = TuyaPlatformCloudConfigOptions;
+export interface CommonConfig {
+  debug?: boolean;
+  debugLevel?: string;
+}
 
 // ── Unified top-level plugin config ──────────────────────────────────────────
 
@@ -98,7 +97,22 @@ export type TuyaPlatformConfigOptions = TuyaPlatformCloudConfigOptions;
  * - `"local"` — connect directly to devices over LAN only
  * - `"both"`  — use cloud AND local simultaneously
  */
-export type TuyaPluginMode = 'cloud' | 'local' | 'both';
+export enum TuyaPluginMode {
+  cloud =　'cloud',
+  local = 'local',
+  both = 'both',
+}
+
+/**
+ * datasource of device.
+ *
+ * - `"cloud"` — Tuya Cloud API
+ * - `"local"` — LAN
+ */
+export enum TuyaDeviceDataSource {
+  cloud = 'cloud',
+  local = 'local',
+}
 
 export interface TuyaPlatformConfig extends PlatformConfig {
   /**
@@ -109,10 +123,15 @@ export interface TuyaPlatformConfig extends PlatformConfig {
   mode?: TuyaPluginMode;
 
   /** Cloud credentials — required when mode is "cloud" or "both". */
-  options?: TuyaPlatformCloudConfigOptions;
+  cloud?: TuyaPlatformCloudConfig;
+  /** @deprecated for JSON Schema. use TuyaPlatformConfig.cloud for backend. */
+  options?: TuyaPlatformCloudConfig;
 
   /** Local LAN settings — required when mode is "local" or "both". */
   local?: LocalConfig;
+
+  /** Common settings */
+  common?: CommonConfig;
 }
 
 // ── JSON-Schema validators (used by platform.ts validation) ──────────────────
@@ -123,8 +142,6 @@ export const customOptionsSchema = {
     accessId: { type: 'string', required: true },
     accessKey: { type: 'string', required: true },
     deviceOverrides: { 'type': 'array' },
-    debug: { type: 'boolean' },
-    debugLevel: { 'type': 'string' },
   },
 };
 
@@ -139,7 +156,5 @@ export const homeOptionsSchema = {
     appSchema: { 'type': 'string', required: true },
     homeWhitelist: { 'type': 'array' },
     deviceOverrides: { 'type': 'array' },
-    debug: { type: 'boolean' },
-    debugLevel: { 'type': 'string' },
   },
 };

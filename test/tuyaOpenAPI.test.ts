@@ -1,24 +1,22 @@
 /* eslint-disable no-console */
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import TuyaOpenAPI, { TuyaOpenAPIResponse } from '../src/cloud/api/TuyaOpenAPI';
+import { ExLogger, initLogger } from '../src/shared/util/Logger';
 
 // Mock Logger
-jest.mock('../src/shared/util/Logger', () => ({
-  __esModule: true,
-  default: class Logger {
-    log() {}
-    info() {}
-    warn() {}
-    error() {}
-  },
-  PrefixLogger: class PrefixLogger {
-    constructor(public log: any, public name: string, public debug: boolean) {}
-  },
-}));
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 // Mock https module
 jest.mock('https', () => ({
   request: jest.fn(),
+  Agent: jest.fn(),
 }));
 
 // Mock util
@@ -32,18 +30,12 @@ describe('TuyaOpenAPI', () => {
   let mockLogger: any;
 
   beforeEach(() => {
-    mockLogger = {
-      log: jest.fn(),
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-    };
+    initLogger(mockLog);
 
     api = new TuyaOpenAPI(
       TuyaOpenAPI.Endpoints.AMERICA,
       'test_access_id',
       'test_access_key',
-      mockLogger,
       'en',
       false
     );
@@ -88,7 +80,8 @@ describe('TuyaOpenAPI', () => {
     });
 
     test('creates logger with API name', () => {
-      expect(api.log).toBeDefined();
+      expect(api['log']).toBeDefined();
+      expect((api['log'] as any)['prefix']).toEqual('TuyaOpenAPI');
     });
   });
 
@@ -150,8 +143,7 @@ describe('TuyaOpenAPI', () => {
       const testApi = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.AMERICA,
         'my_access_id',
-        'my_access_key',
-        mockLogger
+        'my_access_key'
       );
       expect(testApi.accessId).toBe('my_access_id');
     });
@@ -160,8 +152,7 @@ describe('TuyaOpenAPI', () => {
       const testApi = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.AMERICA,
         'my_access_id',
-        'my_access_key',
-        mockLogger
+        'my_access_key'
       );
       expect(testApi.accessKey).toBe('my_access_key');
     });
@@ -170,14 +161,12 @@ describe('TuyaOpenAPI', () => {
       const api1 = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.AMERICA,
         'id1',
-        'key1',
-        mockLogger
+        'key1'
       );
       const api2 = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.AMERICA,
         'id2',
-        'key2',
-        mockLogger
+        'key2'
       );
 
       expect(api1.accessId).not.toBe(api2.accessId);
@@ -261,8 +250,7 @@ describe('TuyaOpenAPI', () => {
       const apiEU = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.EUROPE,
         'id',
-        'key',
-        mockLogger
+        'key'
       );
       expect(apiEU.endpoint).toBe(TuyaOpenAPI.Endpoints.EUROPE);
     });
@@ -272,8 +260,7 @@ describe('TuyaOpenAPI', () => {
         TuyaOpenAPI.Endpoints.CHINA,
         'id',
         'key',
-        mockLogger,
-        'zh'
+        'zh',
       );
       expect(apiZH.lang).toBe('zh');
     });
@@ -282,8 +269,7 @@ describe('TuyaOpenAPI', () => {
       const apiDefault = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.AMERICA,
         'id',
-        'key',
-        mockLogger
+        'key'
       );
       expect(apiDefault.lang).toBe('en');
     });
@@ -293,9 +279,8 @@ describe('TuyaOpenAPI', () => {
         TuyaOpenAPI.Endpoints.AMERICA,
         'id',
         'key',
-        mockLogger,
         'en',
-        true
+        true,
       );
       expect(apiDebug.debug).toBe(true);
     });
@@ -306,14 +291,12 @@ describe('TuyaOpenAPI', () => {
       const api1 = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.AMERICA,
         'id1',
-        'key1',
-        mockLogger
+        'key1'
       );
       const api2 = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.EUROPE,
         'id2',
-        'key2',
-        mockLogger
+        'key2'
       );
 
       api1.assetIDArr.push('asset_1');
@@ -328,14 +311,12 @@ describe('TuyaOpenAPI', () => {
       const api1 = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.AMERICA,
         'id1',
-        'key1',
-        mockLogger
+        'key1'
       );
       const api2 = new TuyaOpenAPI(
         TuyaOpenAPI.Endpoints.EUROPE,
         'id2',
-        'key2',
-        mockLogger
+        'key2'
       );
 
       api1.deviceArr = [{ id: 'dev1' }];

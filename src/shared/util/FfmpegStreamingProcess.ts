@@ -9,7 +9,7 @@ import {
 import os from 'os';
 import readline from 'readline';
 import { Writable } from 'stream';
-import { PrefixLogger } from './Logger';
+import { ExLogger } from './Logger';
 
 export interface StreamingDelegate {
     stopStream(sessionId: StreamSessionIdentifier): void;
@@ -39,7 +39,7 @@ export class FfmpegStreamingProcess {
     sessionId: string,
     videoProcessor: string,
     ffmpegArgs: string[],
-    log: PrefixLogger,
+    log: ExLogger,
     delegate: StreamingDelegate,
     callback?: StreamRequestCallback,
   ) {

@@ -38,10 +38,10 @@ export type TuyaDeviceSchemaProperty = TuyaDeviceSchemaIntegerProperty
 
 export type TuyaDeviceSchema = {
   code: string;
-  // name: string;
   mode: TuyaDeviceSchemaMode;
   type: TuyaDeviceSchemaType;
   property: TuyaDeviceSchemaProperty;
+  dp_id?: number;
 };
 
 export type TuyaDeviceStatus = {

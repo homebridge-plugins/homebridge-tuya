@@ -1,16 +1,16 @@
 /* eslint-disable max-len */
-/* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
+
 import https from 'https';
 import Crypto from 'crypto';
 import { generateUUID, retry } from '../../shared/util/util';
 import dns from 'dns';
 
-// eslint-disable-next-line
+
 // @ts-ignore
 import { version } from '../../../package.json';
 
-import Logger, { PrefixLogger } from '../../shared/util/Logger';
+import { ExLogger, logger, PrefixLogger } from '../../shared/util/Logger';
 
 enum Endpoints {
   AMERICA = 'https://openapi.tuyaus.com',
@@ -54,7 +54,7 @@ const API_ERROR_MESSAGES = {
 
 type TuyaOpenAPIResponseSuccess = {
   success: true;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   result: any;
   t: number;
   tid: string;
@@ -82,6 +82,7 @@ export type TuyaOpenAPIResponse = TuyaOpenAPIResponseSuccess | TuyaOpenAPIRespon
 export default class TuyaOpenAPI {
 
   static readonly Endpoints = Endpoints;
+  private log:ExLogger;
 
   public assetIDArr: Array<string> = [];
   public deviceArr: Array<object> = [];
@@ -92,12 +93,11 @@ export default class TuyaOpenAPI {
     public endpoint: Endpoints | string,
     public accessId: string,
     public accessKey: string,
-    public log: Logger = console,
     public lang = 'en',
     public debug = false,
     public forceIPv4 = false,
   ) {
-    this.log = new PrefixLogger(log, TuyaOpenAPI.name, debug);
+    this.log = new PrefixLogger(logger(), TuyaOpenAPI.name, debug);
   }
 
   static getDefaultEndpoint(countryCode: number) {
@@ -140,7 +140,7 @@ export default class TuyaOpenAPI {
 
     this.log.debug('Refreshing access_token');
     const res = await this.get(`/v1.0/token/${this.tokenInfo.refresh_token}`);
-    if (res.success === false) {
+    if (!res.success) {
       this.log.error('Refresh access_token failed. code = %s, msg = %s', res.code, res.msg);
       return;
     }
@@ -359,7 +359,7 @@ export default class TuyaOpenAPI {
         this.log.error('Response data:', JSON.stringify(err.response.data));
       }
       this.log.error(`method:${method}, path:${path}, params:${params}, body:${body}`);
-      return { success: false, result: {}, msg: 'error', code: 400 }
+      return { success: false, result: {undefined}, code: 200, msg: 'error', t: new Date().getTime(), tid: String(err) }
     }
   }
 

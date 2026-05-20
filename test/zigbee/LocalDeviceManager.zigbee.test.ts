@@ -1,20 +1,18 @@
 import { describe, expect, it, beforeEach, afterEach, jest } from '@jest/globals';
 import LocalDeviceManager from '../../src/local/LocalDeviceManager';
 import { LocalConfig } from '../../src/local/config';
-import TuyaDeviceManager from '../../src/cloud/device/TuyaDeviceManager';
-import Logger from '../../src/shared/util/Logger';
+import TuyaCloudDeviceManager from '../../src/cloud/device/TuyaCloudDeviceManager';
+import Logger, { ExLogger, initLogger } from '../../src/shared/util/Logger';
 
 // ── Logger mock ───────────────────────────────────────────────────────────────
-
-function makeMockLog(): Logger {
-  return {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    log: jest.fn(),
-  } as unknown as Logger;
-}
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 // ── Minimal config helpers ──────────────────────────────────────────────────
 
@@ -82,11 +80,10 @@ function standaloneConfig(): LocalConfig {
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe('LocalDeviceManager – Zigbee integration', () => {
-  let log: Logger;
   let manager: LocalDeviceManager;
 
   beforeEach(() => {
-    log = makeMockLog();
+    initLogger(mockLog);
   });
 
   afterEach(() => {
@@ -98,7 +95,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
 
   describe('initLocalDevices() – child device handling', () => {
     it('does not register child devices as TuyaDevices during first init pass', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       // Only the gateway should be in the device list initially
@@ -110,17 +107,17 @@ describe('LocalDeviceManager – Zigbee integration', () => {
     });
 
     it('registers standalone devices normally', async () => {
-      manager = new LocalDeviceManager(standaloneConfig(), log);
+      manager = new LocalDeviceManager(standaloneConfig());
       await manager.initLocalDevices();
 
       expect(manager.devices.map(d => d.id)).toContain('standalone_001');
     });
 
     it('logs gateway relationships when detected', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
+      const infoSpy = jest.spyOn(mockLog, 'info');
       await manager.initLocalDevices();
 
-      const infoSpy = log.info as jest.MockedFunction<typeof log.info>;
       const infoCalls = infoSpy.mock.calls.map(c => String(c[0]));
       const gatewayLine = infoCalls.find(s => s.includes('Zigbee gateway'));
       expect(gatewayLine).toBeDefined();
@@ -128,7 +125,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
     });
 
     it('proceeds without fatal errors when no Zigbee devices in config', async () => {
-      manager = new LocalDeviceManager(standaloneConfig(), log);
+      manager = new LocalDeviceManager(standaloneConfig());
       await expect(manager.initLocalDevices()).resolves.not.toThrow();
     });
   });
@@ -160,10 +157,10 @@ describe('LocalDeviceManager – Zigbee integration', () => {
         ],
       };
 
-      manager = new LocalDeviceManager(badConfig, log);
+      manager = new LocalDeviceManager(badConfig);
+      const errorSpy = jest.spyOn(mockLog, 'error');
       await expect(manager.initLocalDevices()).resolves.not.toThrow();
 
-      const errorSpy = log.error as jest.MockedFunction<typeof log.error>;
       const errorCalls = errorSpy.mock.calls.map(c => String(c[0]));
       const zigbeeErrorLine = errorCalls.find(s => s.includes('Zigbee'));
       expect(zigbeeErrorLine).toBeDefined();
@@ -174,7 +171,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
 
   describe('sendCommands() – Zigbee child routing', () => {
     it('returns without acting when device has no dpMapping (unknown device)', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       // CHILD_ID_A is not yet registered in the first pass
@@ -183,7 +180,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
     });
 
     it('handles sendCommands for a known device that has a dpMapping', async () => {
-      manager = new LocalDeviceManager(standaloneConfig(), log);
+      manager = new LocalDeviceManager(standaloneConfig());
       await manager.initLocalDevices();
 
       // 'standalone_001' is in the device list but has no IP connection (autoDiscover=false, no connect called)
@@ -198,14 +195,14 @@ describe('LocalDeviceManager – Zigbee integration', () => {
 
   describe('stopLocalDevices()', () => {
     it('does not throw when called with Zigbee gateway config and no active connections', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       expect(() => manager.stopLocalDevices()).not.toThrow();
     });
 
     it('can be called multiple times without error', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       expect(() => {
@@ -220,11 +217,11 @@ describe('LocalDeviceManager – Zigbee integration', () => {
   describe('_setupZigbeeChildren() – via gateway connect event', () => {
     it('emits DEVICE_ADD for child when gateway connects', async () => {
       const EventEmitter = (await import('events')).default;
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       const deviceAddEvents: string[] = [];
-      manager.on(TuyaDeviceManager.Events.DEVICE_ADD, (device: any) => {
+      manager.on(TuyaCloudDeviceManager.Events.DEVICE_ADD, (device: any) => {
         deviceAddEvents.push(device.id);
       });
 
@@ -249,7 +246,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
     });
 
     it('correctly maps child deviceId <-> cid in the relationship', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       const gatewayRelationships = (manager as any).gatewayRelationships as Map<string, any>;
@@ -271,7 +268,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
 
   describe('getDevice()', () => {
     it('returns the gateway TuyaDevice by ID', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       const gw = manager.getDevice(GATEWAY_ID);
@@ -281,7 +278,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
     });
 
     it('returns undefined for a child device before parent connects', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       // Children not yet registered (lazy registration happens on parent connect)
@@ -290,7 +287,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
     });
 
     it('returns undefined for a completely unknown device', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       expect(manager.getDevice('no_such_device')).toBeUndefined();
@@ -315,7 +312,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
         ],
       };
 
-      manager = new LocalDeviceManager(mixedConfig, log);
+      manager = new LocalDeviceManager(mixedConfig);
       await manager.initLocalDevices();
 
       const ids = manager.devices.map(d => d.id);
@@ -326,7 +323,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
     });
 
     it('detects the correct number of gateway relationships', async () => {
-      manager = new LocalDeviceManager(zigbeeConfig(), log);
+      manager = new LocalDeviceManager(zigbeeConfig());
       await manager.initLocalDevices();
 
       const gatewayRelationships = (manager as any).gatewayRelationships as Map<string, any>;
@@ -334,7 +331,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
     });
 
     it('has no gateway relationships for purely standalone config', async () => {
-      manager = new LocalDeviceManager(standaloneConfig(), log);
+      manager = new LocalDeviceManager(standaloneConfig());
       await manager.initLocalDevices();
 
       const gatewayRelationships = (manager as any).gatewayRelationships as Map<string, any>;

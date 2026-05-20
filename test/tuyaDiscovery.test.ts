@@ -2,24 +2,17 @@
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import EventEmitter from 'events';
 import TuyaDiscovery, { DiscoveryResult } from '../src/local/TuyaDiscovery';
+import { ExLogger, initLogger } from '../src/shared/util/Logger';
 
 // Mock Logger
-jest.mock('../src/shared/util/Logger', () => ({
-  __esModule: true,
-  default: class Logger {
-    log() {}
-    info() {}
-    warn() {}
-    error() {}
-    debug() {}
-  },
-  PrefixLogger: class PrefixLogger {
-    constructor(public log: any, public name: string, public debug: boolean) {}
-    info() {}
-    warn() {}
-    error() {}
-  },
-}));
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 // Mock dgram
 let mockServers: Record<number, EventEmitter> = {};
@@ -38,17 +31,12 @@ jest.mock('dgram', () => ({
 
 describe('TuyaDiscovery', () => {
   let discovery: TuyaDiscovery;
-  let mockLogger: any;
 
   beforeEach(() => {
-    mockLogger = {
-      log: jest.fn(),
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-    };
+    jest.clearAllMocks();
+    initLogger(mockLog);
 
-    discovery = new TuyaDiscovery(mockLogger, false);
+    discovery = new TuyaDiscovery(false);
   });
 
   describe('initialization', () => {
@@ -62,12 +50,12 @@ describe('TuyaDiscovery', () => {
     });
 
     test('initializes with debug disabled', () => {
-      const disc = new TuyaDiscovery(mockLogger, false);
+      const disc = new TuyaDiscovery(false);
       expect(disc).toBeDefined();
     });
 
     test('initializes with debug enabled', () => {
-      const disc = new TuyaDiscovery(mockLogger, true);
+      const disc = new TuyaDiscovery(true);
       expect(disc).toBeDefined();
     });
 
@@ -361,20 +349,20 @@ describe('TuyaDiscovery', () => {
 
   describe('logging and debugging', () => {
     test('creates logger with debug disabled', () => {
-      const disc = new TuyaDiscovery(mockLogger, false);
+      const disc = new TuyaDiscovery(false);
       expect(disc.log).toBeDefined();
     });
 
     test('creates logger with debug enabled', () => {
-      const disc = new TuyaDiscovery(mockLogger, true);
+      const disc = new TuyaDiscovery(true);
       expect(disc.log).toBeDefined();
     });
   });
 
   describe('multiple discovery instances', () => {
     test('multiple instances maintain separate state', () => {
-      const disc1 = new TuyaDiscovery(mockLogger, false);
-      const disc2 = new TuyaDiscovery(mockLogger, false);
+      const disc1 = new TuyaDiscovery(false);
+      const disc2 = new TuyaDiscovery(false);
 
       disc1['discovered'].set('device_1', '192.168.1.100');
       disc2['discovered'].set('device_2', '192.168.1.101');
@@ -386,8 +374,8 @@ describe('TuyaDiscovery', () => {
     });
 
     test('multiple instances have separate servers', () => {
-      const disc1 = new TuyaDiscovery(mockLogger, false);
-      const disc2 = new TuyaDiscovery(mockLogger, false);
+      const disc1 = new TuyaDiscovery(false);
+      const disc2 = new TuyaDiscovery(false);
 
       disc1.start();
       disc2.start();

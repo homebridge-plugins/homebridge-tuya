@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, jest, test } from '@jest/globals';
 import {
   sanitizeName,
   remap,
@@ -6,25 +6,43 @@ import {
   deepEqual,
   debounce,
   toHapProperty,
+  createDelegate,
 } from '../src/shared/util/util';
 import { TuyaDeviceSchemaProperty } from '../src/cloud/device/TuyaDevice';
+
+// based on https://github.com/homebridge/HAP-NodeJS/blob/843453605a949f50e2e26aa7ab74364edcd8137d/src/lib/util/checkName.ts#L23
+function isValidName(value: any) {
+  if (
+    typeof value === "string" &&
+    !/^[\p{L}\p{N}][\p{L}\p{N}\p{Zs}\u2019'&!._:;()/,-]*[\p{L}\p{N}]$/u.test(value)
+  ) {
+    return false;
+  } else {
+    return true;
+  }
+}
 
 describe('sanitizeName', () => {
   test('removes underscores and collapses to spaces', () => {
     expect(sanitizeName('switch_1')).toBe('switch 1');
+    expect(isValidName(sanitizeName('switch_1'))).toBe(true);
   });
 
   test('preserves ASCII alphanumeric and apostrophes', () => {
     expect(sanitizeName("John's Lamp")).toBe("John's Lamp");
+    expect(isValidName(sanitizeName("John's Lamp"))).toBe(true);
   });
 
   test('preserves accented and non-Latin letters (Unicode letters)', () => {
     expect(sanitizeName('Café')).toBe('Café');
     expect(sanitizeName('Тест123')).toBe('Тест123');
+    expect(isValidName(sanitizeName('Café'))).toBe(true);
+    expect(isValidName(sanitizeName('Тест123'))).toBe(true);
   });
 
   test('preserves CJK characters', () => {
     expect(sanitizeName('中文测试')).toBe('中文测试');
+    expect(isValidName(sanitizeName('中文测试'))).toBe(true);
   });
 
   test('returns undefined if sanitized name is empty or invalid', () => {
@@ -40,25 +58,29 @@ describe('sanitizeName', () => {
   test('handles mixed content correctly', () => {
     expect(sanitizeName('device_123_name')).toBe('device 123 name');
     expect(sanitizeName('My-Device-Name')).toBe('My Device Name');
+    expect(isValidName(sanitizeName('device_123_name'))).toBe(true);
+    expect(isValidName(sanitizeName('My-Device-Name'))).toBe(true);
   });
 
   test('collapses multiple consecutive spaces', () => {
     expect(sanitizeName('name   with    spaces')).toBe('name with spaces');
+    expect(isValidName(sanitizeName('name   with    spaces'))).toBe(true);
   });
 
   test('trims leading and trailing spaces', () => {
     expect(sanitizeName('  My Device  ')).toBe('My Device');
-  });
-
-  test('rejects names that start or end with non-alphanumeric', () => {
-    expect(sanitizeName('_device')).toBeUndefined();
-    expect(sanitizeName('device_')).toBeUndefined();
-    expect(sanitizeName('_device_')).toBeUndefined();
+    expect(isValidName(sanitizeName('  My Device  '))).toBe(true);
   });
 
   test('handles single character names', () => {
     expect(sanitizeName('A')).toBeUndefined(); // Single char fails the regex
     expect(sanitizeName('AB')).toBe('AB');
+    expect(isValidName(sanitizeName('AB'))).toBe(true);
+  });
+
+  test('name with braces', () => {
+    expect(sanitizeName('AB(C)')).toBe('AB C');
+    expect(isValidName(sanitizeName('AB(C)'))).toBe(true);
   });
 });
 
@@ -315,4 +337,62 @@ describe('toHapProperty', () => {
     expect(result).toBeDefined();
     expect(typeof result).toBe('object');
   });
+});
+
+class DelegateTargetClass {
+  do(x: number): number;
+  do(x: number, y: number): number;
+  do(x: any, y?: any): any {
+    if (y === undefined) {
+      return `original1:${x}`;
+    }
+    return `original2:${x},${y}`;
+  }
+}
+describe("createDelegate with overloaded methods (different arg count)", () => {
+  test("overrides both overload signatures", () => {
+    const worker = new DelegateTargetClass();
+
+    const delegate = createDelegate(worker, {
+      do: ((original: any) => (...args: any[]) => {
+        return `override:${args.join(",")}`;
+      }) as any,
+    });
+
+    expect(delegate.do(10)).toBe("override:10");
+    expect(delegate.do(10, 20)).toBe("override:10,20");
+  });
+
+  test("overrides only the single-argument overload and delegates the two-argument overload", () => {
+    const worker = new DelegateTargetClass();
+
+    const delegate = createDelegate(worker, {
+      do: ((original: any) => (...args: any[]) => {
+        if (args.length === 1) {
+          return `override1:${args[0]}`;
+        }
+        return original(...args);
+      }) as any,
+    });
+
+    expect(delegate.do(10)).toBe("override1:10");
+    expect(delegate.do(10, 20)).toBe("original2:10,20");
+  });
+
+  test("overrides only the two-argument overload and delegates the single-argument overload", () => {
+    const worker = new DelegateTargetClass();
+
+    const delegate = createDelegate(worker, {
+      do: ((original: any) => (...args: any[]) => {
+        if (args.length === 2) {
+          return `override2:${args[0]},${args[1]}`;
+        }
+        return original(...args);
+      }) as any,
+    });
+
+    expect(delegate.do(10)).toBe("original1:10");
+    expect(delegate.do(10, 20)).toBe("override2:10,20");
+  });
+
 });

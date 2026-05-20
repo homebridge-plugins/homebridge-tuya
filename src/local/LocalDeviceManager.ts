@@ -4,13 +4,10 @@ import TuyaDevice, {
   TuyaDeviceSchemaType,
   TuyaDeviceStatus,
 } from '../cloud/device/TuyaDevice';
-import TuyaOpenAPI from '../cloud/api/TuyaOpenAPI';
-import TuyaDeviceManager from '../cloud/device/TuyaDeviceManager';
+import TuyaDeviceManager from '../shared/TuyaDeviceManager';
 import TuyaDiscovery, { DiscoveryResult } from './TuyaDiscovery';
 import LocalDevice from './LocalDevice';
 import { LocalConfig, LocalDeviceConfig } from './config';
-import { PrefixLogger } from '../shared/util/Logger';
-import Logger from '../shared/util/Logger';
 import { ConfigHash } from '../shared/util/ConfigHash';
 import { ZigbeeGatewayDetection, GatewayRelationship } from './ZigbeeGatewayDetection';
 import {
@@ -67,12 +64,9 @@ function buildDpToCodeMap(dpMapping: Record<string, number>): Record<number, str
  * handlers.
  */
 export default class LocalDeviceManager extends TuyaDeviceManager {
-
-  private localDevices: TuyaDevice[] = [];
   private localConnections: Map<string, LocalDevice> = new Map();
   private discovery: TuyaDiscovery;
   private config: LocalConfig;
-  private parentLog: Logger;
   private discoveryTimeout: NodeJS.Timeout | null = null;
   private rediscoveryTimeout: NodeJS.Timeout | null = null;
   private isDiscoveryActive = false;
@@ -94,11 +88,6 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     reject: (error: Error) => void;
   }>> = new Map();
 
-  // Config change tracker
-  private configHash: ConfigHash;
-  // Tracks which devices had config changes
-  private configChanged: Map<string, boolean> = new Map();
-
   // ── Zigbee gateway/child support ──────────────────────────────────────────
   /** Parent gateway ID → GatewayRelationship (derived from config at init). */
   private gatewayRelationships: Map<string, GatewayRelationship> = new Map();
@@ -106,20 +95,50 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   private gatewayConnections: Map<string, LocalDevice> = new Map();
   // ──────────────────────────────────────────────────────────────────────────
 
-  constructor(localConfig: LocalConfig, log: Logger, persistPath?: string) {
-    // Create a minimal dummy API so the parent initialises without connecting
-    const dummyLog = new PrefixLogger(log, 'LocalDummy', false);
-    const dummyApi = new TuyaOpenAPI('', '', '', dummyLog);
-    super(dummyApi, false);
-
-    // Stop the MQ that the parent started
-    this.mq.stop();
-
-    this.parentLog = log;
-    this.log = new PrefixLogger(log, 'LocalDeviceManager', false);
+  constructor(localConfig: LocalConfig, debugMode: boolean = false) {
+    super(debugMode);
     this.config = localConfig;
-    this.discovery = new TuyaDiscovery(log);
-    this.configHash = new ConfigHash(persistPath || '', 'tuya-local-configs');
+    this.discovery = new TuyaDiscovery();
+  }
+
+  override async pullDevices(): Promise<TuyaDevice[]> {
+    await this.initLocalDevices();
+    this.connectAllDevices();
+
+    const devices = [...this.devices];
+    this.log.info(`Registered ${devices.length} local device(s).`);
+    return devices;
+  }
+
+  override createDeviceConfigHash(device: TuyaDevice): string {
+    const cfg = this.config.devices?.find(config => config.tuyaDeviceId === device.id);
+    if (!cfg) {
+      return '';
+    }
+    // Check if config has changed since last run
+    // Hash the config fields that affect device behavior
+    const configToHash = {
+      tuyaDeviceId: cfg.tuyaDeviceId,
+      name: cfg.name,
+      tuyaKey: cfg.tuyaKey,
+      dpMapping: cfg.dpMapping,
+      switchCount: cfg.switchCount ?? device['switchCount'],
+      outletCount: cfg.outletCount ?? device['outletCount'],
+      protocolVersion: cfg.protocolVersion,
+      category: cfg.category,
+    };
+    return ConfigHash.computeHash(configToHash);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  override configDevice(device: TuyaDevice): void {
+    // In the Local case, device objects are generally created from the LocalConfig, so there is nothing that needs to be handled here.
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  override getDeviceSchemaConfig(device: TuyaDevice, dpCode: string) {
+    // In the Local case, device objects are generally created from the LocalConfig, so there is nothing that needs to be handled here.
+    return undefined;
   }
 
   /**
@@ -157,7 +176,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       }
 
       // Validate devices have keys if auto-discovery is disabled
-      if (this.config.autoDiscoverDevices === false) {
+      if (!this.config.autoDiscoverDevices) {
         for (const cfg of this.config.devices) {
           if (!cfg.tuyaKey && !ZigbeeGatewayDetection.isChild(cfg)) {
             const deviceName = cfg.name || cfg.tuyaDeviceId;
@@ -172,7 +191,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
     // Start UDP discovery unless explicitly disabled
     if (this.config.autoDiscoverDevices !== false) {
-      this.discovery.on('discover', (result: DiscoveryResult) => {
+      this.discovery.on(TuyaDiscovery.Events.DEVICE_DISCOVER, (result: DiscoveryResult) => {
         this._onDiscovered(result);
       });
       this._startDiscoveryPhase();
@@ -212,7 +231,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
   /** Returns ALL devices (both local shadow entries from this manager). */
   override getDevice(deviceID: string): TuyaDevice | undefined {
-    return this.localDevices.find(d => d.id === deviceID);
+    return this.devices.find(d => d.id === deviceID);
   }
 
   /**
@@ -242,7 +261,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     }
 
     // Log the command for user visibility
-    const device = this.localDevices.find(d => d.id === deviceID);
+    const device = this.getDevice(deviceID);
     const deviceName = device?.name || deviceID;
     const commandStr = commands.map(c => `${c.code}=${c.value}`).join(', ');
     this.log.info(`[${deviceName}] Sending command (local): ${commandStr}`);
@@ -270,7 +289,12 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     const shouldWaitForResponse = conn.connected === true;
     let timer: NodeJS.Timeout | null = null;
     let responsePromise: Promise<boolean> | undefined;
-    let watcher: { expectedDps: Set<string>; cleanup: () => void; resolve: (value: boolean) => void; reject: (error: Error) => void; } | null = null;
+    let watcher: {
+      expectedDps: Set<string>;
+      cleanup: () => void;
+      resolve: (value: boolean) => void;
+      reject: (error: Error) => void;
+    } | null = null;
 
     if (shouldWaitForResponse) {
       responsePromise = new Promise<boolean>((resolve, reject) => {
@@ -369,55 +393,11 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     }
   }
 
-  public handleCloudStatusUpdate(deviceID: string, statusUpdates: TuyaDeviceStatus[]): void {
-    const device = this.localDevices.find(d => d.id === deviceID);
-    if (!device) {
-      return;
-    }
-
-    const dpMap = this.dpMaps.get(deviceID) ?? {};
-    const statusDps = new Set<string>();
-    for (const status of statusUpdates) {
-      const dp = dpMap[status.code];
-      statusDps.add(dp !== undefined ? String(dp) : String(status.code));
-
-      const existing = device.status.find(s => s.code === status.code);
-      if (existing) {
-        existing.value = status.value;
-      } else {
-        device.status.push({ code: status.code, value: status.value });
-      }
-    }
-
-    const watchers = this.pendingLocalResponseWatchers.get(deviceID);
-    if (!watchers || watchers.length === 0) {
-      return;
-    }
-
-    const remaining: typeof watchers = [];
-    for (const watcher of watchers) {
-      let matched = false;
-      for (const dp of watcher.expectedDps) {
-        if (statusDps.has(dp)) {
-          matched = true;
-          break;
-        }
-      }
-      if (matched) {
-        watcher.cleanup();
-        watcher.resolve(true);
-      } else {
-        remaining.push(watcher);
-      }
-    }
-
-    if (remaining.length > 0) {
-      this.pendingLocalResponseWatchers.set(deviceID, remaining);
-    } else {
-      this.pendingLocalResponseWatchers.delete(deviceID);
-    }
-
-    this.emit(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, device, statusUpdates);
+  /**
+   * Logic to suppress unnecessary discovery processes.
+   */
+  public static isTargetDevice(device: TuyaDevice) {
+    return !device.isVirtualDevice();
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
@@ -433,7 +413,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
     this.isDiscoveryActive = true;
     this.discoveredInCurrentPhase.clear();
-    this.log.info('Starting discovery phase');
+    this.log.debug('Starting discovery phase');
     this.discovery.start();
 
     // Stop after configurable timeout (config is in seconds, default 60s)
@@ -448,16 +428,16 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
       // Report discovery results for clarity
       if (this.discoveredInCurrentPhase.size > 0) {
-        this.log.info(`Ended discovery phase – rediscovered ${this.discoveredInCurrentPhase.size} device(s)`);
+        this.log.debug(`Ended discovery phase – rediscovered ${this.discoveredInCurrentPhase.size} device(s)`);
       } else {
         // No devices found; they may be using cached IPs from previous discovery
-        const knownDevices = this.localDevices.filter(d => (d as TuyaDevice & { localKey?: string }).localKey);
+        const knownDevices = this.devices.filter(d => (d as TuyaDevice & { localKey?: string }).localKey);
         if (knownDevices.length > 0) {
-          this.log.info(
+          this.log.debug(
             `Ended discovery phase – no new devices found (${knownDevices.length} configured device(s) using cached IP)`,
           );
         } else {
-          this.log.info('Ended discovery phase – no devices found');
+          this.log.debug('Ended discovery phase – no devices found');
         }
       }
 
@@ -496,31 +476,12 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     this.dpMaps.set(cfg.tuyaDeviceId, effectiveMap);
     this.reverseDpMaps.set(cfg.tuyaDeviceId, buildDpToCodeMap(effectiveMap));
 
-    const existing = this.localDevices.find(d => d.id === cfg.tuyaDeviceId);
-
-    // Check if config has changed since last run
-    // Hash the config fields that affect device behavior
-    const configToHash = {
-      tuyaDeviceId: cfg.tuyaDeviceId,
-      name: cfg.name,
-      tuyaKey: cfg.tuyaKey,
-      dpMapping: cfg.dpMapping,
-      switchCount: cfg.switchCount,
-      outletCount: cfg.outletCount,
-      protocolVersion: cfg.protocolVersion,
-      category: cfg.category,
-    };
-    const { changed: configChanged } = this.configHash.hasConfigChanged(cfg.tuyaDeviceId, configToHash);
-    this.configChanged.set(cfg.tuyaDeviceId, configChanged);
-
-    if (configChanged && existing) {
-      this.log.info(`Device ${cfg.tuyaDeviceId}: config changed, rebuilding schema`);
-    }
+    const existing = this.getDevice(cfg.tuyaDeviceId);
 
     if (!existing) {
-      const device = this._buildTuyaDevice(cfg, configChanged);
-      this.localDevices.push(device);
-      this.devices.push(device); // keep parent's devices array in sync
+      const device = this._buildTuyaDevice(cfg);
+      this.configDevice(device);
+      this.devices.push(device);
       this.emit(TuyaDeviceManager.Events.DEVICE_ADD, device);
     }
   }
@@ -582,24 +543,8 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
           // Auto-detection is now complete
           (device as TuyaDevice & { isAutoDetecting?: boolean }).isAutoDetecting = false;
 
-          // Recalculate config hash since the schema has changed
-          // This ensures SwitchAccessory knows to rebuild services
-          const updatedConfigToHash = {
-            tuyaDeviceId: cfg.tuyaDeviceId,
-            name: cfg.name,
-            tuyaKey: cfg.tuyaKey,
-            dpMapping: cfg.dpMapping,
-            switchCount: detectedCount,
-            outletCount: cfg.outletCount,
-            protocolVersion: cfg.protocolVersion,
-            category: cfg.category,
-          };
-          const { changed: schemaChanged } = this.configHash.hasConfigChanged(deviceId, updatedConfigToHash);
-          if (schemaChanged) {
-            this.log.debug('[AutoDetect] Schema changed after auto-detection, marking config as changed');
-            (device as TuyaDevice & { configChanged?: boolean }).configChanged = true;
-            this.configChanged.set(deviceId, true);
-          }
+          // update config
+          cfg.switchCount = detectedCount;
 
           // Notify the platform so configureServices() is re-run and switch_2+ services are added.
           this.emit(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, device, { schemaUpdated: true });
@@ -623,11 +568,12 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     this.discoveredInCurrentPhase.add(result.id);
 
     // If we already have a TuyaDevice for this ID (from manual config), update its IP
-    const existing = this.localDevices.find(d => d.id === result.id);
+    const existing = this.getDevice(result.id);
+
     if (existing) {
       this.log.info(
         `Device ${result.id} (v${result.version}) rediscovered @ ${result.ip} ` +
-          '– updating connection',
+        '– updating connection',
       );
       existing.ip = result.ip;
       // Update protocol version if not user-configured
@@ -652,17 +598,17 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     // New device discovered via UDP – create a placeholder TuyaDevice
     // (it won't be controllable until the user provides a tuyaKey via config)
     const device = this._buildDiscoveredDevice(result);
-    this.localDevices.push(device);
+    this.configDevice(device);
     this.devices.push(device);
     const productInfo = result.productKey ? ` productKey=${result.productKey}` : '';
     this.log.info(
       `Local device discovered: ${result.id} @ ${result.ip} (v${result.version}${productInfo}) ` +
-        '– add to config with tuyaKey to control',
+      '– add to config with tuyaKey to control',
     );
     this.emit(TuyaDeviceManager.Events.DEVICE_ADD, device);
   }
 
-  private _buildTuyaDevice(cfg: LocalDeviceConfig, configChanged = false): TuyaDevice {
+  private _buildTuyaDevice(cfg: LocalDeviceConfig): TuyaDevice {
     const device = new TuyaDevice({});
     const deviceId = cfg.tuyaDeviceId ?? '';
     device.id = deviceId;
@@ -702,8 +648,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     (device as TuyaDevice & { isLocal: boolean }).isLocal = true;
     (device as TuyaDevice & { switchCount?: number }).switchCount = switchCount;
     (device as TuyaDevice & { isAutoDetecting?: boolean }).isAutoDetecting = isAutoDetecting;
-    // Track whether config changed (used by SwitchAccessory to decide whether to remove cached extras)
-    (device as TuyaDevice & { configChanged?: boolean }).configChanged = configChanged;
+    this.log.debug(`_buildTuyaDevice local device:${JSON.stringify(device)}`);
     return device;
   }
 
@@ -730,6 +675,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     device.schema = [];
     (device as TuyaDevice & { isLocal: boolean }).isLocal = true;
     (device as TuyaDevice & { localVersion?: string }).localVersion = result.version;
+    this.log.info(`_buildDiscoveredDevice local device:${JSON.stringify(device)}`);
     return device;
   }
 
@@ -761,6 +707,8 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       }
     }
 
+    this.log.debug(`local device schema codes:${JSON.stringify(filteredMapping)}`);
+
     return Object.keys(filteredMapping).map(code => ({
       code,
       mode: TuyaDeviceSchemaMode.READ_WRITE,
@@ -770,7 +718,8 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   }
 
   private _createConnection(deviceID: string): LocalDevice | undefined {
-    const device = this.localDevices.find(d => d.id === deviceID);
+    const device = this.getDevice(deviceID);
+
     if (!device) {
       return undefined;
     }
@@ -800,7 +749,6 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
         version,
         name: device.name,
       },
-      this.parentLog,
     );
 
     conn.on('connect', () => {
@@ -883,7 +831,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
    * Preserves the child's state and event listeners while updating the parent reference.
    */
   private _reconnectZigbeeChild(childDeviceId: string, cid: string, childConn: LocalDevice, newParentConn: LocalDevice): void {
-    const childTuyaDevice = this.localDevices.find(d => d.id === childDeviceId);
+    const childTuyaDevice = this.getDevice(childDeviceId);
     if (!childTuyaDevice) {
       this.log.warn(`Zigbee child ${childDeviceId}: TuyaDevice not found during reconnect`);
       return;
@@ -931,11 +879,11 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     }
 
     // Register TuyaDevice if not already present
-    if (!this.localDevices.find(d => d.id === childDeviceId)) {
+    if (!this.getDevice(childDeviceId)) {
       this._registerDeviceConfig(effectiveChildCfg);
     }
 
-    const childTuyaDevice = this.localDevices.find(d => d.id === childDeviceId);
+    const childTuyaDevice = this.getDevice(childDeviceId);
     if (!childTuyaDevice) {
       this.log.warn(`Could not build TuyaDevice for Zigbee child ${childDeviceId}`);
       return;
@@ -950,7 +898,6 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
         version: parentConn['context'].version,
         name: cfg.name ?? childDeviceId,
       },
-      this.parentLog,
     );
     // Link parent ↔ child
     childConn.parentDevice = parentConn;
@@ -1085,7 +1032,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
   /** Connect all configured local devices eagerly (called after init). */
   connectAllDevices(): void {
-    for (const device of this.localDevices) {
+    for (const device of this.devices) {
       const localKey = (device as TuyaDevice & { localKey?: string }).localKey;
       if (!localKey) {
         continue; // Skip if no local key configured

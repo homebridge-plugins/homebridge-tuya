@@ -1,15 +1,28 @@
 /* eslint-disable no-console */
-import { describe, expect, test, beforeEach } from '@jest/globals';
+import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import { PlatformAccessory } from 'homebridge';
-import AccessoryFactory from '../src/shared/AccessoryFactory';
+import AccessoryFactory from '../src/shared/accessory/AccessoryFactory';
 import TuyaDevice, { TuyaDeviceSchemaMode, TuyaDeviceSchemaType } from '../src/cloud/device/TuyaDevice';
-import { TuyaPlatform } from '../src/platform';
+import { TuyaPlatform, TuyaPluginAccessoryContext } from '../src/platform';
+import { ExLogger, initLogger } from '../src/shared/util/Logger';
+import { createDelegate } from '../src/shared/util/util';
 
 describe('AccessoryFactory', () => {
   let mockPlatform: Partial<TuyaPlatform>;
   let mockAccessory: Partial<PlatformAccessory>;
 
   beforeEach(() => {
+    // Mock Logger
+    const mockLog: ExLogger = {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      log: jest.fn(),
+      success: jest.fn(),
+    } as unknown as ExLogger;
+    initLogger(mockLog);
+
     // Create proper HAP mock structure
     class MockService {
       static AccessoryInformation = class {};
@@ -56,13 +69,7 @@ describe('AccessoryFactory', () => {
     }
 
     mockPlatform = {
-      log: {
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        debug: jest.fn(),
-        log: jest.fn(),
-      },
+      log: mockLog,
       config: {} as any,
       api: {
         hap: {
@@ -74,9 +81,11 @@ describe('AccessoryFactory', () => {
       accessories: [],
       Service: MockService as any,
       Characteristic: MockCharacteristic as any,
-      options: {
-        debug: false,
-        debugLevel: '',
+      platformConfig: {
+        options: {
+          debug: false,
+          debugLevel: '',
+        }
       },
       deviceManager: {
         getDevice: jest.fn().mockReturnValue({
@@ -92,8 +101,8 @@ describe('AccessoryFactory', () => {
           isVirtualDevice: jest.fn().mockReturnValue(false),
           isIRControlHub: jest.fn().mockReturnValue(false),
         }),
+        getDeviceSchemaConfig: jest.fn().mockReturnValue({})
       },
-      getDeviceSchemaConfig: jest.fn().mockReturnValue(null),
       getDeviceStatusProperty: jest.fn().mockReturnValue(undefined),
     } as any;
 
@@ -108,8 +117,8 @@ describe('AccessoryFactory', () => {
       addService: jest.fn().mockReturnValue({
         setCharacteristic: jest.fn().mockReturnThis(),
         getCharacteristic: jest.fn().mockReturnValue({
-          onGet: jest.fn(function() { return this; }),
-          onSet: jest.fn(function() { return this; }),
+          onGet: jest.fn().mockReturnThis(),
+          onSet: jest.fn().mockReturnThis(),
           setProps: jest.fn().mockReturnThis(),
         }),
       }),
@@ -131,7 +140,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -149,7 +158,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -170,7 +179,7 @@ describe('AccessoryFactory', () => {
       expect(() => {
         AccessoryFactory.createAccessory(
           mockPlatform as TuyaPlatform,
-          mockAccessory as PlatformAccessory,
+          mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
           device,
         );
       }).not.toThrow();
@@ -190,7 +199,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -209,7 +218,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -228,7 +237,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -247,7 +256,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -266,7 +275,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -285,7 +294,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -304,7 +313,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -323,7 +332,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -355,7 +364,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -374,7 +383,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -393,7 +402,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -424,7 +433,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -453,7 +462,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -474,7 +483,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -493,7 +502,7 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
@@ -512,11 +521,31 @@ describe('AccessoryFactory', () => {
 
       const accessory = AccessoryFactory.createAccessory(
         mockPlatform as TuyaPlatform,
-        mockAccessory as PlatformAccessory,
+        mockAccessory as PlatformAccessory<TuyaPluginAccessoryContext>,
         device,
       );
 
       expect(accessory).toBeDefined();
+    });
+  });
+
+  describe('delegated accessory', () => {
+    test('sanitize displayName', () => {
+      const originalAccessory = {
+        addService: jest.fn(),
+      };
+      class AccessoryFactoryForTest extends AccessoryFactory {
+        static getPlatformAccessoryOverrides() {
+          return super.platformAccessoryOverrides;
+        }
+      }
+
+      const overridedAccessory = createDelegate(originalAccessory as any, AccessoryFactoryForTest.getPlatformAccessoryOverrides());
+
+      const spyAddService = jest.spyOn(originalAccessory, 'addService');
+      overridedAccessory.addService('a@a', 'b@b', 'c@c');
+
+      expect(spyAddService).toHaveBeenCalledWith('a@a', 'b b', 'c@c');
     });
   });
 });

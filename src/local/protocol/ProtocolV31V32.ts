@@ -61,8 +61,12 @@ export class ProtocolV31V32 implements Protocol {
 
   decodeFrame(frame: Buffer, deviceKey: Buffer): { cmd: number; payload: Buffer } | null {
     const msg = unpackMessage55AA(frame, undefined, false);
-    if (!msg) return null;
-    if (!msg.hmacOk) return null;
+    if (!msg) {
+      return null;
+    }
+    if (!msg.hmacOk) {
+      return null;
+    }
 
     let payload = msg.payload;
 

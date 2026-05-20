@@ -3,37 +3,7 @@
 import { describe, expect, test, beforeEach, afterEach, jest } from '@jest/globals';
 import EventEmitter from 'events';
 import LocalDevice, { LocalDeviceContext } from '../src/local/LocalDevice';
-
-// Mock Logger
-jest.mock('../src/shared/util/Logger', () => ({
-  __esModule: true,
-  default: class Logger {
-    log() {}
-    info() {}
-    warn() {}
-    error() {}
-    debug() {}
-  },
-  PrefixLogger: class PrefixLogger {
-    constructor(public log: any, public prefix: string, public debugMode: boolean) {}
-    debug(message?: any, ...args: any[]) {
-      if (this.debugMode) {
-        this.log.info((this.prefix ? `[${this.prefix}] ` : '') + message, ...args);
-      } else {
-        this.log.debug((this.prefix ? `[${this.prefix}] ` : '') + message, ...args);
-      }
-    }
-    info(message?: any, ...args: any[]) {
-      this.log.info((this.prefix ? `[${this.prefix}] ` : '') + message, ...args);
-    }
-    warn(message?: any, ...args: any[]) {
-      this.log.warn((this.prefix ? `[${this.prefix}] ` : '') + message, ...args);
-    }
-    error(message?: any, ...args: any[]) {
-      this.log.error((this.prefix ? `[${this.prefix}] ` : '') + message, ...args);
-    }
-  },
-}));
+import { initLogger } from '../src/shared/util/Logger';
 
 // Mock Protocol
 const mockProtocol = {
@@ -71,6 +41,7 @@ describe('LocalDevice', () => {
       error: jest.fn(),
       debug: jest.fn(),
     };
+    initLogger(mockLogger);
 
     context = {
       id: 'device_001',
@@ -89,7 +60,7 @@ describe('LocalDevice', () => {
     mockSocket.destroy = jest.fn();
     mockSocket.removeAllListeners = jest.fn();
 
-    device = new LocalDevice(context, mockLogger);
+    device = new LocalDevice(context);
   });
 
   afterEach(() => {
@@ -107,7 +78,7 @@ describe('LocalDevice', () => {
 
     test('sets default port if not provided', () => {
       const contextNoPort = { ...context, port: undefined };
-      const dev = new LocalDevice(contextNoPort, mockLogger);
+      const dev = new LocalDevice(contextNoPort);
 
       expect(dev).toBeDefined();
       expect(dev.connected).toBe(false);
@@ -115,14 +86,14 @@ describe('LocalDevice', () => {
 
     test('sets default pingGap if not provided', () => {
       const contextNoPingGap = { ...context, pingGap: undefined };
-      const dev = new LocalDevice(contextNoPingGap, mockLogger);
+      const dev = new LocalDevice(contextNoPingGap);
 
       expect(dev).toBeDefined();
     });
 
     test('sets default connectTimeout if not provided', () => {
       const contextNoTimeout = { ...context, connectTimeout: undefined };
-      const dev = new LocalDevice(contextNoTimeout, mockLogger);
+      const dev = new LocalDevice(contextNoTimeout);
 
       expect(dev).toBeDefined();
     });
@@ -299,21 +270,21 @@ describe('LocalDevice', () => {
   describe('protocol handling', () => {
     test('creates protocol for version 3.5', () => {
       const ctxV35 = { ...context, version: '3.5' };
-      const devV35 = new LocalDevice(ctxV35, mockLogger);
+      const devV35 = new LocalDevice(ctxV35);
 
       expect(devV35['protocol']).toBeDefined();
     });
 
     test('creates protocol for version 3.1', () => {
       const ctxV31 = { ...context, version: '3.1' };
-      const devV31 = new LocalDevice(ctxV31, mockLogger);
+      const devV31 = new LocalDevice(ctxV31);
 
       expect(devV31['protocol']).toBeDefined();
     });
 
     test('creates protocol for version 3.4', () => {
       const ctxV34 = { ...context, version: '3.4' };
-      const devV34 = new LocalDevice(ctxV34, mockLogger);
+      const devV34 = new LocalDevice(ctxV34);
 
       expect(devV34['protocol']).toBeDefined();
     });
@@ -349,7 +320,7 @@ describe('LocalDevice', () => {
 
     test('creates device logger with context', () => {
       const ctxNoName = { ...context, name: undefined };
-      const devNoName = new LocalDevice(ctxNoName, mockLogger);
+      const devNoName = new LocalDevice(ctxNoName);
 
       expect(devNoName.log).toBeDefined();
     });
@@ -358,21 +329,21 @@ describe('LocalDevice', () => {
   describe('connection configuration', () => {
     test('uses custom port if provided', () => {
       const ctxCustomPort = { ...context, port: 8888 };
-      const devCustomPort = new LocalDevice(ctxCustomPort, mockLogger);
+      const devCustomPort = new LocalDevice(ctxCustomPort);
 
       expect(devCustomPort['context'].port).toBe(8888);
     });
 
     test('uses custom pingGap if provided', () => {
       const ctxCustomPing = { ...context, pingGap: 15 };
-      const devCustomPing = new LocalDevice(ctxCustomPing, mockLogger);
+      const devCustomPing = new LocalDevice(ctxCustomPing);
 
       expect(devCustomPing['context'].pingGap).toBe(15);
     });
 
     test('uses custom connectTimeout if provided', () => {
       const ctxCustomTimeout = { ...context, connectTimeout: 60 };
-      const devCustomTimeout = new LocalDevice(ctxCustomTimeout, mockLogger);
+      const devCustomTimeout = new LocalDevice(ctxCustomTimeout);
 
       expect(devCustomTimeout['context'].connectTimeout).toBe(60);
     });
@@ -381,7 +352,7 @@ describe('LocalDevice', () => {
   describe('device types', () => {
     test('handles light device', () => {
       const lightContext = { ...context, id: 'light_001', name: 'Smart Light' };
-      const light = new LocalDevice(lightContext, mockLogger);
+      const light = new LocalDevice(lightContext);
 
       expect(light['context'].id).toBe('light_001');
       expect(light['context'].name).toBe('Smart Light');
@@ -389,14 +360,14 @@ describe('LocalDevice', () => {
 
     test('handles switch device', () => {
       const switchContext = { ...context, id: 'switch_001', name: 'Smart Switch' };
-      const switchDev = new LocalDevice(switchContext, mockLogger);
+      const switchDev = new LocalDevice(switchContext);
 
       expect(switchDev['context'].id).toBe('switch_001');
     });
 
     test('handles outlet device', () => {
       const outletContext = { ...context, id: 'outlet_001', name: 'Smart Outlet' };
-      const outlet = new LocalDevice(outletContext, mockLogger);
+      const outlet = new LocalDevice(outletContext);
 
       expect(outlet['context'].id).toBe('outlet_001');
     });
@@ -429,8 +400,8 @@ describe('LocalDevice', () => {
         connectTimeout: 30,
       };
 
-      deviceV34 = new LocalDevice(contextV34, mockLogger);
-      deviceV35 = new LocalDevice(contextV35, mockLogger);
+      deviceV34 = new LocalDevice(contextV34);
+      deviceV35 = new LocalDevice(contextV35);
     });
 
     afterEach(() => {
@@ -463,7 +434,7 @@ describe('LocalDevice', () => {
       const localNonce = Buffer.from('0123456789abcdef');
       const remoteNonce = Buffer.from('fedcba9876543210');
       const invalidHmac = Buffer.alloc(32); // all zeros - definitely wrong
-      const step2Payload = Buffer.concat([remoteNonce, invalidHmac]);
+      const step2Payload = Buffer.concat([remoteNonce as Uint8Array, invalidHmac as Uint8Array]);
 
       deviceV34['tmpLocalKey'] = localNonce;
       deviceV34['socket'] = mockSocket;
@@ -543,8 +514,8 @@ describe('LocalDevice', () => {
         port: 6668,
       };
 
-      deviceV34 = new LocalDevice(contextV34, mockLogger);
-      deviceV35 = new LocalDevice(contextV35, mockLogger);
+      deviceV34 = new LocalDevice(contextV34);
+      deviceV35 = new LocalDevice(contextV35);
     });
 
     afterEach(() => {

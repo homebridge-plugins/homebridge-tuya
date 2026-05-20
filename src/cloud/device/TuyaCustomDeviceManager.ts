@@ -1,15 +1,98 @@
-import TuyaOpenAPI from '../api/TuyaOpenAPI';
+import TuyaOpenAPI, { LOGIN_ERROR_MESSAGES, TuyaOpenAPIResponse } from '../api/TuyaOpenAPI';
 import TuyaDevice from './TuyaDevice';
-import TuyaDeviceManager from './TuyaDeviceManager';
+import TuyaCloudDeviceManager from './TuyaCloudDeviceManager';
+import { TuyaPlatformCustomConfig } from '../../config';
 
-export default class TuyaCustomDeviceManager extends TuyaDeviceManager {
+export default class TuyaCustomDeviceManager extends TuyaCloudDeviceManager {
+  private readonly DEFAULT_USER = 'homebridge';
+  private readonly DEFAULT_PASS = 'homebridge';
 
   constructor(
-    public api: TuyaOpenAPI,
-    public debug = false,
+    public override api: TuyaOpenAPI,
+    public override config: TuyaPlatformCustomConfig,
+    public override debug = false,
   ) {
-    super(api, debug);
+    super(api, config, debug);
     this.mq.version = '2.0';
+  }
+
+  override async pullDevices() : Promise<TuyaDevice[]> {
+    let res: TuyaOpenAPIResponse;
+
+    this.log.info('Get token.');
+    res = await this.api.getToken();
+    if (!res.success) {
+      this.log.error(`Get token failed. code=${res.code}, msg=${res.msg}`);
+      return [];
+    }
+
+    this.log.info(`Search default user "${this.DEFAULT_USER}"`);
+    res = await this.api.customGetUserInfo(this.DEFAULT_USER);
+    if (!res.success) {
+      this.log.error(`Search user failed. code=${res.code}, msg=${res.msg}`);
+      return [];
+    }
+
+
+    if (!res.result.user_name) {
+      this.log.info(`Default user "${this.DEFAULT_USER}" not exist.`);
+      this.log.info(`Creating default user "${this.DEFAULT_USER}".`);
+      res = await this.api.customCreateUser(this.DEFAULT_USER, this.DEFAULT_PASS);
+      if (!res.success) {
+        this.log.error(`Create default user failed. code=${res.code}, msg=${res.msg}`);
+        return [];
+      }
+    } else {
+      this.log.info(`Default user "${this.DEFAULT_USER}" exists.`);
+    }
+    const uid = res.result.user_id;
+
+
+    this.log.info('Fetching asset list.');
+    res = await this.getAssetList();
+    if (!res.success) {
+      this.log.error(`Fetching asset list failed. code=${res.code}, msg=${res.msg}`);
+      return [];
+    }
+
+    const assetIDList: string[] = [];
+    for (const { asset_id, asset_name } of res.result.list) {
+      this.log.info(`Got asset_id=${asset_id}, asset_name=${asset_name}`);
+      assetIDList.push(asset_id);
+    }
+
+    if (assetIDList.length === 0) {
+      this.log.warn('Asset list is empty. exit.');
+      return [];
+    }
+
+
+    this.log.info('Authorize asset list.');
+    res = await this.authorizeAssetList(uid, assetIDList, true);
+    if (!res.success) {
+      this.log.error(`Authorize asset list failed. code=${res.code}, msg=${res.msg}`);
+      return [];
+    }
+
+
+    this.log.info(`Log in with user "${this.DEFAULT_USER}".`);
+    res = await this.api.customLogin(this.DEFAULT_USER, this.DEFAULT_USER);
+    if (!res.success) {
+      this.log.error(`Login failed. code=${res.code}, msg=${res.msg}`);
+      if (res.code && LOGIN_ERROR_MESSAGES[res.code]) {
+        this.log.error(LOGIN_ERROR_MESSAGES[res.code]);
+      }
+      return [];
+    }
+
+    this.log.info('Start MQTT connection.');
+    this.mq.start();
+
+    this.log.info('Fetching device list.');
+    this.ownerIDs = assetIDList;
+    const devices = await this.updateDevices(assetIDList);
+    this.log.info(`Got ${devices.length} device(s) and scene(s).`);
+    return devices;
   }
 
   async getAssetList(parent_asset_id = -1) {
@@ -34,7 +117,7 @@ export default class TuyaCustomDeviceManager extends TuyaDeviceManager {
     const params = {
       page_size: 50,
     };
-    // eslint-disable-next-line no-constant-condition
+
     while (true) {
       const res = await this.api.get(`/v1.0/iot-02/assets/${assetID}/devices`, params);
       deviceIDs = deviceIDs.concat((res.result.list as []).map(item => item['device_id']));
@@ -47,7 +130,7 @@ export default class TuyaCustomDeviceManager extends TuyaDeviceManager {
     return deviceIDs;
   }
 
-  async updateDevices(assetIDList: string[]) {
+  override async updateDevices(assetIDList: string[]) {
 
     let deviceIDs: string[] = [];
     for (const assetID of assetIDList) {
@@ -61,6 +144,7 @@ export default class TuyaCustomDeviceManager extends TuyaDeviceManager {
     const devices = (res.result.devices as []).map(obj => new TuyaDevice(obj));
 
     for (const device of devices) {
+      this.configDevice(device);
       device.schema = await this.getDeviceSchema(device.id);
     }
 

@@ -63,10 +63,6 @@ export function sanitizeName(name?: string): string | undefined {
   const original = name.toString();
   // First trim whitespace to check starting/ending characters
   const trimmed = original.trim();
-  // Check if trimmed string starts or ends with non-alphanumeric and reject if so
-  if (!/^[\p{L}\p{N}]/u.test(trimmed) || !/[\p{L}\p{N}]$/u.test(trimmed)) {
-    return undefined;
-  }
   // keep Unicode alphanumeric characters, spaces and apostrophes; replace other chars with space
   // Uses Unicode property escapes so letters and numbers from all scripts are allowed.
   let s = trimmed.replace(/[^\p{L}\p{N}'\s]/gu, ' ');
@@ -170,4 +166,22 @@ export async function retry<T>(
 export function generateUUID(): string {
   const { randomUUID } = require('crypto');
   return randomUUID();
+}
+
+export function createDelegate<T extends object>(
+  target: T,
+  overrides: Partial<{ [K in keyof T]: (original: T[K]) => T[K] }>,
+): T {
+  return new Proxy(target, {
+    get(obj, prop) {
+      const key = prop as keyof T;
+
+      if (overrides[key]) {
+        const original = obj[key];
+        return overrides[key]!((original as any).bind(obj));
+      }
+
+      return obj[key];
+    },
+  });
 }

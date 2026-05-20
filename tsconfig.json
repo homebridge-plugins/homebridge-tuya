@@ -1,11 +1,15 @@
 {
   "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "target": "ES2022", // Node.js 18+
     "module": "commonjs",
     "lib": [
       "es2022",
       "DOM"
     ],
+    "types": ["jest", "node"],
     "useDefineForClassFields": false,
     "declaration": false,
     "declarationMap": false,
@@ -17,7 +21,8 @@
     "noImplicitAny": false,
     "resolveJsonModule": true,
     "allowJs": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noImplicitOverride": true
   },
   "include": [
     "src/"

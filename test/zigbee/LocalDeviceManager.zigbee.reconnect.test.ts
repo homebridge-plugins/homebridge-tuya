@@ -1,21 +1,19 @@
 import { describe, expect, it, beforeEach, afterEach, jest } from '@jest/globals';
 import LocalDeviceManager from '../../src/local/LocalDeviceManager';
-import { LocalConfig, LocalDeviceConfig } from '../../src/local/config';
-import TuyaDeviceManager from '../../src/cloud/device/TuyaDeviceManager';
-import Logger from '../../src/shared/util/Logger';
+import { LocalConfig } from '../../src/local/config';
+import { ExLogger, initLogger } from '../../src/shared/util/Logger';
 
-function makeMockLog(): Logger {
-  return {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    log: jest.fn(),
-  } as unknown as Logger;
-}
+// Mock Logger
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 describe('LocalDeviceManager – Zigbee gateway reconnection', () => {
-  let log: Logger;
   let manager: LocalDeviceManager;
 
   const GATEWAY_ID = 'gw_reconnect_001';
@@ -50,8 +48,8 @@ describe('LocalDeviceManager – Zigbee gateway reconnection', () => {
   }
 
   beforeEach(() => {
-    log = makeMockLog();
-    manager = new LocalDeviceManager(zigbeeReconnectConfig(), log);
+    initLogger(mockLog);
+    manager = new LocalDeviceManager(zigbeeReconnectConfig());
   });
 
   afterEach(() => {
@@ -94,7 +92,7 @@ describe('LocalDeviceManager – Zigbee gateway reconnection', () => {
       ],
     };
 
-    const mgr = new LocalDeviceManager(configWithOverride, log);
+    const mgr = new LocalDeviceManager(configWithOverride);
     // Should initialize without error even with per-child DP overrides
     await mgr.initLocalDevices();
 
@@ -131,7 +129,7 @@ describe('LocalDeviceManager – Zigbee gateway reconnection', () => {
       ],
     };
 
-    const mgr = new LocalDeviceManager(configWithCategoryOverride, log);
+    const mgr = new LocalDeviceManager(configWithCategoryOverride);
     await mgr.initLocalDevices();
 
     const gwDevice = mgr.getDevice(GATEWAY_ID);
@@ -173,10 +171,10 @@ describe('LocalDeviceManager – Zigbee gateway reconnection', () => {
       ],
     };
 
-    const mgr = new LocalDeviceManager(multiChildConfig, log);
+    const mgr = new LocalDeviceManager(multiChildConfig);
+    const infoSpy = jest.spyOn(mockLog, 'info');
     await mgr.initLocalDevices();
 
-    const infoSpy = log.info as jest.MockedFunction<typeof log.info>;
     const infoCalls = infoSpy.mock.calls.map(c => String(c[0]));
     const gatewayLine = infoCalls.find(s => s.includes('Zigbee gateway detected'));
 

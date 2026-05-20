@@ -90,7 +90,9 @@ export function encryptGCM(
   aad?: Buffer,
 ): { ciphertext: Buffer; authTag: Buffer } {
   const cipher = createCipheriv('aes-128-gcm', key, iv);
-  if (aad) cipher.setAAD(aad);
+  if (aad) {
+    cipher.setAAD(aad);
+  }
   const ciphertext = Buffer.concat([cipher.update(data), cipher.final()]);
   return { ciphertext, authTag: cipher.getAuthTag() };
 }
@@ -105,7 +107,9 @@ export function decryptGCM(
 ): Buffer {
   const decipher = createDecipheriv('aes-128-gcm', key, iv);
   decipher.setAuthTag(authTag);
-  if (aad) decipher.setAAD(aad);
+  if (aad) {
+    decipher.setAAD(aad);
+  }
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
 
@@ -127,7 +131,9 @@ function makeCRC32Table(): number[] {
 }
 
 export function getCRC32(buf: Buffer): number {
-  if (!crc32Table) crc32Table = makeCRC32Table();
+  if (!crc32Table) {
+    crc32Table = makeCRC32Table();
+  }
   let crc = 0xffffffff;
   for (let i = 0; i < buf.length; i++) {
     crc = crc32Table![(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
@@ -200,8 +206,12 @@ export function unpackMessage55AA(
   hmacKey?: Buffer,
   noRetcode = false,
 ): TuyaMessage55AA | null {
-  if (data.length < HEADER_SIZE_55AA + 8) return null;
-  if (data.readUInt32BE(0) !== PREFIX_55AA) return null;
+  if (data.length < HEADER_SIZE_55AA + 8) {
+    return null;
+  }
+  if (data.readUInt32BE(0) !== PREFIX_55AA) {
+    return null;
+  }
 
   const seqno = data.readUInt32BE(4);
   const cmd = data.readUInt32BE(8);
@@ -209,7 +219,9 @@ export function unpackMessage55AA(
 
   const checksumLen = hmacKey ? 32 : 4;
   const totalLen = HEADER_SIZE_55AA + payloadLen;
-  if (data.length < totalLen) return null;
+  if (data.length < totalLen) {
+    return null;
+  }
 
   // payload sits between header and checksum
   const payloadEnd = totalLen - checksumLen - 4; // before checksum
@@ -289,15 +301,21 @@ export function unpackMessage6699(
   data: Buffer,
   hmacKey: Buffer,
 ): TuyaMessage6699 | null {
-  if (data.length < HEADER_SIZE_6699 + 12 + 16 + 4) return null;
-  if (data.readUInt32BE(0) !== PREFIX_6699) return null;
+  if (data.length < HEADER_SIZE_6699 + 12 + 16 + 4) {
+    return null;
+  }
+  if (data.readUInt32BE(0) !== PREFIX_6699) {
+    return null;
+  }
 
   const seqno = data.readUInt32BE(6);
   const cmd = data.readUInt32BE(10);
   const length = data.readUInt32BE(14);
 
   const totalLen = HEADER_SIZE_6699 + length;
-  if (data.length < totalLen) return null;
+  if (data.length < totalLen) {
+    return null;
+  }
 
   const iv = data.subarray(HEADER_SIZE_6699, HEADER_SIZE_6699 + 12);
   const tag = data.subarray(totalLen - 4 - 16, totalLen - 4);
@@ -325,15 +343,21 @@ export function unpackMessage6699(
 
 /** True when `buffer` starts with a complete 0x55AA or 0x6699 frame */
 export function isFrameComplete(buffer: Buffer): boolean {
-  if (buffer.length < 4) return false;
+  if (buffer.length < 4) {
+    return false;
+  }
   const prefix = buffer.readUInt32BE(0);
   if (prefix === PREFIX_55AA) {
-    if (buffer.length < HEADER_SIZE_55AA) return false;
+    if (buffer.length < HEADER_SIZE_55AA) {
+      return false;
+    }
     const payloadLen = buffer.readUInt32BE(12);
     return buffer.length >= HEADER_SIZE_55AA + payloadLen;
   }
   if (prefix === PREFIX_6699) {
-    if (buffer.length < HEADER_SIZE_6699) return false;
+    if (buffer.length < HEADER_SIZE_6699) {
+      return false;
+    }
     const length = buffer.readUInt32BE(14);
     return buffer.length >= HEADER_SIZE_6699 + length;
   }
@@ -351,16 +375,22 @@ export function extractFrame(buffer: Buffer): { frame: Buffer; remaining: Buffer
       break;
     }
   }
-  if (start < 0) return null;
+  if (start < 0) {
+    return null;
+  }
 
   const slice = buffer.subarray(start);
   const prefix = slice.readUInt32BE(0);
 
   if (prefix === PREFIX_55AA) {
-    if (slice.length < HEADER_SIZE_55AA) return null;
+    if (slice.length < HEADER_SIZE_55AA) {
+      return null;
+    }
     const payloadLen = slice.readUInt32BE(12);
     const frameLen = HEADER_SIZE_55AA + payloadLen;
-    if (slice.length < frameLen) return null;
+    if (slice.length < frameLen) {
+      return null;
+    }
     return {
       frame: Buffer.from(slice.subarray(0, frameLen)),
       remaining: Buffer.from(slice.subarray(frameLen)),
@@ -368,10 +398,14 @@ export function extractFrame(buffer: Buffer): { frame: Buffer; remaining: Buffer
   }
 
   // PREFIX_6699
-  if (slice.length < HEADER_SIZE_6699) return null;
+  if (slice.length < HEADER_SIZE_6699) {
+    return null;
+  }
   const length = slice.readUInt32BE(14);
   const frameLen = HEADER_SIZE_6699 + length;
-  if (slice.length < frameLen) return null;
+  if (slice.length < frameLen) {
+    return null;
+  }
   return {
     frame: Buffer.from(slice.subarray(0, frameLen)),
     remaining: Buffer.from(slice.subarray(frameLen)),

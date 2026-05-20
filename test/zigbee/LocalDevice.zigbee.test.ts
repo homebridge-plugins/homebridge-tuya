@@ -2,19 +2,17 @@
 import { describe, expect, it, beforeEach, jest } from '@jest/globals';
 import EventEmitter from 'events';
 import LocalDevice, { LocalDeviceContext } from '../../src/local/LocalDevice';
+import { ExLogger, initLogger } from '../../src/shared/util/Logger';
 
 // ── Logger mock ───────────────────────────────────────────────────────────────
-
-jest.mock('../../src/shared/util/Logger', () => ({
-  __esModule: true,
-  default: class Logger {
-    log() {}; info() {}; warn() {}; error() {}; debug() {};
-  },
-  PrefixLogger: class PrefixLogger {
-    constructor(public _log: any, public prefix: string) {}
-    debug() {}; info() {}; warn() {}; error() {};
-  },
-}));
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 // ── Protocol mock ──────────────────────────────────────────────────────────────
 
@@ -46,11 +44,6 @@ jest.mock('net', () => ({
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function makeLogger() {
-  return { log: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() } as any;
-}
-
 function makeParent(overrides: Partial<LocalDeviceContext> = {}): LocalDevice {
   const ctx: LocalDeviceContext = {
     id: 'gateway_001',
@@ -60,7 +53,7 @@ function makeParent(overrides: Partial<LocalDeviceContext> = {}): LocalDevice {
     name: 'Test Gateway',
     ...overrides,
   };
-  return new LocalDevice(ctx, makeLogger());
+  return new LocalDevice(ctx);
 }
 
 function makeChild(parent: LocalDevice, cid: string): LocalDevice {
@@ -71,7 +64,7 @@ function makeChild(parent: LocalDevice, cid: string): LocalDevice {
     version: '3.3',
     name: 'Test Child',
   };
-  const child = new LocalDevice(ctx, makeLogger());
+  const child = new LocalDevice(ctx);
   child.parentDevice = parent;
   child.childId = cid;
   parent.children.set(cid, child);
@@ -81,6 +74,9 @@ function makeChild(parent: LocalDevice, cid: string): LocalDevice {
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe('LocalDevice – Zigbee parent/child', () => {
+  beforeEach(() => {
+    initLogger(mockLog);
+  });
 
   describe('children Map', () => {
     it('starts as an empty Map', () => {

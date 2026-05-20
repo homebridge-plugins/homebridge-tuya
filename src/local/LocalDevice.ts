@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import net from 'net';
 import EventEmitter from 'events';
-import Logger from '../shared/util/Logger';
+import Logger, { logger } from '../shared/util/Logger';
 import { PrefixLogger } from '../shared/util/Logger';
 import { ProtocolFactory } from './protocol/ProtocolFactory';
 import { Protocol } from './protocol/Protocol';
@@ -63,10 +63,9 @@ export default class LocalDevice extends EventEmitter {
 
   constructor(
     private context: LocalDeviceContext,
-    parentLog: Logger,
   ) {
     super();
-    this.log = new PrefixLogger(parentLog, context.name || context.id, false);
+    this.log = new PrefixLogger(logger(), `${(context.name || context.id)}(Local)`, false);
     this.context.port = this.context.port ?? 6668;
     this.context.pingGap = this.context.pingGap ?? 9;
     this.context.connectTimeout = this.context.connectTimeout ?? 30;
@@ -247,7 +246,7 @@ export default class LocalDevice extends EventEmitter {
     });
 
     sock.on('data', (chunk: Buffer) => {
-      this.cachedBuffer = Buffer.concat([this.cachedBuffer, chunk]);
+      this.cachedBuffer = Buffer.concat([this.cachedBuffer as Uint8Array, chunk as Uint8Array]);
       this._drainBuffer();
     });
 
@@ -347,7 +346,7 @@ export default class LocalDevice extends EventEmitter {
         break;
       }
 
-      this.cachedBuffer = Buffer.from(extracted.remaining);
+      this.cachedBuffer = Buffer.from(extracted.remaining as Uint8Array);
       this._handleFrame(extracted.frame);
     }
   }
@@ -433,7 +432,7 @@ export default class LocalDevice extends EventEmitter {
     this._send({ cmd: 5, data: hmac(this.tmpRemoteKey, this.context.key), encrypted: true });
 
     // Derive session key: AES-ECB-encrypt(localNonce XOR remoteNonce, realKey) [no padding]
-    const sk = Buffer.from(this.tmpLocalKey!);
+    const sk = Buffer.from(this.tmpLocalKey! as Uint8Array);
     for (let i = 0; i < sk.length; i++) {
       sk[i] ^= this.tmpRemoteKey![i];
     }
@@ -489,7 +488,7 @@ export default class LocalDevice extends EventEmitter {
     // Use protocol handler to encode frame
     try {
       const frame = this.protocol.encodeFrame(cmd, dataBuffer, this.sendCounter, this.sessionKey, this.context.key);
-      this.socket.write(frame);
+      this.socket.write(frame as Uint8Array);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.log.debug(`Failed to encode frame for ${this.context.name}: ${msg}`);

@@ -2,17 +2,18 @@
 import { describe, expect, test, beforeEach, afterEach, jest } from '@jest/globals';
 import LocalDeviceManager from '../src/local/LocalDeviceManager';
 import { LocalConfig } from '../src/local/config';
-import Logger from '../src/shared/util/Logger';
+import ExLogger, { initLogger, logger } from '../src/shared/util/Logger';
 import TuyaDevice from '../src/cloud/device/TuyaDevice';
 
 // Mock Logger
-const mockLog: Logger = {
+const mockLog: ExLogger = {
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
   log: jest.fn(),
-} as unknown as Logger;
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 describe('LocalDeviceManager', () => {
   let manager: LocalDeviceManager;
@@ -21,7 +22,8 @@ describe('LocalDeviceManager', () => {
     const config: LocalConfig = {
       devices: [],
     };
-    manager = new LocalDeviceManager(config, mockLog);
+    manager = new LocalDeviceManager(config);
+    initLogger(mockLog);
   });
 
   afterEach(() => {
@@ -73,7 +75,7 @@ describe('LocalDeviceManager', () => {
       const config: LocalConfig = {
         devices: [],
       };
-      const mgr = new LocalDeviceManager(config, mockLog);
+      const mgr = new LocalDeviceManager(config);
       expect(mgr).toBeDefined();
     });
 
@@ -88,7 +90,7 @@ describe('LocalDeviceManager', () => {
           },
         ],
       };
-      const mgr = new LocalDeviceManager(config, mockLog);
+      const mgr = new LocalDeviceManager(config);
       expect(mgr).toBeDefined();
     });
 
@@ -108,7 +110,7 @@ describe('LocalDeviceManager', () => {
           },
         ],
       };
-      const mgr = new LocalDeviceManager(config, mockLog);
+      const mgr = new LocalDeviceManager(config);
       expect(mgr).toBeDefined();
     });
   });
@@ -118,7 +120,7 @@ describe('LocalDeviceManager', () => {
       const config: LocalConfig = {
         devices: [],
       };
-      const mgr = new LocalDeviceManager(config, mockLog);
+      const mgr = new LocalDeviceManager(config);
 
       // Should not throw
       await expect(mgr.initLocalDevices()).resolves.not.toThrow();
@@ -139,15 +141,15 @@ describe('LocalDeviceManager', () => {
       };
 
       // Should create manager without crashing
-      const mgr = new LocalDeviceManager(config, mockLog);
+      const mgr = new LocalDeviceManager(config);
       expect(mgr).toBeDefined();
     });
 
     test('falls back when local command has no response after 10 seconds', async () => {
       jest.useFakeTimers();
-      const mgr = new LocalDeviceManager({ devices: [] }, mockLog);
+      const mgr = new LocalDeviceManager({ devices: [] });
       mgr['dpMaps'].set('device1', { switch_1: 1 });
-      mgr['localDevices'].push(new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Device 1', schema: [], status: [] }));
+      mgr['devices'].push(new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Device 1', schema: [], status: [] }));
 
       const conn = new (require('events').EventEmitter)();
       conn.connected = true;
@@ -163,9 +165,9 @@ describe('LocalDeviceManager', () => {
 
     test('cancels older pending local responses when newer command supersedes same DP', async () => {
       jest.useFakeTimers();
-      const mgr = new LocalDeviceManager({ devices: [] }, mockLog);
+      const mgr = new LocalDeviceManager({ devices: [] });
       mgr['dpMaps'].set('device1', { switch_1: 1 });
-      mgr['localDevices'].push(new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Device 1', schema: [], status: [] }));
+      mgr['devices'].push(new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Device 1', schema: [], status: [] }));
 
       const conn = new (require('events').EventEmitter)();
       conn.connected = true;
@@ -192,7 +194,7 @@ describe('LocalDeviceManager', () => {
           },
         ],
       };
-      const mgr = new LocalDeviceManager(config, mockLog);
+      const mgr = new LocalDeviceManager(config);
 
       // Should not throw during init
       await expect(mgr.initLocalDevices()).resolves.not.toThrow();
@@ -211,7 +213,7 @@ describe('LocalDeviceManager', () => {
       };
 
       // Should create manager without immediate error
-      const mgr = new LocalDeviceManager(config, mockLog);
+      const mgr = new LocalDeviceManager(config);
       expect(mgr).toBeDefined();
     });
 
@@ -227,7 +229,7 @@ describe('LocalDeviceManager', () => {
           } as any,
         ],
       };
-      const mgr = new LocalDeviceManager(config, mockLog);
+      const mgr = new LocalDeviceManager(config);
       (mgr as any)._registerDeviceConfig(config.devices![0]);
 
       expect(mgr.devices.length).toBe(0);
@@ -242,7 +244,7 @@ describe('LocalDeviceManager', () => {
       const config: LocalConfig = {
         devices: [],
       };
-      const mgr = new LocalDeviceManager(config, mockLog);
+      const mgr = new LocalDeviceManager(config);
       expect(mgr).toBeDefined();
       // Default mappings should be applied internally
     });
@@ -264,25 +266,7 @@ describe('LocalDeviceManager', () => {
           },
         ],
       };
-      const mgr = new LocalDeviceManager(config, mockLog);
-      expect(mgr).toBeDefined();
-    });
-  });
-
-  describe('logging', () => {
-    test('uses provided logger', () => {
-      const customLog: Logger = {
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        log: jest.fn(),
-      } as unknown as Logger;
-
-      const config: LocalConfig = {
-        devices: [],
-      };
-      const mgr = new LocalDeviceManager(config, customLog);
+      const mgr = new LocalDeviceManager(config);
       expect(mgr).toBeDefined();
     });
   });
@@ -305,8 +289,8 @@ describe('LocalDeviceManager Integration', () => {
       ],
     };
 
-    const mgr1 = new LocalDeviceManager(config1, mockLog);
-    const mgr2 = new LocalDeviceManager(config2, mockLog);
+    const mgr1 = new LocalDeviceManager(config1);
+    const mgr2 = new LocalDeviceManager(config2);
 
     expect(mgr1).toBeDefined();
     expect(mgr2).toBeDefined();
@@ -317,7 +301,7 @@ describe('LocalDeviceManager Integration', () => {
     const config: LocalConfig = {
       devices: [],
     };
-    const mgr = new LocalDeviceManager(config, mockLog);
+    const mgr = new LocalDeviceManager(config);
 
     await mgr.initLocalDevices();
     await mgr.initLocalDevices(); // Should handle multiple inits

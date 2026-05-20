@@ -21,7 +21,7 @@ export class ConfigHash {
    * Compute a hash of any configuration object.
    * Converts object to sorted JSON string and returns SHA256 hash.
    */
-  private computeHash(configObject: any): string {
+  public static computeHash(configObject: any): string {
     const json = JSON.stringify(configObject, Object.keys(configObject).sort());
     return crypto.createHash('sha256').update(json).digest('hex').slice(0, 16);
   }
@@ -58,7 +58,7 @@ export class ConfigHash {
    * Returns { changed: boolean, newHash: string }
    */
   hasConfigChanged(itemId: string, configObject: any): { changed: boolean; newHash: string } {
-    const newHash = this.computeHash(configObject);
+    const newHash = ConfigHash.computeHash(configObject);
     const oldHash = this.getStoredHash(itemId);
 
     // If no old hash, it's a new item (not a change in existing config)

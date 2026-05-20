@@ -2,20 +2,18 @@
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import TuyaCustomDeviceManager from '../src/cloud/device/TuyaCustomDeviceManager';
 import TuyaDevice from '../src/cloud/device/TuyaDevice';
+import { TuyaPlatformCustomConfig, TuyaPluginMode } from '../src/config';
+import { ExLogger, initLogger } from '../src/shared/util/Logger';
 
 // Mock Logger
-jest.mock('../src/shared/util/Logger', () => ({
-  __esModule: true,
-  default: class Logger {
-    log() {}
-    info() {}
-    warn() {}
-    error() {}
-  },
-  PrefixLogger: class PrefixLogger {
-    constructor(public log: any, public name: string, public debug: boolean) {}
-  },
-}));
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 // Mock TuyaOpenMQ
 jest.mock('../src/cloud/api/TuyaOpenMQ', () => {
@@ -30,16 +28,31 @@ jest.mock('../src/cloud/api/TuyaOpenMQ', () => {
 describe('TuyaCustomDeviceManager', () => {
   let manager: TuyaCustomDeviceManager;
   let mockAPI: any;
+  let mockConfig: any;
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    initLogger(mockLog);
+    
     mockAPI = {
       log: { log: console.log } as any,
       post: jest.fn(),
       get: jest.fn(),
       tokenInfo: { uid: 'test_uid' },
     };
+    mockConfig = {
+      projectType: '1',
+      endpoint: 'https://openapi.tuyaeu.com',
+      accessId: 'test_access_id',
+      accessKey: 'test_access_key',
+      username: 'user@example.com',
+      password: 'password',
+      generateWeatherAccessory: true,
+      weatherAPI: 'openweathermap',
+      forceIPv4: false
+    }
 
-    manager = new TuyaCustomDeviceManager(mockAPI, false);
+    manager = new TuyaCustomDeviceManager(mockAPI, mockConfig, false);
   });
 
   describe('initialization', () => {
@@ -49,7 +62,7 @@ describe('TuyaCustomDeviceManager', () => {
     });
 
     test('sets MQTT version to 2.0', () => {
-      const customManager = new TuyaCustomDeviceManager(mockAPI, false);
+      const customManager = new TuyaCustomDeviceManager(mockAPI, mockConfig, false);
       expect(customManager.mq.version).toBe('2.0');
     });
 
@@ -59,7 +72,7 @@ describe('TuyaCustomDeviceManager', () => {
     });
 
     test('supports debug mode', () => {
-      const debugManager = new TuyaCustomDeviceManager(mockAPI, true);
+      const debugManager = new TuyaCustomDeviceManager(mockAPI, mockConfig, true);
       expect(debugManager.debug).toBe(true);
     });
   });
@@ -464,6 +477,83 @@ describe('TuyaCustomDeviceManager', () => {
 
       expect(mockAPI.post).toHaveBeenCalledTimes(1);
       expect(mockAPI.post.mock.calls[0][1].asset_ids).toBe(assetIds.join(','));
+    });
+  });
+
+  describe('get device config', () => {
+    test('resolves device config precedence: device, then product, then global', () => {
+      const config = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'cloud',
+        cloud: {
+          projectType: '1',
+          endpoint: 'https://openapi.tuyaeu.com',
+          accessId: 'test_access_id',
+          accessKey: 'test_access_key',
+          username: 'user@example.com',
+          password: 'password',
+          generateWeatherAccessory: true,
+          weatherAPI: 'openweathermap',
+          forceIPv4: false,
+          deviceOverrides: [
+            { id: 'global', category: 'global-cat', configFor: TuyaPluginMode.cloud },
+            { id: 'prod-1', category: 'product-cat', configFor: TuyaPluginMode.cloud },
+            { id: 'device-1', category: 'device-cat', configFor: TuyaPluginMode.cloud },
+          ],
+        } as TuyaPlatformCustomConfig,
+      };
+  
+      const deviceManager = new TuyaCustomDeviceManager(mockAPI, config.cloud, false);
+  
+      const exact = deviceManager.getDeviceConfig({ id: 'device-1', uuid: 'uuid-1', product_id: 'prod-1' } as any);
+      const byProduct = deviceManager.getDeviceConfig({ id: 'device-2', uuid: 'uuid-2', product_id: 'prod-1' } as any);
+      const fallback = deviceManager.getDeviceConfig({ id: 'device-3', uuid: 'uuid-3', product_id: 'prod-3' } as any);
+  
+      expect(exact?.category).toBe('device-cat');
+      expect(byProduct?.category).toBe('product-cat');
+      expect(fallback?.category).toBe('global-cat');
+    });
+  });
+
+  describe('get device config', () => {
+    test('finds schema config case-insensitively', () => {
+      const config = {
+        platform: 'TuyaPlatform',
+        name: 'Tuya',
+        mode: 'cloud',
+        cloud: {
+          projectType: '1',
+          endpoint: 'https://openapi.tuyaeu.com',
+          accessId: 'test_access_id',
+          accessKey: 'test_access_key',
+          username: 'user@example.com',
+          password: 'password',
+          generateWeatherAccessory: true,
+          weatherAPI: 'openweathermap',
+          forceIPv4: false,
+          deviceOverrides: [
+            {
+              id: 'device-1',
+              schema: [
+                { code: 'switch_1', newCode: 'new_switch_1', hidden: true },
+              ],
+              configFor: TuyaPluginMode.cloud
+            },
+          ],
+        } as TuyaPlatformCustomConfig,
+      };
+  
+      const deviceManager = new TuyaCustomDeviceManager(mockAPI, config.cloud, false);
+
+      const device = { id: 'device-1', uuid: 'device-1', product_id: 'prod-1' } as any;
+
+      const result = deviceManager!.getDeviceSchemaConfig(device, 'SWITCH_1');
+
+      expect(result).toBeDefined();
+      expect(result?.code).toBe('switch_1');
+      expect((result as any).newCode).toBe('new_switch_1');
+      expect(result?.hidden).toBe(true);
     });
   });
 });

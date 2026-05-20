@@ -10,20 +10,20 @@ import {
   CameraStreamingDelegate,
   CameraStreamingOptions,
   EventTriggerOption,
-  HAP,
   H264Level,
   H264Profile,
+  HAP,
   MediaContainerType,
   PrepareStreamCallback,
   PrepareStreamRequest,
+  PrepareStreamResponse,
   Resolution,
   SnapshotRequest,
   SnapshotRequestCallback,
   SRTPCryptoSuites,
+  StartStreamRequest,
   StreamingRequest,
   StreamRequestCallback,
-  PrepareStreamResponse,
-  StartStreamRequest,
 } from 'homebridge';
 
 import {
@@ -31,14 +31,11 @@ import {
   reservePorts,
 } from '@homebridge/camera-utils';
 
-import CameraAccessory from '../accessories/CameraAccessory';
+import CameraAccessory from '../accessory/CameraAccessory';
 
-import {
-  TuyaRecordingDelegate,
-} from './TuyaRecordingDelegate';
 import { spawn } from 'child_process';
 import { createSocket, Socket } from 'dgram';
-import { FfmpegStreamingProcess, StreamingDelegate as FfmpegStreamingDelegate } from './FfmpegStreamingProcess';
+import { StreamingDelegate as FfmpegStreamingDelegate, FfmpegStreamingProcess } from './FfmpegStreamingProcess';
 
 interface SessionInfo {
     address: string; // address of the HAP controller
@@ -244,13 +241,13 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
 
       audioCryptoSuite: request.audio.srtpCryptoSuite,
       audioPort: request.audio.port,
-      audioSRTP: Buffer.concat([request.audio.srtp_key, request.audio.srtp_salt]),
+      audioSRTP: Buffer.concat([request.audio.srtp_key as Uint8Array, request.audio.srtp_salt as Uint8Array]),
       audioSSRC: audioSSRC,
       audioIncomingPort: audioIncomingPort[0],
 
       videoCryptoSuite: request.video.srtpCryptoSuite,
       videoPort: request.video.port,
-      videoSRTP: Buffer.concat([request.video.srtp_key, request.video.srtp_salt]),
+      videoSRTP: Buffer.concat([request.video.srtp_key as Uint8Array, request.video.srtp_salt as Uint8Array]),
       videoSSRC: videoSSRC,
       videoIncomingPort: videoIncomingPort[0],
     };
@@ -303,17 +300,6 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
     }
   }
 
-  private async retrieveDeviceRTSP(): Promise<string> {
-    const data = await this.camera.deviceManager!.api.post(
-      `/v1.0/devices/${this.camera.device!.id}/stream/actions/allocate`,
-      {
-        type: 'rtsp',
-      },
-    );
-
-    return data.result.url;
-  }
-
   private async startStream(request: StartStreamRequest, callback: StreamRequestCallback) {
     const sessionInfo = this.pendingSessions[request.sessionID];
 
@@ -328,7 +314,7 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
     const fps = request.video.fps;
     const videoBitrate = request.video.max_bit_rate;
 
-    const rtspUrl = await this.retrieveDeviceRTSP();
+    const rtspUrl = await this.camera.deviceManager?.retrieveDeviceRTSP(this.camera.device?.id!)!;
 
     const ffmpegArgs: string[] = [
       '-hide_banner',
@@ -439,7 +425,7 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
 
     // TODO: Check if there is a stream already running to fetch snapshot.
 
-    const rtspUrl = await this.retrieveDeviceRTSP();
+    const rtspUrl = await this.camera.deviceManager?.retrieveDeviceRTSP(this.camera.device?.id!)!;
 
     const ffmpegArgs = [
       '-i', rtspUrl,

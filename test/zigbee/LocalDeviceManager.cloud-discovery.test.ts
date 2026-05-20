@@ -1,20 +1,19 @@
 import { describe, expect, it, beforeEach, afterEach, jest } from '@jest/globals';
 import LocalDeviceManager from '../../src/local/LocalDeviceManager';
 import { LocalConfig } from '../../src/local/config';
-import Logger from '../../src/shared/util/Logger';
+import { ExLogger, initLogger } from '../../src/shared/util/Logger';
 
-function makeMockLog(): Logger {
-  return {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    log: jest.fn(),
-  } as unknown as Logger;
-}
+// Mock Logger
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 describe('LocalDeviceManager – Cloud-based child discovery', () => {
-  let log: Logger;
   let manager: LocalDeviceManager;
 
   const GATEWAY_ID = 'cloud_gw_001';
@@ -22,7 +21,7 @@ describe('LocalDeviceManager – Cloud-based child discovery', () => {
   const DEVICE_IP = '192.168.1.200';
 
   beforeEach(() => {
-    log = makeMockLog();
+    initLogger(mockLog);
   });
 
   afterEach(() => {
@@ -46,7 +45,7 @@ describe('LocalDeviceManager – Cloud-based child discovery', () => {
       ],
     };
 
-    manager = new LocalDeviceManager(config, log);
+    manager = new LocalDeviceManager(config);
 
     const cloudDevices = [
       { id: GATEWAY_ID },
@@ -65,7 +64,7 @@ describe('LocalDeviceManager – Cloud-based child discovery', () => {
       devices: [],
     };
 
-    manager = new LocalDeviceManager(config, log);
+    manager = new LocalDeviceManager(config);
 
     const cloudDevices = [
       { id: 'unknown_gw', gateway_id: undefined },
@@ -74,7 +73,7 @@ describe('LocalDeviceManager – Cloud-based child discovery', () => {
 
     manager.discoverChildrenFromCloud(cloudDevices);
 
-    const debugSpy = log.debug as jest.MockedFunction<typeof log.debug>;
+    const debugSpy = jest.spyOn(mockLog, 'debug');
     expect(debugSpy.mock.calls.length).toBeGreaterThan(0);
   });
 
@@ -91,7 +90,7 @@ describe('LocalDeviceManager – Cloud-based child discovery', () => {
       ],
     };
 
-    manager = new LocalDeviceManager(config, log);
+    manager = new LocalDeviceManager(config);
 
     // Should not throw
     expect(() => {
@@ -115,7 +114,7 @@ describe('LocalDeviceManager – Cloud-based child discovery', () => {
       ],
     };
 
-    manager = new LocalDeviceManager(config, log);
+    manager = new LocalDeviceManager(config);
 
     const cloudDevices = [
       { id: GATEWAY_ID },
@@ -125,7 +124,7 @@ describe('LocalDeviceManager – Cloud-based child discovery', () => {
     manager.discoverChildrenFromCloud(cloudDevices);
 
     // Should not log auto-discovery (device is not a gateway)
-    const infoSpy = log.info as jest.MockedFunction<typeof log.info>;
+    const infoSpy = jest.spyOn(mockLog, 'info');
     const callsWithAutoDiscovery = infoSpy.mock.calls.filter(c =>
       String(c[0]).includes('auto-discovery'),
     );
@@ -146,7 +145,7 @@ describe('LocalDeviceManager – Cloud-based child discovery', () => {
       ],
     };
 
-    manager = new LocalDeviceManager(config, log);
+    manager = new LocalDeviceManager(config);
 
     const cloudDevices = [
       { id: GATEWAY_ID },

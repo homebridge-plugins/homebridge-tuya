@@ -11,7 +11,7 @@ import { config, expectDevice, expectSuccessResponse } from './util';
 const { options } = config;
 if (options?.projectType === '2') {
   const api = new TuyaOpenAPI(TuyaOpenAPI.Endpoints.CHINA, options.accessId, options.accessKey);
-  const deviceManager = new TuyaHomeDeviceManager(api);
+  const deviceManager = new TuyaHomeDeviceManager(api, options);
 
   describe('TuyaOpenAPI', () => {
     test('homeLogin()', async () => {

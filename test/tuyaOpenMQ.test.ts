@@ -7,24 +7,14 @@ jest.mock('mqtt', () => ({
 }));
 
 // Mock Logger
-jest.mock('../src/shared/util/Logger', () => ({
-  __esModule: true,
-  default: class Logger {
-    log = jest.fn();
-    info = jest.fn();
-    warn = jest.fn();
-    error = jest.fn();
-    debug = jest.fn();
-  },
-  PrefixLogger: class PrefixLogger {
-    log = jest.fn();
-    info = jest.fn();
-    warn = jest.fn();
-    error = jest.fn();
-    debug = jest.fn();
-    constructor(public logger: any, public name: string, public isDebug: boolean) {}
-  },
-}));
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 // Mock util  
 jest.mock('../src/shared/util/util', () => ({
@@ -38,6 +28,7 @@ jest.mock('../src/cloud/device/TuyaDevice', () => ({
 
 import TuyaOpenMQ from '../src/cloud/api/TuyaOpenMQ';
 import mqtt from 'mqtt';
+import { ExLogger, initLogger } from '../src/shared/util/Logger';
 
 describe('TuyaOpenMQ', () => {
   let mq: TuyaOpenMQ;
@@ -46,6 +37,7 @@ describe('TuyaOpenMQ', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    initLogger(mockLog);
 
     // Create mock MQTT client
     mockClient = {
@@ -64,7 +56,7 @@ describe('TuyaOpenMQ', () => {
       post: jest.fn(),
     } as any;
 
-    mq = new TuyaOpenMQ(mockAPI, undefined, false);
+    mq = new TuyaOpenMQ(mockAPI, false);
   });
 
   describe('initialization', () => {
@@ -274,18 +266,18 @@ describe('TuyaOpenMQ', () => {
     });
 
     test('debug flag can be true', () => {
-      const debugMQ = new TuyaOpenMQ(mockAPI, undefined, true);
+      const debugMQ = new TuyaOpenMQ(mockAPI, true);
       expect(debugMQ.debug).toBe(true);
     });
 
     test('debug flag can be false', () => {
-      const noDebugMQ = new TuyaOpenMQ(mockAPI, undefined, false);
+      const noDebugMQ = new TuyaOpenMQ(mockAPI, false);
       expect(noDebugMQ.debug).toBe(false);
     });
 
     test('link ID is unique between instances', () => {
-      const mq1 = new TuyaOpenMQ(mockAPI, undefined, false);
-      const mq2 = new TuyaOpenMQ(mockAPI, undefined, false);
+      const mq1 = new TuyaOpenMQ(mockAPI, false);
+      const mq2 = new TuyaOpenMQ(mockAPI, false);
 
       expect(mq1.linkId).toBeDefined();
       expect(mq2.linkId).toBeDefined();

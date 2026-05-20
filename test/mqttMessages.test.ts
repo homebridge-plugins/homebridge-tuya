@@ -1,21 +1,19 @@
 /* eslint-disable no-console */
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
-import TuyaDeviceManager from '../src/cloud/device/TuyaDeviceManager';
+import TuyaDeviceManager from '../src/cloud/device/TuyaCloudDeviceManager';
 import TuyaDevice from '../src/cloud/device/TuyaDevice';
+import TuyaHomeDeviceManager from '../src/cloud/device/TuyaHomeDeviceManager';
+import { ExLogger, initLogger } from '../src/shared/util/Logger';
 
 // Mock Logger
-jest.mock('../src/shared/util/Logger', () => ({
-  __esModule: true,
-  default: class Logger {
-    log() {}
-    info() {}
-    warn() {}
-    error() {}
-  },
-  PrefixLogger: class PrefixLogger {
-    constructor(public log: any, public name: string, public debug: boolean) {}
-  },
-}));
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 // Mock TuyaOpenMQ
 jest.mock('../src/cloud/api/TuyaOpenMQ', () => {
@@ -44,8 +42,11 @@ jest.mock('../src/cloud/api/TuyaOpenMQ', () => {
 describe('MQTT Device Updates - TuyaDeviceManager Message Handling', () => {
   let manager: TuyaDeviceManager;
   let mockAPI: any;
+  let mockConfig: any;
 
   beforeEach(() => {
+    initLogger(mockLog);
+
     mockAPI = {
       log: { log: console.log } as any,
       post: jest.fn(),
@@ -53,7 +54,25 @@ describe('MQTT Device Updates - TuyaDeviceManager Message Handling', () => {
       tokenInfo: { uid: 'test_uid' },
     };
 
-    manager = new TuyaDeviceManager(mockAPI, false);
+    mockConfig = {
+      platform: 'TuyaPlatform',
+      name: 'Tuya',
+      mode: 'cloud',
+      cloud: {
+        projectType: '2',
+        accessId: 'test_id',
+        accessKey: 'test_key',
+        countryCode: 1,
+        username: 'user@example.com',
+        password: 'password',
+        appSchema: 'tuyaSmart',
+        generateWeatherAccessory: false,
+        weatherAPI: '',
+        forceIPv4: false,
+      },
+    };
+
+    manager = new TuyaHomeDeviceManager(mockAPI, mockConfig.cloud, false);
   });
 
   describe('device status updates', () => {

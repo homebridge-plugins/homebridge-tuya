@@ -1,22 +1,22 @@
 /* eslint-disable no-console */
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import TuyaDevice from '../src/cloud/device/TuyaDevice';
+import { ExLogger, initLogger } from '../src/shared/util/Logger';
 
 // Mock Logger
-jest.mock('../src/shared/util/Logger', () => ({
-  __esModule: true,
-  default: class Logger {
-    log() {}
-    info() {}
-    warn() {}
-    error() {}
-  },
-  PrefixLogger: class PrefixLogger {
-    constructor(public log: any, public name: string, public debug: boolean) {}
-  },
-}));
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 describe('Error Handling & Edge Cases', () => {
+  beforeEach(() => {
+    initLogger(mockLog);
+  });
   describe('device initialization edge cases', () => {
     test('handles device with minimal properties', () => {
       const device = new TuyaDevice({

@@ -112,13 +112,13 @@ describe('ZigbeeGatewayDetection', () => {
         device('child_1', { parentDeviceId: 'gw_1' }),
       ];
       expect(() => ZigbeeGatewayDetection.detectFromDevices(devices))
-        .toThrow('parentDeviceId but is missing zigbeeChildId');
+        .toThrow('Device "child_1" has parentDeviceId:gw_1 but is missing zigbeeChildId. Both fields are required for Zigbee sub-devices.');
     });
 
     it('throws when zigbeeChildId is set without parentDeviceId', () => {
       const devices = [device('child_1', { zigbeeChildId: '0011223344556601' })];
       expect(() => ZigbeeGatewayDetection.detectFromDevices(devices))
-        .toThrow('zigbeeChildId but is missing parentDeviceId');
+        .toThrow('Device "child_1" has zigbeeChildId:0011223344556601 but is missing parentDeviceId. Both fields are required for Zigbee sub-devices.');
     });
 
     it('throws for an invalid CID (too short)', () => {

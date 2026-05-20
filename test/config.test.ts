@@ -19,7 +19,7 @@ describe('TuyaPlatformConfig', () => {
       const config: TuyaPlatformConfig = {
         platform: 'TuyaPlatform',
         name: 'Tuya',
-        options: {
+        cloud: {
           projectType: '2',
           accessId: 'test_access_id',
           accessKey: 'test_access_key',
@@ -29,19 +29,20 @@ describe('TuyaPlatformConfig', () => {
           appSchema: 'tuyaSmart',
           generateWeatherAccessory: true,
           weatherAPI: 'openweathermap',
+          forceIPv4: false
         },
       };
 
-      expect(config.options).toBeDefined();
-      expect(config.options?.projectType).toBe('2');
-      expect((config.options as any)?.countryCode).toBe(1);
+      expect(config.cloud).toBeDefined();
+      expect(config.cloud?.projectType).toBe('2');
+      expect((config.cloud as any)?.countryCode).toBe(1);
     });
 
     test('accepts config with custom options', () => {
       const config: TuyaPlatformConfig = {
         platform: 'TuyaPlatform',
         name: 'Tuya',
-        options: {
+        cloud: {
           projectType: '1',
           endpoint: 'https://openapi.tuyaeu.com',
           accessId: 'test_access_id',
@@ -50,11 +51,12 @@ describe('TuyaPlatformConfig', () => {
           password: 'password',
           generateWeatherAccessory: true,
           weatherAPI: 'openweathermap',
+          forceIPv4: false
         },
       };
 
-      expect(config.options?.projectType).toBe('1');
-      expect((config.options as any)?.endpoint).toBe('https://openapi.tuyaeu.com');
+      expect(config.cloud?.projectType).toBe('1');
+      expect((config.cloud as any)?.endpoint).toBe('https://openapi.tuyaeu.com');
     });
   });
 
@@ -309,7 +311,7 @@ describe('TuyaPlatformConfig', () => {
       const config: TuyaPlatformConfig = {
         platform: 'TuyaPlatform',
         name: 'Tuya',
-        options: {
+        cloud: {
           projectType: '2',
           accessId: 'test_access_id',
           accessKey: 'test_access_key',
@@ -319,6 +321,7 @@ describe('TuyaPlatformConfig', () => {
           appSchema: 'tuyaSmart',
           generateWeatherAccessory: true,
           weatherAPI: 'openweathermap',
+          forceIPv4: false
         },
         local: {
           devices: [
@@ -332,9 +335,9 @@ describe('TuyaPlatformConfig', () => {
         },
       };
 
-      expect(config.options).toBeDefined();
+      expect(config.cloud).toBeDefined();
       expect(config.local).toBeDefined();
-      expect(config.options?.projectType).toBe('2');
+      expect(config.cloud?.projectType).toBe('2');
       expect(config.local?.devices).toHaveLength(1);
     });
   });
@@ -344,7 +347,7 @@ describe('TuyaPlatformConfig', () => {
       const config: TuyaPlatformConfig = {
         platform: 'TuyaPlatform',
         name: 'My Tuya Devices',
-        options: {
+        cloud: {
           projectType: '2',
           accessId: 'test_access_id',
           accessKey: 'test_access_key',
@@ -354,19 +357,20 @@ describe('TuyaPlatformConfig', () => {
           appSchema: 'tuyaSmart',
           generateWeatherAccessory: true,
           weatherAPI: 'openweathermap',
+          forceIPv4: false
         },
       };
 
       expect(config.platform).toBe('TuyaPlatform');
       expect(config.name).toBe('My Tuya Devices');
-      expect((config.options as any)?.username).toBe('test@example.com');
+      expect((config.cloud as any)?.username).toBe('test@example.com');
     });
 
     test('allows custom properties through interface', () => {
       const config: TuyaPlatformConfig = {
         platform: 'TuyaPlatform',
         name: 'Tuya',
-        options: {} as any,
+        cloud: {} as any,
       };
 
       expect(config).toBeDefined();

@@ -1,11 +1,15 @@
 import crypto from 'crypto';
 import dgram from 'dgram';
 import EventEmitter from 'events';
-import Logger from '../shared/util/Logger';
-import { PrefixLogger } from '../shared/util/Logger';
+import { ExLogger, logger, PrefixLogger } from '../shared/util/Logger';
 
 const UDP_KEY = Buffer.from('6c1ec8e2bb9bb59ab50b0daf649b410a', 'hex');
 const GCM_DISCOVERY_KEY = crypto.createHash('md5').update('yGAdlopoPVldABfn').digest();
+
+enum Events {
+  DEVICE_DISCOVER = 'discover',
+  END_DISCOVERY = 'end',
+}
 
 export interface DiscoveryResult {
   id: string;
@@ -22,19 +26,19 @@ type DgramServer = dgram.Socket | null;
  * for Tuya local broadcast packets and emits 'discover' events.
  */
 export default class TuyaDiscovery extends EventEmitter {
+  static readonly Events = Events;
 
   private servers: Record<number, DgramServer> = {};
   private running = false;
   private discovered: Map<string, string> = new Map(); // id → ip
 
-  public log: Logger;
+  public log: ExLogger;
 
   constructor(
-    parentLog: Logger,
     private debug = false,
   ) {
     super();
-    this.log = new PrefixLogger(parentLog, 'TuyaDiscovery', debug);
+    this.log = new PrefixLogger(logger(), TuyaDiscovery.name, this.debug);
   }
 
   start(): void {
@@ -59,17 +63,17 @@ export default class TuyaDiscovery extends EventEmitter {
     this.stop();
     process.nextTick(() => {
       // Remove all listeners except those listening for 'end'
-      const endListeners = this.listeners('end');
+      const endListeners = this.listeners(Events.END_DISCOVERY);
       this.removeAllListeners();
 
       // Re-add the 'end' listeners
       for (const listener of endListeners) {
-        this.once('end', listener as any);
+        this.once(Events.END_DISCOVERY, listener as any);
       }
 
       this.discovered.clear();
       this.log.info('Discovery ended.');
-      this.emit('end');
+      this.emit(Events.END_DISCOVERY);
     });
   }
 
@@ -87,7 +91,7 @@ export default class TuyaDiscovery extends EventEmitter {
     server.on('message', (msg, info) => this._onMessage(port, msg, info));
 
     server.bind(port, () => {
-      this.log.info(`Discovery started on port ${port}.`);
+      this.log.debug(`Discovery started on port ${port}.`);
       server.unref(); // Allow process to exit even if socket is listening
     });
   }
@@ -151,8 +155,8 @@ export default class TuyaDiscovery extends EventEmitter {
 
     if (port === 6667) {
       try {
-        const decipher = crypto.createDecipheriv('aes-128-ecb', UDP_KEY, Buffer.alloc(0));
-        text = decipher.update(cleanMsg, undefined, 'utf8') + decipher.final('utf8');
+        const decipher = crypto.createDecipheriv('aes-128-ecb', UDP_KEY as Uint8Array, Buffer.alloc(0) as Uint8Array);
+        text = decipher.update(cleanMsg as Uint8Array, undefined, 'utf8') + decipher.final('utf8');
       } catch (e) {
         decryptError = e instanceof Error ? e.message : String(e);
         text = cleanMsg.toString('utf8');
@@ -172,6 +176,7 @@ export default class TuyaDiscovery extends EventEmitter {
           gwType: result.gwType,
         });
       } else if (decryptError) {
+        // eslint-disable-next-line max-len
         this.log.debug(`v3.4 UDP from ${info.address}:${port} – decryption failed (${decryptError}), got JSON: ${JSON.stringify(result).slice(0, 100)}`);
       }
     } catch (e) {
@@ -192,10 +197,10 @@ export default class TuyaDiscovery extends EventEmitter {
       const tag = pkt.slice(len - 20, len - 4);
       const aad = pkt.slice(4, 18);
 
-      const decipher = crypto.createDecipheriv('aes-128-gcm', GCM_DISCOVERY_KEY, iv);
-      decipher.setAuthTag(tag);
-      decipher.setAAD(aad);
-      let decrypted = Buffer.concat([decipher.update(cipher), decipher.final()]);
+      const decipher = crypto.createDecipheriv('aes-128-gcm', GCM_DISCOVERY_KEY as Uint8Array, iv as Uint8Array);
+      decipher.setAuthTag(tag as Uint8Array);
+      decipher.setAAD(aad as Uint8Array);
+      let decrypted = Buffer.concat([decipher.update(cipher as Uint8Array) as Uint8Array, decipher.final() as Uint8Array]);
 
       // Remove leading 4 null bytes if present
       if (decrypted.length > 4 && decrypted.readUInt32BE(0) === 0) {
@@ -236,7 +241,7 @@ export default class TuyaDiscovery extends EventEmitter {
     const shortId = data.id.slice(-8);
     const typeInfo = data.gwType ? data.gwType : (data.productKey ? `Product(${data.productKey.slice(-6)})` : 'Unknown');
     this.log.info(`Discovered Local-${shortId} (${data.id}) identified as ${typeInfo} (${data.version})`);
-    this.emit('discover', data);
+    this.emit(Events.DEVICE_DISCOVER, data);
   }
 
   /** Send a GCM-encrypted probe so v3.5 devices respond immediately. */
@@ -246,27 +251,27 @@ export default class TuyaDiscovery extends EventEmitter {
       const payload = Buffer.from('{"from":"app","ip":"255.255.255.255"}');
       const iv = crypto.randomBytes(12);
       const aad = Buffer.alloc(14);
-      const cipher = crypto.createCipheriv('aes-128-gcm', GCM_DISCOVERY_KEY, iv);
-      cipher.setAAD(aad);
-      const enc = Buffer.concat([cipher.update(payload), cipher.final()]);
+      const cipher = crypto.createCipheriv('aes-128-gcm', GCM_DISCOVERY_KEY as Uint8Array, iv as Uint8Array);
+      cipher.setAAD(aad as Uint8Array);
+      const enc = Buffer.concat([cipher.update(payload as Uint8Array) as Uint8Array, cipher.final() as Uint8Array]);
       const tag = cipher.getAuthTag();
       const lenVal = iv.length + enc.length + tag.length;
       const lenBuf = Buffer.alloc(4);
       lenBuf.writeUInt32BE(lenVal, 0);
 
       const frame = Buffer.concat([
-        Buffer.from('00006699', 'hex'),
-        aad,
-        lenBuf,
-        iv,
-        enc,
-        tag,
-        Buffer.from('00009966', 'hex'),
+        Buffer.from('00006699', 'hex') as Uint8Array,
+        aad as Uint8Array,
+        lenBuf as Uint8Array,
+        iv as Uint8Array,
+        enc as Uint8Array,
+        tag as Uint8Array,
+        Buffer.from('00009966', 'hex') as Uint8Array,
       ]);
 
       socket.bind(() => {
         socket.setBroadcast(true);
-        socket.send(frame, 7000, '255.255.255.255', () => socket.close());
+        socket.send(frame as Uint8Array, 7000, '255.255.255.255', () => socket.close());
       });
     } catch (ex: unknown) {
       const msg = ex instanceof Error ? ex.message : String(ex);

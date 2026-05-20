@@ -5,6 +5,349 @@
     "headerDisplay": "<p align='center'><img height='60px' src='https://user-images.githubusercontent.com/3979615/78354049-dc7ff780-75f6-11ea-8026-2f8bf81d8331.png'></p>",
     "footerDisplay": "",
     "customUi": false,
+    "layout": [
+        "mode",
+        {
+          "type": "fieldset",
+          "items": [
+            {
+              "type": "tabs",
+              "tabs": [
+                {
+                    "type": "fieldset",
+                    "title": "Local Settings",
+                    "notitle": true,
+                    "items": [
+                        {
+                          "type": "help",
+                          "helpvalue": "⚠These settings are currently inactive because Cloud mode is enabled.",
+                          "condition": { "functionBody": "return (model.mode === 'cloud')" }
+                        },
+                        "local.autoDiscoverDevices",
+                        "local.discoverTimeout",
+                        "local.rediscoverInterval",
+                        {
+                            "key": "local.devices",
+                            "add": "Add Manual Device",
+                            "title": "{{ 'Add New Device' }}",
+                            "type": "tabarray",
+                            "notitle": true,
+                            "items": [
+                                {
+                                    "type": "div",
+                                    "displayFlex": false,
+                                    "notitle": true,
+                                    "title": "{{ value.name || value.tuyaDeviceId || 'New Device' }}",
+                                    "items": [
+                                        { "key": "local.devices[].category" },
+                                        { "key": "local.devices[].name" },
+                                        { "key": "local.devices[].tuyaDeviceId" },
+                                        { "key": "local.devices[].tuyaKey" },
+                                        { "key": "local.devices[].ip" },
+                                        { "key": "local.devices[].protocolVersion" },
+                                        { "key": "local.devices[].dpMapping" },
+                                        { "key": "local.devices[].outletCount" },
+                                        { "key": "local.devices[].outlets" },
+                                        { "key": "local.devices[].dpPower" },
+                                        { "key": "local.devices[].dpBrightness" },
+                                        { "key": "local.devices[].dpColorTemperature" },
+                                        { "key": "local.devices[].minWhiteColor" },
+                                        { "key": "local.devices[].maxWhiteColor" },
+                                        { "key": "local.devices[].dpMode" },
+                                        { "key": "local.devices[].dpColor" },
+                                        { "key": "local.devices[].colorFunction" },
+                                        { "key": "local.devices[].scaleBrightness" },
+                                        { "key": "local.devices[].scaleWhiteColor" },
+                                        { "key": "local.devices[].voltsId" },
+                                        { "key": "local.devices[].ampsId" },
+                                        { "key": "local.devices[].wattsId" },
+                                        { "key": "local.devices[].voltsDivisor" },
+                                        { "key": "local.devices[].ampsDivisor" },
+                                        { "key": "local.devices[].wattsDivisor" },
+                                        { "key": "local.devices[].noCool" },
+                                        { "key": "local.devices[].noHeat" },
+                                        { "key": "local.devices[].cmdCool" },
+                                        { "key": "local.devices[].cmdHeat" },
+                                        { "key": "local.devices[].noSwing" },
+                                        { "key": "local.devices[].minTemperature" },
+                                        { "key": "local.devices[].maxTemperature" },
+                                        { "key": "local.devices[].minTemperatureSteps" },
+                                        { "key": "local.devices[].dpActive" },
+                                        { "key": "local.devices[].dpDesiredTemperature" },
+                                        { "key": "local.devices[].dpCurrentTemperature" },
+                                        { "key": "local.devices[].dpAction" },
+                                        { "key": "local.devices[].dpStatus" },
+                                        { "key": "local.devices[].flipState" },
+                                        { "key": "local.devices[].timeToOpen" },
+                                        { "key": "local.devices[].timeToTighten" },
+                                        { "key": "local.devices[].timeToClose" },
+                                        { "key": "local.devices[].dpLight" },
+                                        { "key": "local.devices[].dpBlindType" },
+                                        { "key": "local.devices[].dpLightOn" },
+                                        { "key": "local.devices[].dpFanOn" },
+                                        { "key": "local.devices[].dpRotationSpeed" },
+                                        { "key": "local.devices[].dpRotationDirection" },
+                                        { "key": "local.devices[].maxSpeed" },
+                                        { "key": "local.devices[].fanDefaultSpeed" },
+                                        { "key": "local.devices[].useStrings" },
+                                        { "key": "local.devices[].dpChildLock" },
+                                        { "key": "local.devices[].dpTemperatureDisplayUnits" },
+                                        { "key": "local.devices[].cmdLow" },
+                                        { "key": "local.devices[].cmdHigh" },
+                                        { "key": "local.devices[].noChildLock" },
+                                        { "key": "local.devices[].noTemperatureUnit" },
+                                        { "key": "local.devices[].temperatureDivisor" },
+                                        { "key": "local.devices[].thresholdTemperatureDivisor" },
+                                        { "key": "local.devices[].temperatureOffset" }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "fieldset",
+                    "title": "Cloud Settings",
+                    "notitle": true,
+                    "items": [
+                        {
+                          "type": "help",
+                          "helpvalue": "⚠These settings are currently inactive because Local mode is enabled.",
+                          "condition": { "functionBody": "return (model.mode === 'local')" }
+                        },
+                        {
+                            "type": "fieldset",
+                            "title": "Tuya Cloud Account Info",
+                            "expandable": true,
+                            "expanded": false,
+                            "items": [
+                                "options.projectType",
+                                "options.endpoint",
+                                "options.accessId",
+                                "options.accessKey",
+                                "options.countryCode",
+                                "options.username",
+                                "options.password",
+                                "options.appSchema"
+                            ]
+                        },
+                        {
+                            "type": "fieldset",
+                            "title": "Tuya Home Settings",
+                            "expandable": true,
+                            "expanded": false,
+                            "notitle": false,
+                            "items": [
+                                {
+                                    "key": "options.homeWhitelist",
+                                    "add": "Add Another Home ID",
+                                    "title": "{{ 'New Whitelisted Home' }}",
+                                    "type": "tabarray",
+                                    "notitle": true,
+                                    "items": [
+                                        {
+                                            "type": "div",
+                                            "displayFlex": true,
+                                            "flex-direction": "row",
+                                            "notitle": true,
+                                            "title": "{{ value }}",
+                                            "items": [
+                                                {
+                                                    "key": "options.homeWhitelist[]",
+                                                    "placeholder": "Home ID"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "fieldset",
+                            "title": "Tuya Device Settings",
+                            "expandable": true,
+                            "expanded": true,
+                            "notitle": false,
+                            "items": [
+                                {
+                                    "key": "options.deviceOverrides",
+                                    "add": "Add Another Device Override",
+                                    "title": "{{ 'New Device Override' }}",
+                                    "type": "tabarray",
+                                    "notitle": true,
+                                    "default": [],
+                                    "items": [
+                                        {
+                                            "type": "div",
+                                            "displayFlex": false,
+                                            "flex-direction": "row",
+                                            "notitle": true,
+                                            "title": "{{ value.id || 'New Device Override' }}",
+                                            "items": [
+                                                {
+                                                    "key": "options.deviceOverrides[].id"
+                                                },
+                                                {
+                                                    "key": "options.deviceOverrides[].category"
+                                                },
+                                                {
+                                                    "key": "options.deviceOverrides[].unbridged"
+                                                },
+                                                {
+                                                    "key": "options.deviceOverrides[].configFor"
+                                                },
+                                                {
+                                                    "key": "options.deviceOverrides[].schema",
+                                                    "add": "Add New Schema",
+                                                    "title": "{{ 'New Schema' }}",
+                                                    "type": "tabarray",
+                                                    "notitle": true,
+                                                    "items": [
+                                                        {
+                                                            "type": "div",
+                                                            "displayFlex": true,
+                                                            "title": "{{ value.code }}",
+                                                            "flex-direction": "column",
+                                                            "notitle": false,
+                                                            "items": [
+                                                                {
+                                                                    "key": "options.deviceOverrides[].schema[].code"
+                                                                },
+                                                                {
+                                                                    "key": "options.deviceOverrides[].schema[].newCode"
+                                                                },
+                                                                {
+                                                                    "key": "options.deviceOverrides[].schema[].hidden"
+                                                                },
+                                                                {
+                                                                    "key": "options.deviceOverrides[].schema[].type"
+                                                                },
+                                                                {
+                                                                    "key": "options.deviceOverrides[].schema[].property",
+                                                                    "notitle": false,
+                                                                    "items": [
+                                                                        "options.deviceOverrides[].schema[].property.min",
+                                                                        "options.deviceOverrides[].schema[].property.max",
+                                                                        "options.deviceOverrides[].schema[].property.scale",
+                                                                        "options.deviceOverrides[].schema[].property.step",
+                                                                        {
+                                                                            "key": "options.deviceOverrides[].schema[].property.range",
+                                                                            "add": "Add Range",
+                                                                            "title": "{{ 'New Range' }}",
+                                                                            "type": "tabarray",
+                                                                            "notitle": true,
+                                                                            "items": [
+                                                                                {
+                                                                                    "type": "div",
+                                                                                    "displayFlex": true,
+                                                                                    "flex-direction": "row",
+                                                                                    "notitle": true,
+                                                                                    "title": "{{ value }}",
+                                                                                    "items": [
+                                                                                        {
+                                                                                            "key": "options.deviceOverrides[].schema[].property.range[]",
+                                                                                            "placeholder": "Range"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                
+                        {
+                            "type": "fieldset",
+                            "title": "Accessory Service Informations",
+                            "expandable": true,
+                            "expanded": false,
+                            "notitle": false,
+                            "items": [
+                                {
+                                    "key": "options.serviceInformationOverrides",
+                                    "add": "Add Another Service Information Override",
+                                    "title": "{{ 'New Service Information Override' }}",
+                                    "type": "tabarray",
+                                    "notitle": true,
+                                    "default": [],
+                                    "items": [
+                                        {
+                                            "type": "div",
+                                            "displayFlex": false,
+                                            "flex-direction": "row",
+                                            "notitle": true,
+                                            "title": "{{ value.device_id }}",
+                                            "items": [
+                                                {
+                                                    "key": "options.serviceInformationOverrides[].device_id"
+                                                },
+                                                {
+                                                    "key": "options.serviceInformationOverrides[].index"
+                                                },
+                                                {
+                                                    "key": "options.serviceInformationOverrides[].manifacturer"
+                                                },
+                                                {
+                                                    "key": "options.serviceInformationOverrides[].model"
+                                                },
+                                                {
+                                                    "key": "options.serviceInformationOverrides[].firmwareRevision"
+                                                },
+                                                {
+                                                    "key": "options.serviceInformationOverrides[].configuredName"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "fieldset",
+                            "title": "Advance Settings",
+                            "expandable": true,
+                            "expanded": false,
+                            "notitle": false,
+                            "items": [
+                                "options.generateWeatherAccessory",
+                                "options.weatherAPI",
+                                "options.forceIPv4"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "fieldset",
+                    "title": "Common Settings",
+                    "notitle": true,
+                    "items": [
+                        {
+                            "type": "fieldset",
+                            "title": "Debug Settings",
+                            "expandable": true,
+                            "expanded": true,
+                            "notitle": false,
+                            "items": [
+                                "common.debug",
+                                "common.debugLevel"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+],
     "schema": {
         "type": "object",
         "required": ["mode"],
@@ -29,9 +372,6 @@
                 "title": "Local Settings",
                 "description": "Configure local LAN devices. For help getting local keys, see the <a href='#' onClick='alert(\"Visit: wiki/Get-Local-Keys-for-Your-Devices.md\")'>Local Keys Setup Guide</a>.",
                 "type": "object",
-                "condition": {
-                    "functionBody": "return (model.mode === 'local' || model.mode === 'both');"
-                },
                 "properties": {
                     "autoDiscoverDevices": {
                         "title": "Auto-Discover Devices",
@@ -625,18 +965,12 @@
             "options": {
                 "title": "Cloud Account Info",
                 "type": "object",
-                "condition": {
-                    "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-                },
                 "properties": {
                     "projectType": {
                         "title": "Project Type (Development Method)",
                         "description": "Required for Cloud mode.",
                         "type": "string",
                         "default": "2",
-                        "condition": {
-                            "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-                        },
                         "oneOf": [
                             {
                                 "title": "Custom",
@@ -655,18 +989,12 @@
                     "endpoint": {
                         "title": "Endpoint URL",
                         "type": "string",
-                        "format": "url",
-                        "condition": {
-                            "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-                        }
+                        "format": "url"
                     },
                     "accessId": {
                         "title": "Access ID",
                         "description": "Required for Cloud mode.",
-                        "type": "string",
-                        "condition": {
-                            "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-                        }
+                        "type": "string"
                     },
                     "accessKey": {
                         "description": "Required for Cloud mode.",
@@ -674,9 +1002,6 @@
                         "type": "string",
                         "x-schema-form": {
                             "type": "password"
-                        },
-                        "condition": {
-                            "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
                         }
                     },
                     "countryCode": {
@@ -966,9 +1291,6 @@
                     "deviceOverrides": {
                         "title": "Device Overriding Configs",
                         "type": "array",
-                        "condition": {
-                            "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-                        },
                         "items": {
                             "type": "object",
                             "required": ["id"],
@@ -993,6 +1315,33 @@
                                     "condition": {
                                         "functionBody": "return (model.options && model.options.deviceOverrides);"
                                     }
+                                },
+                                "configFor": {
+                                    "title": "When to apply the configuration",
+                                    "description": "Whether the setting is for devices on Cloud, devices on LAN, or used by both.",
+                                    "type": "string",
+                                    "required": true,
+                                    "default": "cloud",
+                                    "oneOf": [
+                                        {
+                                            "title": "Cloud",
+                                            "enum": [
+                                                "cloud"
+                                            ]
+                                        },
+                                        {
+                                            "title": "LAN",
+                                            "enum": [
+                                                "local"
+                                            ]
+                                        },
+                                        {
+                                            "title": "Both",
+                                            "enum": [
+                                                "both"
+                                            ]
+                                        }
+                                    ]
                                 },
                                 "schema": {
                                     "title": "Schema Overriding Configs",
@@ -1129,9 +1478,6 @@
                         "title": "Accessory Service Informations ",
                         "description": "Accessory Service Information Configs",
                         "type": "array",
-                        "condition": {
-                            "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-                        },
                         "items": {
                             "type": "object",
                             "required": ["device_id", "index"],
@@ -1186,6 +1532,17 @@
                             "functionBody": "return (model.options && model.options.generateWeatherAccessory);"
                         }
                     },
+                    "forceIPv4": {
+                        "title": "Forcing IPv4 connection",
+                        "type": "boolean",
+                        "default": false
+                    }
+                }
+            },
+            "common": {
+                "title": "Common Settings",
+                "type": "object",
+                "properties": {
                     "debug": {
                         "title": "Enable Debug Logging",
                         "type": "boolean",
@@ -1196,332 +1553,10 @@
                         "description": "An optional list of strings seperated with comma `,`. `api` represents for API and MQTT log, device ID represents for specific device log. If blank, all logs are outputed.",
                         "type": "string",
                         "condition": {
-                            "functionBody": "return (model.options && model.options.debug);"
+                            "functionBody": "return (model.common.debug);"
                         }
-                    },
-                    "forceIPv4": {
-                        "title": "Forcing IPv4 connection",
-                        "type": "boolean",
-                        "default": false
                     }
                 }
             }
         }
-    },
-    "layout": [
-        "mode",
-        {
-            "type": "fieldset",
-            "title": "Local Settings",
-            "expandable": true,
-            "expanded": true,
-            "condition": {
-                "functionBody": "return (model.mode === 'local' || model.mode === 'both');"
-            },
-            "items": [
-                "local.autoDiscoverDevices",
-                "local.discoverTimeout",
-                "local.rediscoverInterval",
-                {
-                    "key": "local.devices",
-                    "add": "Add Manual Device",
-                    "title": "{{ 'Add New Device' }}",
-                    "type": "tabarray",
-                    "notitle": true,
-                    "items": [
-                        {
-                            "type": "div",
-                            "displayFlex": false,
-                            "notitle": true,
-                            "title": "{{ value.name || value.tuyaDeviceId || 'New Device' }}",
-                            "items": [
-                                { "key": "local.devices[].category" },
-                                { "key": "local.devices[].name" },
-                                { "key": "local.devices[].tuyaDeviceId" },
-                                { "key": "local.devices[].tuyaKey" },
-                                { "key": "local.devices[].ip" },
-                                { "key": "local.devices[].protocolVersion" },
-                                { "key": "local.devices[].dpMapping" },
-                                { "key": "local.devices[].outletCount" },
-                                { "key": "local.devices[].outlets" },
-                                { "key": "local.devices[].dpPower" },
-                                { "key": "local.devices[].dpBrightness" },
-                                { "key": "local.devices[].dpColorTemperature" },
-                                { "key": "local.devices[].minWhiteColor" },
-                                { "key": "local.devices[].maxWhiteColor" },
-                                { "key": "local.devices[].dpMode" },
-                                { "key": "local.devices[].dpColor" },
-                                { "key": "local.devices[].colorFunction" },
-                                { "key": "local.devices[].scaleBrightness" },
-                                { "key": "local.devices[].scaleWhiteColor" },
-                                { "key": "local.devices[].voltsId" },
-                                { "key": "local.devices[].ampsId" },
-                                { "key": "local.devices[].wattsId" },
-                                { "key": "local.devices[].voltsDivisor" },
-                                { "key": "local.devices[].ampsDivisor" },
-                                { "key": "local.devices[].wattsDivisor" },
-                                { "key": "local.devices[].noCool" },
-                                { "key": "local.devices[].noHeat" },
-                                { "key": "local.devices[].cmdCool" },
-                                { "key": "local.devices[].cmdHeat" },
-                                { "key": "local.devices[].noSwing" },
-                                { "key": "local.devices[].minTemperature" },
-                                { "key": "local.devices[].maxTemperature" },
-                                { "key": "local.devices[].minTemperatureSteps" },
-                                { "key": "local.devices[].dpActive" },
-                                { "key": "local.devices[].dpDesiredTemperature" },
-                                { "key": "local.devices[].dpCurrentTemperature" },
-                                { "key": "local.devices[].dpAction" },
-                                { "key": "local.devices[].dpStatus" },
-                                { "key": "local.devices[].flipState" },
-                                { "key": "local.devices[].timeToOpen" },
-                                { "key": "local.devices[].timeToTighten" },
-                                { "key": "local.devices[].timeToClose" },
-                                { "key": "local.devices[].dpLight" },
-                                { "key": "local.devices[].dpBlindType" },
-                                { "key": "local.devices[].dpLightOn" },
-                                { "key": "local.devices[].dpFanOn" },
-                                { "key": "local.devices[].dpRotationSpeed" },
-                                { "key": "local.devices[].dpRotationDirection" },
-                                { "key": "local.devices[].maxSpeed" },
-                                { "key": "local.devices[].fanDefaultSpeed" },
-                                { "key": "local.devices[].useStrings" },
-                                { "key": "local.devices[].dpChildLock" },
-                                { "key": "local.devices[].dpTemperatureDisplayUnits" },
-                                { "key": "local.devices[].cmdLow" },
-                                { "key": "local.devices[].cmdHigh" },
-                                { "key": "local.devices[].noChildLock" },
-                                { "key": "local.devices[].noTemperatureUnit" },
-                                { "key": "local.devices[].temperatureDivisor" },
-                                { "key": "local.devices[].thresholdTemperatureDivisor" },
-                                { "key": "local.devices[].temperatureOffset" }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "fieldset",
-            "title": "Tuya Cloud Account Info",
-            "expandable": true,
-            "expanded": false,
-            "condition": {
-                "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-            },
-            "items": [
-                "options.projectType",
-                "options.endpoint",
-                "options.accessId",
-                "options.accessKey",
-                "options.countryCode",
-                "options.username",
-                "options.password",
-                "options.appSchema"
-            ]
-        },
-        {
-            "type": "fieldset",
-            "title": "Tuya Home Settings",
-            "expandable": true,
-            "expanded": false,
-            "notitle": false,
-            "condition": {
-                "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-            },
-            "items": [
-                {
-                    "key": "options.homeWhitelist",
-                    "add": "Add Another Home ID",
-                    "title": "{{ 'New Whitelisted Home' }}",
-                    "type": "tabarray",
-                    "notitle": true,
-                    "items": [
-                        {
-                            "type": "div",
-                            "displayFlex": true,
-                            "flex-direction": "row",
-                            "notitle": true,
-                            "title": "{{ value }}",
-                            "items": [
-                                {
-                                    "key": "options.homeWhitelist[]",
-                                    "placeholder": "Home ID"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "fieldset",
-            "title": "Tuya Device Settings",
-            "expandable": true,
-            "expanded": true,
-            "notitle": false,
-            "condition": {
-                "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-            },
-            "items": [
-                {
-                    "key": "options.deviceOverrides",
-                    "add": "Add Another Device Override",
-                    "title": "{{ 'New Device Override' }}",
-                    "type": "tabarray",
-                    "notitle": true,
-                    "default": [],
-                    "items": [
-                        {
-                            "type": "div",
-                            "displayFlex": false,
-                            "flex-direction": "row",
-                            "notitle": true,
-                            "title": "{{ value.id || 'New Device Override' }}",
-                            "items": [
-                                {
-                                    "key": "options.deviceOverrides[].id"
-                                },
-                                {
-                                    "key": "options.deviceOverrides[].category"
-                                },
-                                {
-                                    "key": "options.deviceOverrides[].unbridged"
-                                },
-                                {
-                                    "key": "options.deviceOverrides[].schema",
-                                    "add": "Add New Schema",
-                                    "title": "{{ 'New Schema' }}",
-                                    "type": "tabarray",
-                                    "notitle": true,
-                                    "items": [
-                                        {
-                                            "type": "div",
-                                            "displayFlex": true,
-                                            "title": "{{ value.code }}",
-                                            "flex-direction": "column",
-                                            "notitle": false,
-                                            "items": [
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].code"
-                                                },
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].newCode"
-                                                },
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].hidden"
-                                                },
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].type"
-                                                },
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].property",
-                                                    "notitle": false,
-                                                    "items": [
-                                                        "options.deviceOverrides[].schema[].property.min",
-                                                        "options.deviceOverrides[].schema[].property.max",
-                                                        "options.deviceOverrides[].schema[].property.scale",
-                                                        "options.deviceOverrides[].schema[].property.step",
-                                                        {
-                                                            "key": "options.deviceOverrides[].schema[].property.range",
-                                                            "add": "Add Range",
-                                                            "title": "{{ 'New Range' }}",
-                                                            "type": "tabarray",
-                                                            "notitle": true,
-                                                            "items": [
-                                                                {
-                                                                    "type": "div",
-                                                                    "displayFlex": true,
-                                                                    "flex-direction": "row",
-                                                                    "notitle": true,
-                                                                    "title": "{{ value }}",
-                                                                    "items": [
-                                                                        {
-                                                                            "key": "options.deviceOverrides[].schema[].property.range[]",
-                                                                            "placeholder": "Range"
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-
-        {
-            "type": "fieldset",
-            "title": "Accessory Service Informations",
-            "expandable": true,
-            "expanded": false,
-            "notitle": false,
-            "condition": {
-                "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-            },
-            "items": [
-                {
-                    "key": "options.serviceInformationOverrides",
-                    "add": "Add Another Service Information Override",
-                    "title": "{{ 'New Service Information Override' }}",
-                    "type": "tabarray",
-                    "notitle": true,
-                    "default": [],
-                    "items": [
-                        {
-                            "type": "div",
-                            "displayFlex": false,
-                            "flex-direction": "row",
-                            "notitle": true,
-                            "title": "{{ value.device_id }}",
-                            "items": [
-                                {
-                                    "key": "options.serviceInformationOverrides[].device_id"
-                                },
-                                {
-                                    "key": "options.serviceInformationOverrides[].index"
-                                },
-                                {
-                                    "key": "options.serviceInformationOverrides[].manifacturer"
-                                },
-                                {
-                                    "key": "options.serviceInformationOverrides[].model"
-                                },
-                                {
-                                    "key": "options.serviceInformationOverrides[].firmwareRevision"
-                                },
-                                {
-                                    "key": "options.serviceInformationOverrides[].configuredName"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "fieldset",
-            "title": "Advance Settings",
-            "expandable": true,
-            "expanded": false,
-            "notitle": false,
-            "condition": {
-                "functionBody": "return (model.mode === 'cloud' || model.mode === 'both');"
-            },
-            "items": [
-                "options.generateWeatherAccessory",
-                "options.weatherAPI",
-                "options.forceIPv4",
-                "options.debug",
-                "options.debugLevel"
-            ]
-        }
-    ]
-}
+    }}

@@ -1,8 +1,8 @@
-// eslint-disable-next-line
+
 // @ts-ignore
 import { pluginAlias as platformName } from '../config.schema.json';
 
-// eslint-disable-next-line
+
 // @ts-ignore
 import { name as pluginName } from '../package.json';
 

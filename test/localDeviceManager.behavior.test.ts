@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import LocalDeviceManager from '../src/local/LocalDeviceManager';
 import type { LocalConfig } from '../src/local/config';
+import { ExLogger, initLogger } from '../src/shared/util/Logger';
 
 const createdConnections: any[] = [];
 
@@ -29,37 +30,22 @@ jest.mock('../src/local/TuyaDiscovery', () => ({
   },
 }));
 
-jest.mock('../src/shared/util/Logger', () => ({
-  __esModule: true,
-  default: class Logger {
-    log() {}
-    info() {}
-    warn() {}
-    error() {}
-    debug() {}
-  },
-  PrefixLogger: class PrefixLogger {
-    constructor(public parentLog: unknown, public name: string, public debugMode: boolean) {}
-    log() {}
-    info() {}
-    warn() {}
-    error() {}
-    debug() {}
-  },
-}));
+// Mock Logger
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 describe('LocalDeviceManager command and local mapping behavior', () => {
   let log: any;
 
   beforeEach(() => {
+    initLogger(mockLog);
     createdConnections.length = 0;
-    log = {
-      log: jest.fn(),
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      debug: jest.fn(),
-    };
     jest.clearAllMocks();
   });
 
@@ -74,7 +60,7 @@ describe('LocalDeviceManager command and local mapping behavior', () => {
       ],
     };
 
-    const manager = new LocalDeviceManager(config, log);
+    const manager = new LocalDeviceManager(config);
     await manager.initLocalDevices();
 
     expect(manager.getDevice('dev-1')).toBeDefined();
@@ -98,7 +84,7 @@ describe('LocalDeviceManager command and local mapping behavior', () => {
       ],
     };
 
-    const manager = new LocalDeviceManager(config, log);
+    const manager = new LocalDeviceManager(config);
     await manager.initLocalDevices();
 
     const result = await manager.sendCommands('dev-1', [
@@ -121,7 +107,7 @@ describe('LocalDeviceManager command and local mapping behavior', () => {
       devices: [],
     };
 
-    const manager = new LocalDeviceManager(config, log);
+    const manager = new LocalDeviceManager(config);
     await manager.initLocalDevices();
 
     const result = await manager.sendCommands('missing-device', [{ code: 'switch_1', value: true }]);
@@ -142,7 +128,7 @@ describe('LocalDeviceManager command and local mapping behavior', () => {
       ],
     };
 
-    const manager = new LocalDeviceManager(config, log);
+    const manager = new LocalDeviceManager(config);
     await manager.initLocalDevices();
     manager.connectAllDevices();
 
@@ -166,7 +152,7 @@ describe('LocalDeviceManager command and local mapping behavior', () => {
       devices: [],
     };
 
-    const manager = new LocalDeviceManager(config, log);
+    const manager = new LocalDeviceManager(config);
     await manager.initLocalDevices();
 
     (manager as any)._onDiscovered({

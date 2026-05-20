@@ -1,6 +1,6 @@
 /**
  * Dynamic Zigbee child device discovery for gateways.
- * 
+ *
  * Discovers children via:
  * 1. Tuya Cloud's gateway_id field (if available via cloud device list)
  * 2. Dynamic LAN_EXT_STREAM query to gateway for subdev_online_stat_query
@@ -43,10 +43,10 @@ export interface SubDeviceQueryResult {
 
 /**
  * Discovers children from cloud device list.
- * 
+ *
  * If Tuya Cloud provides gateway_id field, we can identify the parent immediately
  * without needing to match by local key.
- * 
+ *
  * @param cloudDevices - Cloud API device array with optional gateway_id field
  * @returns Map of gateway_id → array of child device IDs
  */
@@ -67,18 +67,20 @@ export function discoverFromCloudList(cloudDevices: Array<{ id: string; gateway_
 
 /**
  * Parse subdev_online_stat_query response to extract child device CIDs.
- * 
+ *
  * Gateways may return different formats; this handles multiple variants:
  * - { data: { subdevList: [...] } }
  * - { subdevList: [...] }
  * - { deviceList: [...] }
  * - { dps: { cid1: {...}, cid2: {...} } } (some gateways use DPS format)
- * 
+ *
  * @param response - Raw response from LAN_EXT_STREAM subdev_online_stat_query
  * @returns Array of sub-device info objects
  */
 export function parseSubDeviceListResponse(response: any): SubDeviceInfo[] {
-  if (!response) return [];
+  if (!response) {
+    return [];
+  }
 
   const subdevs: SubDeviceInfo[] = [];
 
@@ -119,7 +121,7 @@ export function parseSubDeviceListResponse(response: any): SubDeviceInfo[] {
 
 /**
  * Filter sub-device list to get CIDs that are online.
- * 
+ *
  * @param subdevs - Sub-device info array from gateway
  * @returns Array of CIDs for online devices
  */
@@ -131,10 +133,10 @@ export function getOnlineCids(subdevs: SubDeviceInfo[]): string[] {
 
 /**
  * Build a LocalDeviceConfig for a dynamically discovered child.
- * 
+ *
  * Creates a child device config from gateway discovery info.
  * The config can be refined later by cloud device metadata.
- * 
+ *
  * @param gatewayDeviceId - Parent gateway's device ID
  * @param childCid - 16-char hex child CID
  * @param subdevInfo - Optional sub-device info from gateway (may include productName, category)
@@ -164,7 +166,7 @@ export function buildDiscoveredChildConfig(
 
 /**
  * Validate a discovered child's CID format.
- * 
+ *
  * @param cid - String to validate
  * @returns true if valid 16-character lowercase hex CID
  */
@@ -174,7 +176,7 @@ export function isValidDiscoveredCid(cid: string): boolean {
 
 /**
  * Check if a gateway supports dynamic child discovery (has children detected).
- * 
+ *
  * @param gatewayConfig - Gateway device config
  * @returns true if this device is marked as a Zigbee gateway
  */
@@ -184,7 +186,7 @@ export function supportsChildDiscovery(gatewayConfig: LocalDeviceConfig): boolea
 
 /**
  * Log discovery results.
- * 
+ *
  * @param gatewayDeviceId - Gateway device ID
  * @param discoveredCids - Array of CIDs that were discovered
  * @param log - Logger instance

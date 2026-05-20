@@ -62,13 +62,13 @@ export class ZigbeeGatewayDetection {
       // Both fields must be set together
       if (hasParent && !hasCid) {
         throw new Error(
-          `Device "${cfg.tuyaDeviceId}" has parentDeviceId but is missing zigbeeChildId. ` +
+          `Device "${cfg.tuyaDeviceId}" has parentDeviceId:${cfg.parentDeviceId} but is missing zigbeeChildId. ` +
           'Both fields are required for Zigbee sub-devices.',
         );
       }
       if (!hasParent && hasCid) {
         throw new Error(
-          `Device "${cfg.tuyaDeviceId}" has zigbeeChildId but is missing parentDeviceId. ` +
+          `Device "${cfg.tuyaDeviceId}" has zigbeeChildId:${cfg.zigbeeChildId} but is missing parentDeviceId. ` +
           'Both fields are required for Zigbee sub-devices.',
         );
       }

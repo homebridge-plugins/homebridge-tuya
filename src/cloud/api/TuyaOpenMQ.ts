@@ -2,7 +2,7 @@ import mqtt from 'mqtt';
 import { createDecipheriv } from 'crypto';
 
 import TuyaOpenAPI from './TuyaOpenAPI';
-import Logger, { ExLogger, PrefixLogger } from '../../shared/util/Logger';
+import { ExLogger, logger, PrefixLogger } from '../../shared/util/Logger';
 import { generateUUID } from '../../shared/util/util';
 import dns from 'dns';
 
@@ -37,11 +37,10 @@ export default class TuyaOpenMQ {
 
   constructor(
     public api: TuyaOpenAPI,
-    public logger: Logger = new PrefixLogger(console, 'console', false),
     public debug = false,
     public forceIPv4 = api.forceIPv4,
   ) {
-    this.log = new PrefixLogger(logger, TuyaOpenMQ.name, debug);
+    this.log = new PrefixLogger(logger(), TuyaOpenMQ.name, debug);
   }
 
   start() {
@@ -70,7 +69,7 @@ export default class TuyaOpenMQ {
     }
     this.log.success('MQTT config retrieved.');
 
-    const { url, client_id, username, password, expire_time, source_topic } = res.result;
+    const { url, client_id, username, password, expire_time } = res.result;
     this.log.debug('Connecting to:', url);
     const clientOptions: mqtt.IClientOptions = {
       clientId: client_id,
@@ -216,11 +215,11 @@ export default class TuyaOpenMQ {
     const ciphertext = Buffer.from(b64msg, 'base64');
 
     // Create decipher: AES-128-ECB with PKCS7 padding
-    const decipher = createDecipheriv('aes-128-ecb', Buffer.from(password, 'utf8'), '');
+    const decipher = createDecipheriv('aes-128-ecb', Buffer.from(password, 'utf8') as Uint8Array, '');
 
     // Decrypt
-    let decrypted = decipher.update(ciphertext);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    let decrypted = decipher.update(ciphertext as Uint8Array);
+    decrypted = Buffer.concat([decrypted as Uint8Array, decipher.final() as Uint8Array]);
 
     return decrypted.toString('utf8');
   }
@@ -234,15 +233,15 @@ export default class TuyaOpenMQ {
     const iv_buffer = tmpbuffer.slice(4, iv_length + 4);
     //Removes the IV bits of the head and 16 bits of the tail tags
     const data_buffer = tmpbuffer.slice(iv_length + 4, tmpbuffer.length - GCM_TAG_LENGTH);
-    const cipher = createDecipheriv('aes-128-gcm', key, iv_buffer);
+    const cipher = createDecipheriv('aes-128-gcm', key, iv_buffer as Uint8Array);
     //setAuthTag buffer
-    cipher.setAuthTag(tmpbuffer.slice(tmpbuffer.length - GCM_TAG_LENGTH, tmpbuffer.length));
+    cipher.setAuthTag(tmpbuffer.slice(tmpbuffer.length - GCM_TAG_LENGTH, tmpbuffer.length) as Uint8Array);
     //setAAD buffer
     const buf = Buffer.allocUnsafe(6);
     buf.writeUIntBE(t, 0, 6);
-    cipher.setAAD(buf);
+    cipher.setAAD(buf as Uint8Array);
 
-    const msg = cipher.update(data_buffer);
+    const msg = cipher.update(data_buffer as Uint8Array);
     return msg.toString('utf8');
   }
 
