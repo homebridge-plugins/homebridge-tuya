@@ -54,9 +54,15 @@ export default abstract class TuyaDeviceManager extends EventEmitter {
 
   async getCurrentWeatherByOpenMeteo(lat: string, lon: string) {
     /** <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> */
-    // eslint-disable-next-line max-len
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m`, { cache: 'no-cache' });
-    return await res.json();
+
+    try {
+      // eslint-disable-next-line max-len
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m`, { cache: 'no-cache' });
+      return await res.json();
+    } catch (e) {
+      this.log.error('fetch failed:%o', e);
+      return {};
+    }
   }
 
   abstract pullDevices() : Promise<TuyaDevice[]>;
