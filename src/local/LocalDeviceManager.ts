@@ -121,7 +121,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       tuyaDeviceId: cfg.tuyaDeviceId,
       name: cfg.name,
       tuyaKey: cfg.tuyaKey,
-      dpMapping: cfg.dpMapping,
+      dpMapping: this.dpMaps.get(cfg.tuyaDeviceId),
       switchCount: cfg.switchCount ?? device['switchCount'],
       outletCount: cfg.outletCount ?? device['outletCount'],
       protocolVersion: cfg.protocolVersion,
@@ -135,10 +135,11 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     // In the Local case, device objects are generally created from the LocalConfig, so there is nothing that needs to be handled here.
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   override getDeviceSchemaConfig(device: TuyaDevice, dpCode: string) {
-    // In the Local case, device objects are generally created from the LocalConfig, so there is nothing that needs to be handled here.
-    return undefined;
+    const schemaConfig = this.config.deviceOverrides?.
+      find(d => d.id = device.id)?.schema?.
+      find(s => s.code === dpCode);
+    return schemaConfig;
   }
 
   /**
@@ -473,6 +474,14 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     }
 
     const effectiveMap = Object.assign({}, DEFAULT_DP_MAP, cfg.dpMapping ?? {});
+    // override dpcodes
+    for (const [dpCode, dpID] of Object.entries(effectiveMap)) {
+      const schemaConfig = this.getDeviceSchemaConfig({ id: cfg.tuyaDeviceId} as any, dpCode);
+      if (!!schemaConfig && !!schemaConfig.newCode) {
+        effectiveMap[schemaConfig.newCode] = dpID;
+        delete effectiveMap[dpCode];
+      }
+    }
     this.dpMaps.set(cfg.tuyaDeviceId, effectiveMap);
     this.reverseDpMaps.set(cfg.tuyaDeviceId, buildDpToCodeMap(effectiveMap));
 
@@ -536,6 +545,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
           );
           // Update device schema with detected switch count
           device.schema = this._buildSyntheticSchema(
+            device,
             this.dpMaps.get(deviceId) ?? DEFAULT_DP_MAP,
             detectedCount,
           );
@@ -634,7 +644,8 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     const isAutoDetecting = !!(cfg.tuyaKey && !cfg.switchCount && !cfg.outletCount);
     this.log.info(`Building synthetic schema for ${cfg.name} with switchCount=${switchCount}${autoDetectNote}`);
     device.schema = this._buildSyntheticSchema(
-      Object.assign({}, DEFAULT_DP_MAP, cfg.dpMapping ?? {}),
+      device,
+      this.dpMaps.get(device.id) ?? Object.assign({}, DEFAULT_DP_MAP, cfg.dpMapping ?? {}),
       switchCount,
     );
     this.log.info(`Device "${cfg.name}" schema includes ${device.schema.length} codes: ${device.schema.map(s => s.code).join(', ')}`);
@@ -679,7 +690,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     return device;
   }
 
-  private _buildSyntheticSchema(dpMapping: Record<string, number>, switchCount = 1): TuyaDeviceSchema[] {
+  private _buildSyntheticSchema(device: TuyaDevice, dpMapping: Record<string, number>, switchCount = 1): TuyaDeviceSchema[] {
     // If switchCount is limited, filter switch-related entries to only the needed ones
     let filteredMapping = dpMapping;
     if (switchCount > 0) {
@@ -709,12 +720,30 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
     this.log.debug(`local device schema codes:${JSON.stringify(filteredMapping)}`);
 
-    return Object.keys(filteredMapping).map(code => ({
+    const schemas = Object.keys(filteredMapping).map(code => ({
       code,
       mode: TuyaDeviceSchemaMode.READ_WRITE,
       type: TuyaDeviceSchemaType.Boolean, // best-effort default; handlers may override
       property: {},
+    }) as TuyaDeviceSchema);
+
+    // apply overrides
+    this.config.deviceOverrides?.forEach(d => d.schema?.forEach(s => {
+      const schema = schemas.find(t => t.code === s.newCode);
+      if (!!schema) {
+        schema.type = s.type ?? schema.type;
+        schema.property = s.property ?? schema.property;
+      } else {
+        schemas.push({
+          code: s.newCode!,
+          mode: TuyaDeviceSchemaMode.READ_WRITE,
+          type: s.type ?? TuyaDeviceSchemaType.Boolean,
+          property: s.property ?? {},
+        } as TuyaDeviceSchema);
+      }
     }));
+
+    return schemas;
   }
 
   private _createConnection(deviceID: string): LocalDevice | undefined {

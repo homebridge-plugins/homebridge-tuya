@@ -228,10 +228,11 @@ describe('ConfigMigrator migrate', () => {
         appSchema: 'tuyaSmart',
         generateWeatherAccessory: false,
         weatherAPI: 'Open-Meteo',
-        deviceOverrides: [ { id: 'new' } ]
+        deviceOverrides: [ { id: 'new', schema: [] } ]
       },
       common: {
-        debug: false
+        debug: false,
+        debugLevel: undefined
       }
     } as any;
 
@@ -243,16 +244,80 @@ describe('ConfigMigrator migrate', () => {
         appSchema: 'tuyaSmart',
         generateWeatherAccessory: false,
         weatherAPI: 'Open-Meteo',
-        deviceOverrides: [ { id: 'new' } ]
+        deviceOverrides: [ { id: 'new', schema: [] } ]
       },
       common: {
-        debug: false
+        debug: false,
+        debugLevel: undefined
       }
     } as any;
 
     const newConfig = migrator.migrate(mixConfig);
 
     expect(newConfig).toEqual(v3config);
+  });
+
+  test('Separated configuration options for local mode and cloud mode.', () => {
+    const migrator = new ConfigMigrator();
+
+    const bothConfig = {
+      mode: TuyaPluginMode.both,
+      name: 'Tuya',
+      cloud: {
+        projectType: '2',
+        appSchema: 'tuyaSmart',
+        generateWeatherAccessory: false,
+        weatherAPI: 'Open-Meteo',
+        deviceOverrides: [
+          { id: 'cloudID', schema: [], configFor: 'cloud' },
+          { id: 'localID', schema: [], configFor: 'local' },
+          { id: 'bothID',  schema: [], configFor: 'both' },
+          { id: 'undefinedID', schema: [] }
+        ]
+      },
+      local: {
+        autoDiscoverDevices: false,
+        devices: [ { tuyaDeviceId: 'localID', name: 'test name' } ],
+        discoverTimeout: 1,
+        rediscoverInterval: 100,
+      },
+      common: {
+        debug: false
+      }
+    } as any;
+
+    const expected = {
+      mode: TuyaPluginMode.both,
+      name: 'Tuya',
+      cloud: {
+        projectType: '2',
+        appSchema: 'tuyaSmart',
+        generateWeatherAccessory: false,
+        weatherAPI: 'Open-Meteo',
+        deviceOverrides: [
+          { id: 'cloudID', schema: [], configFor: 'cloud' },
+          { id: 'bothID', schema: [],  configFor: 'both' },
+          { id: 'undefinedID', schema: [] }
+        ]
+      },
+      local: {
+        autoDiscoverDevices: false,
+        devices: [ { tuyaDeviceId: 'localID', name: 'test name' } ],
+        discoverTimeout: 1,
+        rediscoverInterval: 100,
+        deviceOverrides: [
+          { id: 'localID', schema: [], configFor: 'local' },
+          { id: 'bothID', schema: [],  configFor: 'both' },
+        ]
+      },
+      common: {
+        debug: false
+      }
+    } as any;
+
+    const newConfig = migrator.migrate(bothConfig);
+
+    expect(newConfig).toEqual(expected);
   });
 
   test('no migration', () => {
@@ -399,6 +464,106 @@ describe('ConfigMigrator migrate', () => {
         common: {
           debug: false,
           debugLevel: undefined
+        }
+      };
+
+      const result = migrator['cleanupConfig'](inputConfig as any);
+      expect(result).toEqual(outputConfig);
+    });
+
+    test('initialize undefined device schema', () => {
+      const migrator = new ConfigMigrator();
+      const inputConfig = {
+        cloud: {
+          deviceOverrides: [
+            {
+              id: 'cloudid1',
+            }
+          ]
+        },
+        local: {
+          devices: [],
+          deviceOverrides: [
+            {
+              id: 'localid1',
+            }
+          ]
+        }
+      };
+      const outputConfig = {
+        cloud: {
+          deviceOverrides: [
+            {
+              id: 'cloudid1',
+              schema: []
+            }
+          ]
+        },
+        local: {
+          devices: [],
+          deviceOverrides: [
+            {
+              id: 'localid1',
+              schema: []
+            }
+          ]
+        }
+      };
+
+      const result = migrator['cleanupConfig'](inputConfig as any);
+      expect(result).toEqual(outputConfig);
+    });
+
+    test('remove device schema with undefined dp code', () => {
+      const migrator = new ConfigMigrator();
+      const inputConfig = {
+        cloud: {
+          deviceOverrides: [
+            {
+              id: 'cloudid1',
+              schema: [
+                { code: 'code1' },
+                { newCode: 'newcode1' },
+                {},
+              ]
+            }
+          ]
+        },
+        local: {
+          devices: [],
+          deviceOverrides: [
+            {
+              id: 'localid1',
+              schema: [
+                { code: 'code2' },
+                { newCode: 'newcode2' },
+                {},
+              ]
+            }
+          ]
+        }
+      };
+      const outputConfig = {
+        cloud: {
+          deviceOverrides: [
+            {
+              id: 'cloudid1',
+              schema: [
+                { code: 'code1' },
+              ]
+            }
+          ]
+        },
+        local: {
+          devices: [],
+          deviceOverrides: [
+            {
+              id: 'localid1',
+              schema: [
+                { code: 'code2' },
+              ]
+            }
+          ]
         }
       };
 

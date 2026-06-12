@@ -119,7 +119,7 @@
                             "type": "fieldset",
                             "title": "Tuya Cloud Account Info",
                             "expandable": true,
-                            "expanded": false,
+                            "expanded": true,
                             "items": [
                                 "options.projectType",
                                 "options.endpoint",
@@ -162,6 +162,25 @@
                                 }
                             ]
                         },
+                        {
+                            "type": "fieldset",
+                            "title": "Advance Settings",
+                            "expandable": true,
+                            "expanded": false,
+                            "notitle": false,
+                            "items": [
+                                "options.generateWeatherAccessory",
+                                "options.weatherAPI",
+                                "options.forceIPv4"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "fieldset",
+                    "title": "Common Settings",
+                    "notitle": true,
+                    "items": [
                         {
                             "type": "fieldset",
                             "title": "Tuya Device Settings",
@@ -264,7 +283,6 @@
                                 }
                             ]
                         },
-                
                         {
                             "type": "fieldset",
                             "title": "Accessory Service Informations",
@@ -313,28 +331,9 @@
                         },
                         {
                             "type": "fieldset",
-                            "title": "Advance Settings",
-                            "expandable": true,
-                            "expanded": false,
-                            "notitle": false,
-                            "items": [
-                                "options.generateWeatherAccessory",
-                                "options.weatherAPI",
-                                "options.forceIPv4"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "type": "fieldset",
-                    "title": "Common Settings",
-                    "notitle": true,
-                    "items": [
-                        {
-                            "type": "fieldset",
                             "title": "Debug Settings",
                             "expandable": true,
-                            "expanded": true,
+                            "expanded": false,
                             "notitle": false,
                             "items": [
                                 "common.debug",
@@ -1318,7 +1317,7 @@
                                 },
                                 "configFor": {
                                     "title": "When to apply the configuration",
-                                    "description": "Whether the setting is for devices on Cloud, devices on LAN, or used by both.",
+                                    "description": "Whether the setting is for devices on Cloud, devices on Local, or used by both.",
                                     "type": "string",
                                     "required": true,
                                     "default": "cloud",
@@ -1330,7 +1329,7 @@
                                             ]
                                         },
                                         {
-                                            "title": "LAN",
+                                            "title": "Local",
                                             "enum": [
                                                 "local"
                                             ]

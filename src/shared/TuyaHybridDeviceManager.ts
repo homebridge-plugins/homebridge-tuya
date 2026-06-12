@@ -3,7 +3,13 @@ import TuyaCloudDeviceManager from '../cloud/device/TuyaCloudDeviceManager';
 import TuyaCustomDeviceManager from '../cloud/device/TuyaCustomDeviceManager';
 import TuyaDevice, { TuyaDeviceStatus } from '../cloud/device/TuyaDevice';
 import TuyaHomeDeviceManager from '../cloud/device/TuyaHomeDeviceManager';
-import { LocalConfig, TuyaPlatformCloudConfig, TuyaPlatformCustomConfig, TuyaPlatformDeviceSchemaConfig, TuyaPlatformHomeConfig } from '../config';
+import {
+  LocalConfig,
+  TuyaPlatformCloudConfig,
+  TuyaPlatformCustomConfig,
+  TuyaPlatformDeviceSchemaConfig,
+  TuyaPlatformHomeConfig,
+} from '../config';
 import { LocalDeviceConfig } from '../local/config';
 import LocalDeviceManager from '../local/LocalDeviceManager';
 import TuyaDeviceManager from './TuyaDeviceManager';

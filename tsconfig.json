@@ -1,8 +1,5 @@
 {
   "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "target": "ES2022", // Node.js 18+
     "module": "commonjs",
     "lib": [

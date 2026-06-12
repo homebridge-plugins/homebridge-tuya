@@ -2,6 +2,8 @@
  * Local (LAN) configuration types for homebridge-tuya unified plugin.
  */
 
+import { TuyaPlatformDeviceConfig } from '../config';
+
 export interface LocalConfig {
   /** Enable local LAN mode. Defaults to true. */
   enabled?: boolean;
@@ -21,6 +23,7 @@ export interface LocalConfig {
    * Required when autoDiscoverDevices is false.
    */
   devices?: LocalDeviceConfig[];
+  deviceOverrides?: Array<TuyaPlatformDeviceConfig>;
 }
 
 export interface LocalDeviceConfig {
