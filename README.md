@@ -107,6 +107,8 @@ Before you can configure, you must go to the [Tuya IoT Platform](https://iot.tuy
 #### Advanced options
 See [ADVANCED_OPTIONS.md](./ADVANCED_OPTIONS.md)
 
+Garage door controllers that keep `switch_1=true` can opt in to contact-sensor-only state reads with `garageDoorUseContactSensorForState` in `options.deviceOverrides`. This keeps commands on `switch_1`, but reads HomeKit state from `doorcontact_state`.
+
 
 ## Limitations
 - **⚠️Don't forget to extend the API trial period every 6 months. Maybe you can set up a reminder in calendar.**

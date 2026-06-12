@@ -17,6 +17,7 @@ export interface TuyaPlatformDeviceConfig {
   schema?: Array<TuyaPlatformDeviceSchemaConfig>;
   unbridged?: boolean;
   adaptiveLighting?: boolean;
+  garageDoorUseContactSensorForState?: boolean;
 }
 
 export interface TuyaPlatformServiceInformationConfig {
