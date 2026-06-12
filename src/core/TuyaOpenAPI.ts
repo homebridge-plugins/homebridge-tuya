@@ -11,7 +11,7 @@ import dns from 'dns';
 // @ts-ignore
 import { version } from '../../package.json';
 
-import Logger, { PrefixLogger } from '../util/Logger';
+import { ExLogger, logger, PrefixLogger } from '../util/Logger';
 
 enum Endpoints {
   AMERICA = 'https://openapi.tuyaus.com',
@@ -88,17 +88,17 @@ export default class TuyaOpenAPI {
   public deviceArr: Array<object> = [];
 
   public tokenInfo = { access_token: '', refresh_token: '', uid: '', expire: 0 };
+  private log: ExLogger;
 
   constructor(
     public endpoint: Endpoints | string,
     public accessId: string,
     public accessKey: string,
-    public log: Logger = console,
     public lang = 'en',
     public debug = false,
     public forceIPv4 = false,
   ) {
-    this.log = new PrefixLogger(log, TuyaOpenAPI.name, debug);
+    this.log = new PrefixLogger(logger(), TuyaOpenAPI.name, debug);
   }
 
   static getDefaultEndpoint(countryCode: number) {

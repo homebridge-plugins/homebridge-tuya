@@ -14,6 +14,7 @@ import AccessoryFactory from './accessory/AccessoryFactory';
 import BaseAccessory from './accessory/BaseAccessory';
 import { sanitizeName } from './util/util';
 import TuyaOpenAPI, { LOGIN_ERROR_MESSAGES } from './core/TuyaOpenAPI';
+import { initLogger } from './util/Logger';
 
 
 /**
@@ -112,6 +113,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    initLogger(log);
 
     if (!this.validate()) {
       return;
@@ -262,7 +264,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     let res;
     const { endpoint, accessId, accessKey, debug, debugLevel } = this.options;
     const debugMode = debug && ((debugLevel ?? '').length > 0 ? debugLevel?.includes('api') : true);
-    const api = new TuyaOpenAPI(endpoint, accessId, accessKey, this.log, 'en', debugMode, this.options.forceIPv4);
+    const api = new TuyaOpenAPI(endpoint, accessId, accessKey, 'en', debugMode, this.options.forceIPv4);
     const deviceManager = new TuyaCustomDeviceManager(api, debugMode);
 
     this.log.info('Get token.');
@@ -355,7 +357,6 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       (endpoint && endpoint.length > 0) ? endpoint : TuyaOpenAPI.getDefaultEndpoint(countryCode),
       accessId,
       accessKey,
-      this.log,
       'en',
       debugMode,
       this.options.forceIPv4);

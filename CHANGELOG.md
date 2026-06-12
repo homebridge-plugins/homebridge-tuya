@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.3.0] - (2026.6.12)
+
+### Added
+ - Added an option to force communication over IPv4.
+ - Added contact sensor state option for garage doors
+
+### Changed
+ - Updated the behavior so that sensitive data is not logged unless debugMode is enabled.
+
+
 ## [2.2.3] - (2026.5.8)
 
 ### Changed

@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import TuyaOpenAPI from '../core/TuyaOpenAPI';
 import TuyaOpenMQ from '../core/TuyaOpenMQ';
-import { ExLogger, PrefixLogger } from '../util/Logger';
+import { ExLogger, logger, PrefixLogger } from '../util/Logger';
 import TuyaDevice, {
   TuyaDeviceSchema,
   TuyaDeviceSchemaMode,
@@ -37,10 +37,9 @@ export default class TuyaDeviceManager extends EventEmitter {
   ) {
     super();
 
-    const log = (this.api.log as PrefixLogger).log;
-    this.log = new PrefixLogger(log, TuyaDeviceManager.name, debug);
+    this.log = new PrefixLogger(logger(), TuyaDeviceManager.name, debug);
 
-    this.mq = new TuyaOpenMQ(api, log);
+    this.mq = new TuyaOpenMQ(api);
     this.mq.addMessageListener(this.onMQTTMessage.bind(this));
   }
 

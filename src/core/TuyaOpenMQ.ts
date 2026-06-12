@@ -4,7 +4,7 @@ import Crypto from 'crypto';
 import CryptoJS from 'crypto-js';
 
 import TuyaOpenAPI from './TuyaOpenAPI';
-import Logger, { PrefixLogger } from '../util/Logger';
+import { ExLogger, logger, PrefixLogger } from '../util/Logger';
 import dns from 'dns';
 
 const GCM_TAG_LENGTH = 16;
@@ -34,14 +34,14 @@ export default class TuyaOpenMQ {
   public linkId = uuid_v4();
 
   public timer?: NodeJS.Timeout;
+  private log: ExLogger;
 
   constructor(
     public api: TuyaOpenAPI,
-    public log: Logger = new PrefixLogger(console, 'console', false),
     public debug = false,
     public forceIPv4 = api.forceIPv4,
   ) {
-    this.log = new PrefixLogger(log, TuyaOpenMQ.name, debug);
+    this.log = new PrefixLogger(logger(), TuyaOpenMQ.name, debug);
   }
 
   start() {
