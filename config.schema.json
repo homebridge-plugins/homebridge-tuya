@@ -1134,6 +1134,14 @@
                                         { "title": "Both", "enum": [ "both" ] }
                                     ]
                                 },
+                                "garageDoorUseContactSensorForState": {
+                                    "title": "Use Contact Sensor For Garage Door State",
+                                    "description": "For garage door controllers only. Derive CurrentDoorState and TargetDoorState reads from doorcontact_state instead of switch_1.",
+                                    "type": "boolean",
+                                    "condition": {
+                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                    }
+                                },
                                 "schema": {
                                     "title": "Schema Overriding Configs",
                                     "type": "array",

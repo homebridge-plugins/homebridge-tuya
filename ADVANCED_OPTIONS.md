@@ -20,6 +20,7 @@ Before configuring, you may need to:
 - `category` - **optional**: Device category code. See [SUPPORTED_DEVICES.md](./SUPPORTED_DEVICES.md). Also you can use `hidden` to hide the device, product, or scene. **⚠️Overriding this property may lead to unexpected behaviors and exceptions, so please remove the accessory cache after making changes.**
 - `unbridged` - **optional**: Unbridge accessories. Defaults to `false`.
 - `adaptiveLighting` - **optional**: Adaptive Lighting. Defaults to `false`. Not all light device support this feature, please use it on demand.
+- `garageDoorUseContactSensorForState` - **optional**: For garage door controllers. When `true`, `CurrentDoorState` and `TargetDoorState` reads use `doorcontact_state` only, while set commands still use `switch_1`. Defaults to `false`.
 - `schema` - **optional**: An array of schema overriding config objects, used for describing datapoint (DP). When your device has non-standard DP, you need to transform them manually with configuration. Each element in the schema array is described as follows:
   - `code` - **required**: DP code.
   - `newCode` - **optional**: New DP code.
@@ -89,6 +90,22 @@ An example of hide camera's floodlight (`floodlight_switch`):
     "deviceOverrides": [{
       "id": "{device_id}",
       "adaptiveLighting": true
+    }]
+  }
+}
+```
+
+### Use garage door contact sensor for state
+
+Some `ckmkzq` garage door controllers keep `switch_1` as `true`, which can make HomeKit show the door as stuck Opening or Closing. Enable this per-device option to read the door state from `doorcontact_state`, while commands are still sent to `switch_1`.
+
+```js
+{
+  "options": {
+    // ...
+    "deviceOverrides": [{
+      "id": "{device_id}",
+      "garageDoorUseContactSensorForState": true
     }]
   }
 }

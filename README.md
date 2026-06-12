@@ -184,6 +184,8 @@ Uses cloud + local simultaneously. Provide both `options` (cloud) and `local` bl
 ### Advanced Options
 See [ADVANCED_OPTIONS.md](./ADVANCED_OPTIONS.md)
 
+Garage door controllers that keep `switch_1=true` can opt in to contact-sensor-only state reads with `garageDoorUseContactSensorForState` in `options.deviceOverrides`. This keeps commands on `switch_1`, but reads HomeKit state from `doorcontact_state`.
+
 
 ## Limitations
 - Using the same app account for multiple Homebridge/HomeAssistant instances is not recommended. Use separate app accounts per instance.

@@ -12,15 +12,17 @@ export default class GarageDoorAccessory extends BaseAccessory {
   }
 
   override configureServices() {
-
     this.configureCurrentDoorState();
     this.configureTargetDoorState();
   }
 
-
   mainService() {
     return this.accessory.getService(this.Service.GarageDoorOpener)
       || this.accessory.addService(this.Service.GarageDoorOpener);
+  }
+
+  useContactSensorForState() {
+    return this.platform.getDeviceConfig(this.device)?.garageDoorUseContactSensorForState === true;
   }
 
   configureCurrentDoorState() {
@@ -28,13 +30,23 @@ export default class GarageDoorAccessory extends BaseAccessory {
     this.mainService().getCharacteristic(this.Characteristic.CurrentDoorState)
       .onGet(() => {
         const currentSchema = this.getSchema(...SCHEMA_CODE.CURRENT_DOOR_STATE);
-        const targetSchema = this.getSchema(...SCHEMA_CODE.TARGET_DOOR_STATE);
-        if (!currentSchema || !targetSchema) {
+        if (!currentSchema) {
           return STOPPED;
         }
 
         const currentStatus = this.getStatus(currentSchema.code)!;
+
+        if (this.useContactSensorForState()) {
+          return currentStatus.value === false ? CLOSED : OPEN;
+        }
+
+        const targetSchema = this.getSchema(...SCHEMA_CODE.TARGET_DOOR_STATE);
+        if (!targetSchema) {
+          return STOPPED;
+        }
+
         const targetStatus = this.getStatus(targetSchema.code)!;
+
         if (currentStatus.value === true && targetStatus.value === true) {
           return OPEN;
         } else if (currentStatus.value === false && targetStatus.value === false) {
@@ -58,6 +70,17 @@ export default class GarageDoorAccessory extends BaseAccessory {
     const { OPEN, CLOSED } = this.Characteristic.TargetDoorState;
     this.mainService().getCharacteristic(this.Characteristic.TargetDoorState)
       .onGet(() => {
+        if (this.useContactSensorForState()) {
+          const currentSchema = this.getSchema(...SCHEMA_CODE.CURRENT_DOOR_STATE);
+
+          if (!currentSchema) {
+            return CLOSED;
+          }
+
+          const currentStatus = this.getStatus(currentSchema.code)!;
+          return currentStatus.value === false ? CLOSED : OPEN;
+        }
+
         const status = this.getStatus(schema.code)!;
         return status.value as boolean ? OPEN : CLOSED;
       })

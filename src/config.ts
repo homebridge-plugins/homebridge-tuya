@@ -33,6 +33,7 @@ export interface TuyaPlatformDeviceConfig {
    * - 'both': apply to devices from both sources
    */
   configFor?: TuyaPluginMode;
+  garageDoorUseContactSensorForState?: boolean;
 }
 
 export interface TuyaPlatformServiceInformationConfig {
