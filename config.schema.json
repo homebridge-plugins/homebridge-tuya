@@ -145,7 +145,7 @@
                                     "description": "For garage door controllers only. Derive CurrentDoorState and TargetDoorState reads from doorcontact_state instead of switch_1.",
                                     "type": "boolean",
                                     "condition": {
-                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                        "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].category === 'ckmkzq');"
                                     }
                                 },
                                 "schema": {
