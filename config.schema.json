@@ -341,6 +341,7 @@
                         "default": [],
                         "items": {
                             "type": "object",
+                            "required": ["category"],
                             "properties": {
                                 "category": {
                                     "title": "Type",
@@ -383,41 +384,31 @@
                                     "title": "Device ID",
                                     "description": "The Tuya device ID (same as the cloud device ID).",
                                     "type": "string",
-                                    "condition": {
-                                        "functionBody": "return model.local && model.local.devices && model.local.devices[arrayIndices[0]] && model.local.devices[arrayIndices[0]].category !== '';"
-                                    }
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
                                 },
                                 "tuyaKey": {
                                     "title": "Local Key",
                                     "description": "The 16-character AES local key for direct communication.",
                                     "type": "string",
-                                    "condition": {
-                                        "functionBody": "return model.local && model.local.devices && model.local.devices[arrayIndices[0]] && model.local.devices[arrayIndices[0]].category !== '';"
-                                    }
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
                                 },
                                 "ip": {
                                     "title": "IP Address",
                                     "description": "Fixed IP address. Leave blank to use auto-discovery.",
                                     "type": "string",
-                                    "condition": {
-                                        "functionBody": "return model.local && model.local.devices && model.local.devices[arrayIndices[0]] && model.local.devices[arrayIndices[0]].category !== '';"
-                                    }
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
                                 },
                                 "name": {
                                     "title": "Name",
                                     "description": "Anything you'd like to use to identify this device.",
                                     "type": "string",
-                                    "condition": {
-                                        "functionBody": "return model.local && model.local.devices && model.local.devices[arrayIndices[0]] && model.local.devices[arrayIndices[0]].category !== '';"
-                                    }
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
                                 },
                                 "protocolVersion": {
                                     "title": "Protocol Version",
                                     "description": "Tuya local protocol version. Leave blank to auto-detect.",
                                     "type": "string",
-                                    "condition": {
-                                        "functionBody": "return model.local && model.local.devices && model.local.devices[arrayIndices[0]] && model.local.devices[arrayIndices[0]].category !== '';"
-                                    }
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
                                 },
                                 "dpMapping": {
                                     "title": "Custom DP Mapping (Advanced)",
@@ -434,9 +425,7 @@
                                     "type": "integer",
                                     "title": "Outlet Count",
                                     "placeholder": 5,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
-                                    }
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "isZigbeeGateway": {
                                     "title": "Zigbee Gateway",
@@ -490,411 +479,309 @@
                                         }
                                     },
                                     "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
+                                        "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
                                     }
                                 },
                                 "dpPower": {
                                     "type": "integer",
                                     "title": "Power DP",
                                     "placeholder": 1,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz', 'dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpBrightness": {
                                     "type": "integer",
                                     "title": "Brightness DP",
                                     "placeholder": 2,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpColorTemperature": {
                                     "type": "integer",
                                     "title": "Color Temperature DP",
                                     "placeholder": 3,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "minWhiteColor": {
                                     "type": "integer",
                                     "title": "Min White Color",
                                     "placeholder": 140,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "maxWhiteColor": {
                                     "type": "integer",
                                     "title": "Max White Color",
                                     "placeholder": 400,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpMode": {
                                     "type": "integer",
                                     "title": "Mode DP",
                                     "placeholder": 2,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpColor": {
                                     "type": "integer",
                                     "title": "Color DP",
                                     "placeholder": 5,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "colorFunction": {
                                     "type": "string",
                                     "title": "Color Function",
                                     "placeholder": "HEXHSB",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "scaleBrightness": {
                                     "type": "integer",
                                     "title": "Scale Brightness",
                                     "placeholder": 255,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "scaleWhiteColor": {
                                     "type": "integer",
                                     "title": "Scale White Color",
                                     "placeholder": 255,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dj' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'dsd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'xdd' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'tgkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "voltsId": {
                                     "type": "integer",
                                     "title": "Voltage DP",
                                     "placeholder": 9,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
-                                    }
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "ampsId": {
                                     "type": "integer",
                                     "title": "Amperage DP",
                                     "placeholder": 8,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
-                                    }
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "wattsId": {
                                     "type": "integer",
                                     "title": "Power DP",
                                     "placeholder": 7,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
-                                    }
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"}
                                 },
                                 "voltsDivisor": {
                                     "type": "integer",
                                     "title": "Voltage Divisor",
                                     "placeholder": 10,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
-                                    }
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "ampsDivisor": {
                                     "type": "integer",
                                     "title": "Amperage Divisor",
                                     "placeholder": 1000,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
-                                    }
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "wattsDivisor": {
                                     "type": "integer",
                                     "title": "Power Divisor",
                                     "placeholder": 10,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
-                                    }
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "noCool": {
                                     "type": "boolean",
                                     "title": "No Cool Mode",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'kt' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ktkzq';"
-                                    }
+                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "noHeat": {
                                     "type": "boolean",
                                     "title": "No Heat Mode",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'kt' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ktkzq';"
-                                    }
+                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "cmdCool": {
                                     "type": "string",
                                     "title": "Cool Command",
                                     "placeholder": "COOL",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'kt' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ktkzq';"
-                                    }
+                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "cmdHeat": {
                                     "type": "string",
                                     "title": "Heat Command",
                                     "placeholder": "HEAT",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'kt' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ktkzq';"
-                                    }
+                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "noSwing": {
                                     "type": "boolean",
                                     "title": "No Swing Mode",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'kt' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ktkzq';"
-                                    }
+                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "minTemperature": {
                                     "type": "integer",
                                     "title": "Min Temperature",
                                     "placeholder": 15,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'kt' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ktkzq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['kt', 'ktkzq', 'qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "maxTemperature": {
                                     "type": "integer",
                                     "title": "Max Temperature",
                                     "placeholder": 40,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'kt' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ktkzq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['kt', 'ktkzq', 'qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "minTemperatureSteps": {
                                     "type": "integer",
                                     "title": "Min Temperature Steps",
                                     "placeholder": 1,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'kt' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ktkzq';"
-                                    }
+                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpActive": {
                                     "type": "integer",
                                     "title": "Active DP",
                                     "placeholder": 7,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpDesiredTemperature": {
                                     "type": "integer",
                                     "title": "Desired Temperature DP",
                                     "placeholder": 2,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpCurrentTemperature": {
                                     "type": "integer",
                                     "title": "Current Temperature DP",
                                     "placeholder": 3,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpAction": {
                                     "type": "integer",
                                     "title": "Action DP",
                                     "placeholder": 1,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ckmkzq';"
-                                    }
+                                    "condition": { "functionBody": "return ['ckmkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpStatus": {
                                     "type": "integer",
                                     "title": "Status DP",
                                     "placeholder": 2,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ckmkzq';"
-                                    }
+                                    "condition": { "functionBody": "return ['ckmkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "flipState": {
                                     "type": "boolean",
                                     "title": "Flip State",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'ckmkzq' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cl' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'clkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['ckmkzq', 'cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "timeToOpen": {
                                     "type": "integer",
                                     "title": "Time to Open (seconds)",
                                     "placeholder": 45,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cl' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'clkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "timeToTighten": {
                                     "type": "integer",
                                     "title": "Time to Tighten (seconds)",
                                     "placeholder": 0,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cl' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'clkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "timeToClose": {
                                     "type": "integer",
                                     "title": "Time to Close (seconds)",
                                     "placeholder": 30,
                                     "description": "Time in seconds for blinds to fully open or close",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cl' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'clkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpLight": {
                                     "type": "integer",
                                     "title": "Light DP",
                                     "placeholder": 1,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cz' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'pc' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'wkcz';"
-                                    }
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpBlindType": {
                                     "type": "integer",
                                     "title": "Blind Type DP",
                                     "placeholder": 1,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'cl' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'clkg';"
-                                    }
+                                    "condition": { "functionBody": "return ['cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpLightOn": {
                                     "type": "integer",
                                     "title": "Light On DP",
                                     "placeholder": 9,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpFanOn": {
                                     "type": "integer",
                                     "title": "Fan On DP",
                                     "placeholder": 1,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpRotationSpeed": {
                                     "type": "integer",
                                     "title": "Rotation Speed DP",
                                     "placeholder": 4,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn' || ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpRotationDirection": {
                                     "type": "integer",
                                     "title": "Rotation Direction DP",
                                     "placeholder": 63,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "maxSpeed": {
                                     "type": "integer",
                                     "title": "Max Speed",
                                     "placeholder": 3,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "fanDefaultSpeed": {
                                     "type": "integer",
                                     "title": "Fan Default Speed",
                                     "placeholder": 1,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "useStrings": {
                                     "type": "boolean",
                                     "title": "Use Strings",
                                     "placeholder": true,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'fs';"
-                                    }
+                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpChildLock": {
                                     "type": "integer",
                                     "title": "Child Lock DP",
                                     "placeholder": 6,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "dpTemperatureDisplayUnits": {
                                     "type": "integer",
                                     "title": "Temperature Display Units DP",
                                     "placeholder": 19,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "cmdLow": {
                                     "type": "string",
                                     "title": "Low Command",
                                     "placeholder": "Low",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "cmdHigh": {
                                     "type": "string",
                                     "title": "High Command",
                                     "placeholder": "High",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "noChildLock": {
                                     "type": "boolean",
                                     "title": "No Child Lock",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "noTemperatureUnit": {
                                     "type": "boolean",
                                     "title": "No Temperature Unit",
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "temperatureDivisor": {
                                     "type": "integer",
                                     "title": "Temperature Divisor",
                                     "placeholder": 1,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "thresholdTemperatureDivisor": {
                                     "type": "integer",
                                     "title": "Threshold Temperature Divisor",
                                     "placeholder": 1,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 },
                                 "temperatureOffset": {
                                     "type": "integer",
                                     "title": "Temperature Offset",
                                     "placeholder": 0,
-                                    "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) === 'qn';"
-                                    }
+                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 }
                             }
                         }
