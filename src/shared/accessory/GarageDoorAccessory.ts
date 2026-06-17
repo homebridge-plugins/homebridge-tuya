@@ -22,7 +22,7 @@ export default class GarageDoorAccessory extends BaseAccessory {
   }
 
   useContactSensorForState() {
-    return this.platform.getDeviceConfig(this.device)?.garageDoorUseContactSensorForState === true;
+    return this.deviceManager.enableGarageDoorUseContactSensorForState(this.device) === true;
   }
 
   configureCurrentDoorState() {

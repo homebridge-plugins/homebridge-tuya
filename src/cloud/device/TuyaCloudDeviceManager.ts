@@ -64,13 +64,16 @@ export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
     return !!this.getDeviceConfig(device)?.adaptiveLighting;
   }
 
+  override enableGarageDoorUseContactSensorForState(device: TuyaDevice): boolean {
+    return this.getDeviceConfig(device)?.garageDoorUseContactSensorForState === true;
+  }
+
   getDeviceConfig(device: TuyaDevice) {
     if (!this.config) {
       return undefined;
     }
 
     // Find matching override, respecting source filtering
-    // Since deviceOverrides are in the cloud config, they default to cloud-only
     const matches = this.config.deviceOverrides?.filter(config => {
       const sourceMatch = config.configFor === TuyaPluginMode.cloud;
       const idMatch = config.id === device.id || config.id === device.uuid ||

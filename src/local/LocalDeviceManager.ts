@@ -15,6 +15,7 @@ import {
   buildDiscoveredChildConfig,
   supportsChildDiscovery,
 } from './DynamicChildDiscovery';
+import { TuyaPluginMode } from '../config';
 
 /**
  * Default DP-to-code mapping used when the user hasn't supplied one.
@@ -136,10 +137,31 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   }
 
   override getDeviceSchemaConfig(device: TuyaDevice, dpCode: string) {
-    const schemaConfig = this.config.deviceOverrides?.
-      find(d => d.id = device.id)?.schema?.
-      find(s => s.code === dpCode);
+    const schemaConfig = this.getDeviceConfig(device)?.schema?.find(s => s.code === dpCode);
     return schemaConfig;
+  }
+
+  override enableGarageDoorUseContactSensorForState(device: TuyaDevice): boolean {
+    return this.getDeviceConfig(device)?.garageDoorUseContactSensorForState === true;
+  }
+
+  getDeviceConfig(device: TuyaDevice) {
+    if (!this.config) {
+      return undefined;
+    }
+
+    // Find matching override, respecting source filtering
+    const matches = this.config.deviceOverrides?.filter(config => {
+      const sourceMatch = config.configFor === TuyaPluginMode.local;
+      const idMatch = config.id === device.id || config.id === device.uuid ||
+                      config.id === device.product_id || config.id === 'global';
+      return sourceMatch && idMatch;
+    }) ?? [];
+
+    // Return device-specific config, then product, then global
+    return matches.find(config => config.id === device.id || config.id === device.uuid) ||
+            matches.find(config => config.id === device.product_id) ||
+            matches.find(config => config.id === 'global');
   }
 
   /**
@@ -728,7 +750,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     }) as TuyaDeviceSchema);
 
     // apply overrides
-    this.config.deviceOverrides?.forEach(d => d.schema?.forEach(s => {
+    this.getDeviceConfig(device)?.schema?.forEach(s => {
       const schema = schemas.find(t => t.code === s.newCode);
       if (!!schema) {
         schema.type = s.type ?? schema.type;
@@ -741,7 +763,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
           property: s.property ?? {},
         } as TuyaDeviceSchema);
       }
-    }));
+    });
 
     return schemas;
   }

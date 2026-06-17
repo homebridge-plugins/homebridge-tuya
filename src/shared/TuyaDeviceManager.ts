@@ -103,4 +103,9 @@ export default abstract class TuyaDeviceManager extends EventEmitter {
   enableAdaptiveLighting(device: TuyaDevice): boolean {
     return false;
   };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  enableGarageDoorUseContactSensorForState(device: TuyaDevice): boolean {
+    return false;
+  };
 }
