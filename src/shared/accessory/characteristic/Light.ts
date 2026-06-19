@@ -3,6 +3,7 @@ import {
   TuyaDeviceSchema,
   TuyaDeviceSchemaEnumProperty,
   TuyaDeviceSchemaIntegerProperty,
+  TuyaDeviceSchemaType,
   TuyaDeviceStatus,
 } from '../../../cloud/device/TuyaDevice';
 import { kelvinToHSV, kelvinToMired, miredToKelvin } from '../../util/color';
@@ -37,7 +38,9 @@ function getLightType(
   mode?: TuyaDeviceSchema,
 ) {
   const modeRange = mode && (mode.property as TuyaDeviceSchemaEnumProperty).range;
-  const { h, s, v } = (color?.property || {}) as never;
+  const { h, s, v } = ensureHSVProperty(color, mode);
+
+  accessory.log.debug('hsvProperty: %O', { h, s, v });
 
   let lightType: LightType;
   if (on && bright && temp && h && s && v && modeRange && modeRange.includes('colour') && modeRange.includes('white')) {
@@ -57,6 +60,26 @@ function getLightType(
   }
 
   return lightType;
+}
+
+function ensureHSVProperty(colorSchema?: TuyaDeviceSchema, modeSchema?: TuyaDeviceSchema) {
+  const property = colorSchema?.property as TuyaDeviceSchemaColorProperty;
+  if (property && Object.keys(property).length > 0) {
+    return property;
+  }
+  if (colorSchema?.type === TuyaDeviceSchemaType.Json) {
+    if (!property && modeSchema && (modeSchema.property as TuyaDeviceSchemaEnumProperty).range.includes('colour')) {
+      // If the color schema is a Json type without defined property, but the mode schema includes 'colour',
+      //  we can assume the color schema has h, s, v properties with 0-360 for h and 0-1000 for s and v.
+      colorSchema.property = {
+        h: { type: TuyaDeviceSchemaType.Integer, min: 0, max: 360, scale: 0 },
+        s: { type: TuyaDeviceSchemaType.Integer, min: 0, max: 1000, scale: 0 },
+        v: { type: TuyaDeviceSchemaType.Integer, min: 0, max: 1000, scale: 0 },
+      };
+      return colorSchema.property as TuyaDeviceSchemaColorProperty;
+    }
+  }
+  return {} as TuyaDeviceSchemaColorProperty;
 }
 
 function getColorValue(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
@@ -297,7 +320,7 @@ export function configureLight(
   }
 
   const lightType = getLightType(accessory, onSchema, brightSchema, tempSchema, colorSchema, modeSchema);
-  accessory.log.info('Light type:', lightType);
+  accessory.log.info('Light type: %s', lightType);
 
   switch (lightType) {
     case LightType.Normal:
