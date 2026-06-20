@@ -252,9 +252,19 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     this.gatewayConnections.clear();
   }
 
-  /** Returns ALL devices (both local shadow entries from this manager). */
   override getDevice(deviceID: string): TuyaDevice | undefined {
-    return this.devices.find(d => d.id === deviceID);
+    const device = this.devices.find(d => d.id === deviceID);
+    if (device) {
+      // local devices have synthetic schemas based on config, so enrich the device schema from config on retrieval
+      // Merge config schema with device schema, prioritizing config
+      device.schema.forEach(s => {
+        const configSchema = this.getDeviceConfig(device)?.schema?.find(cs => cs.code === s.code);
+        if (configSchema) {
+          Object.assign(s, configSchema);
+        }
+      });
+    }
+    return device;
   }
 
   /**
