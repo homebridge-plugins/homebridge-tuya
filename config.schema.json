@@ -194,6 +194,7 @@
                                                         "options.deviceOverrides[].id",
                                                         "options.deviceOverrides[].category",
                                                         "options.deviceOverrides[].unbridged",
+                                                        "options.deviceOverrides[].adaptiveLighting",
                                                         "options.deviceOverrides[].configFor",
                                                         {
                                                             "key": "options.deviceOverrides[].schema",
@@ -1120,6 +1121,14 @@
                                     "type": "boolean",
                                     "condition": {
                                         "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                    }
+                                },
+                                "adaptiveLighting": {
+                                    "title": "Adaptive Lighting",
+                                    "description": "Enable if your device supports intelligently adjusting the brightness and color of your lights",
+                                    "type": "boolean",
+                                    "condition": {
+                                        "functionBody": "return (['bzyd', 'cwwsq', 'dj', 'dsd', 'xdd', 'fwd', 'dc', 'dd', 'gyd', 'tyndj', 'sxd', 'jsq', 'fs', 'fsd', 'fskg', 'yyj', 'xxj', 'sp'].includes(model?.options?.deviceOverrides?.[arrayIndices[0]]?.category));"
                                     }
                                 },
                                 "configFor": {

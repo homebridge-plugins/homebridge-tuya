@@ -167,6 +167,7 @@ export default class TuyaDiscovery extends EventEmitter {
 
     try {
       const result = JSON.parse(text);
+      this.log.debug(`v3.4 UDP from ${info.address}:${port} – decrypted: ${JSON.stringify(result)}`);
       if (result && result.gwId && result.ip) {
         this._onDiscover({
           id: result.gwId,
@@ -208,6 +209,7 @@ export default class TuyaDiscovery extends EventEmitter {
       }
 
       const payload = JSON.parse(decrypted.toString('utf8').trim());
+      this.log.debug(`v3.5 UDP from ${info.address}:${port} – decrypted payload: ${JSON.stringify(payload)}`);
       if (payload && payload.gwId && payload.ip) {
         this._onDiscover({
           id: payload.gwId,

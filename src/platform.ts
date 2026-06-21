@@ -214,7 +214,6 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
 
     this.api.on(APIEvent.SHUTDOWN, async () => {
       this.log.debug('Executed shutdown callback');
-      await this.saveDeviceList();
     });
   }
 
@@ -457,7 +456,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
 
       // To reflect configuration changes without discarding the existing
       // cache instance as much as possible, the latest configuration data is created as a separate accessory.
-      const cloneDevice = structuredClone(device);
+      const cloneDevice = Object.assign(new TuyaDevice({}), structuredClone(device));
       this.deviceManager.devices.push(cloneDevice);
       cloneDevice.id = 'dummyID' + cloneDevice.id;
       cloneDevice.name = 'dummy';
