@@ -273,19 +273,6 @@ export default class AccessoryFactory {
         platform.log.debug('early product. add switch-case at function resolveAccessoryByProductID()');
         // eslint-disable-next-line max-len
         platform.log.warn('use plugin options and config category to another. https://github.com/homebridge-plugins/homebridge-tuya/blob/develop_1.7.0/ADVANCED_OPTIONS.md https://github.com/homebridge-plugins/homebridge-tuya/blob/develop_1.7.0/SUPPORTED_DEVICES.md');
-        return undefined;
-
-      case 'infrared_tv':
-      case 'infrared_stb':
-      case 'infrared_box':
-      case 'infrared_ac':
-      case 'infrared_fan':
-      case 'infrared_light':
-      case 'infrared_amplifier':
-      case 'infrared_projector':
-      case 'infrared_waterheater':
-      case 'infrared_airpurifier':
-      case 'infrared_humidifier':
         // Since it's a DIY, it might be better to handle it with resolveAccessoryByProductID.
         return new IRControlHubSubAccessory(platform, accessory);
 
