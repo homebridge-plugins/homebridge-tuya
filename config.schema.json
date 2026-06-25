@@ -52,58 +52,120 @@
                                                 "local.devices[].protocolVersion",
                                                 "local.devices[].dpMapping",
                                                 "local.devices[].outletCount",
-                                                "local.devices[].outlets",
-                                                "local.devices[].dpPower",
-                                                "local.devices[].dpBrightness",
-                                                "local.devices[].dpColorTemperature",
-                                                "local.devices[].minWhiteColor",
-                                                "local.devices[].maxWhiteColor",
-                                                "local.devices[].dpMode",
-                                                "local.devices[].dpColor",
-                                                "local.devices[].colorFunction",
-                                                "local.devices[].scaleBrightness",
-                                                "local.devices[].scaleWhiteColor",
-                                                "local.devices[].voltsId",
-                                                "local.devices[].ampsId",
-                                                "local.devices[].wattsId",
-                                                "local.devices[].voltsDivisor",
-                                                "local.devices[].ampsDivisor",
-                                                "local.devices[].wattsDivisor",
-                                                "local.devices[].noCool",
-                                                "local.devices[].noHeat",
-                                                "local.devices[].cmdCool",
-                                                "local.devices[].cmdHeat",
-                                                "local.devices[].noSwing",
-                                                "local.devices[].minTemperature",
-                                                "local.devices[].maxTemperature",
-                                                "local.devices[].minTemperatureSteps",
-                                                "local.devices[].dpActive",
-                                                "local.devices[].dpDesiredTemperature",
-                                                "local.devices[].dpCurrentTemperature",
-                                                "local.devices[].dpAction",
-                                                "local.devices[].dpStatus",
-                                                "local.devices[].flipState",
-                                                "local.devices[].timeToOpen",
-                                                "local.devices[].timeToTighten",
-                                                "local.devices[].timeToClose",
-                                                "local.devices[].dpLight",
-                                                "local.devices[].dpBlindType",
-                                                "local.devices[].dpLightOn",
-                                                "local.devices[].dpFanOn",
-                                                "local.devices[].dpRotationSpeed",
-                                                "local.devices[].dpRotationDirection",
-                                                "local.devices[].maxSpeed",
-                                                "local.devices[].fanDefaultSpeed",
-                                                "local.devices[].useStrings",
-                                                "local.devices[].dpChildLock",
-                                                "local.devices[].dpTemperatureDisplayUnits",
-                                                "local.devices[].cmdLow",
-                                                "local.devices[].cmdHigh",
-                                                "local.devices[].noChildLock",
-                                                "local.devices[].noTemperatureUnit",
-                                                "local.devices[].temperatureDivisor",
-                                                "local.devices[].thresholdTemperatureDivisor",
-                                                "local.devices[].temperatureOffset"   
+                                                {
+                                                    "type": "fieldset",
+                                                    "items": [
+                                                        "local.devices[].dpMapping.add_ele",
+                                                        "local.devices[].dpMapping.air_quality",
+                                                        "local.devices[].dpMapping.alarm_message",
+                                                        "local.devices[].dpMapping.alarm_propel_switch",
+                                                        "local.devices[].dpMapping.battery_percentage",
+                                                        "local.devices[].dpMapping.bright_value",
+                                                        "local.devices[].dpMapping.bright_value_v2",
+                                                        "local.devices[].dpMapping.child_lock",
+                                                        "local.devices[].dpMapping.co2_state",
+                                                        "local.devices[].dpMapping.co2_value",
+                                                        "local.devices[].dpMapping.co_status",
+                                                        "local.devices[].dpMapping.co_value",
+                                                        "local.devices[].dpMapping.colour_data",
+                                                        "local.devices[].dpMapping.colour_data_v2",
+                                                        "local.devices[].dpMapping.control",
+                                                        "local.devices[].dpMapping.cur_current",
+                                                        "local.devices[].dpMapping.cur_power",
+                                                        "local.devices[].dpMapping.cur_voltage",
+                                                        "local.devices[].dpMapping.dehumidify_set_value",
+                                                        "local.devices[].dpMapping.doorbell_call",
+                                                        "local.devices[].dpMapping.doorbell_pic",
+                                                        "local.devices[].dpMapping.doorbell_ring_exist",
+                                                        "local.devices[].dpMapping.doorbell_volume_value",
+                                                        "local.devices[].dpMapping.doorcontact_state",
+                                                        "local.devices[].dpMapping.fan_direction",
+                                                        "local.devices[].dpMapping.fan_speed",
+                                                        "local.devices[].dpMapping.fan_speed_enum",
+                                                        "local.devices[].dpMapping.feed_report",
+                                                        "local.devices[].dpMapping.feed_state",
+                                                        "local.devices[].dpMapping.floodlight_lightness",
+                                                        "local.devices[].dpMapping.floodlight_switch",
+                                                        "local.devices[].dpMapping.gas_sensor_status",
+                                                        "local.devices[].dpMapping.humidity_current",
+                                                        "local.devices[].dpMapping.humidity_indoor",
+                                                        "local.devices[].dpMapping.humidity_set",
+                                                        "local.devices[].dpMapping.level",
+                                                        "local.devices[].dpMapping.light",
+                                                        "local.devices[].dpMapping.lock",
+                                                        "local.devices[].dpMapping.lock_motor_state",
+                                                        "local.devices[].dpMapping.manual_feed",
+                                                        "local.devices[].dpMapping.master_mode",
+                                                        "local.devices[].dpMapping.meal_plan",
+                                                        "local.devices[].dpMapping.mode",
+                                                        "local.devices[].dpMapping.motion_switch",
+                                                        "local.devices[].dpMapping.movement_detect_pic",
+                                                        "local.devices[].dpMapping.open_close",
+                                                        "local.devices[].dpMapping.percent_control",
+                                                        "local.devices[].dpMapping.percent_state",
+                                                        "local.devices[].dpMapping.pir",
+                                                        "local.devices[].dpMapping.pir_state",
+                                                        "local.devices[].dpMapping.pm10_value",
+                                                        "local.devices[].dpMapping.pm25",
+                                                        "local.devices[].dpMapping.pm25_value",
+                                                        "local.devices[].dpMapping.position",
+                                                        "local.devices[].dpMapping.presence_state",
+                                                        "local.devices[].dpMapping.quick_feed",
+                                                        "local.devices[].dpMapping.shake",
+                                                        "local.devices[].dpMapping.shock_state",
+                                                        "local.devices[].dpMapping.slow_feed",
+                                                        "local.devices[].dpMapping.smoke_sensor_status",
+                                                        "local.devices[].dpMapping.sos_state",
+                                                        "local.devices[].dpMapping.speed",
+                                                        "local.devices[].dpMapping.swing",
+                                                        "local.devices[].dpMapping.switch",
+                                                        "local.devices[].dpMapping.switch_1",
+                                                        "local.devices[].dpMapping.switch_fan",
+                                                        "local.devices[].dpMapping.switch_horizontal",
+                                                        "local.devices[].dpMapping.switch_inching",
+                                                        "local.devices[].dpMapping.switch_led",
+                                                        "local.devices[].dpMapping.switch_mode1",
+                                                        "local.devices[].dpMapping.switch_music",
+                                                        "local.devices[].dpMapping.switch_pir",
+                                                        "local.devices[].dpMapping.switch_sound",
+                                                        "local.devices[].dpMapping.switch_spray",
+                                                        "local.devices[].dpMapping.temp_current",
+                                                        "local.devices[].dpMapping.temp_indoor",
+                                                        "local.devices[].dpMapping.temp_set",
+                                                        "local.devices[].dpMapping.temp_unit_convert",
+                                                        "local.devices[].dpMapping.temp_value",
+                                                        "local.devices[].dpMapping.temp_value_v2",
+                                                        "local.devices[].dpMapping.tvoc",
+                                                        "local.devices[].dpMapping.va_humidity",
+                                                        "local.devices[].dpMapping.va_temperature",
+                                                        "local.devices[].dpMapping.voc_value",
+                                                        "local.devices[].dpMapping.work_mode",
+                                                        "local.devices[].dpMapping.work_state",
+                                                        "local.devices[].dpMapping.work_status"
+                                                    ]
+                                                },
+                                                {
+                                                    "key": "local.devices[].dpMappingArray",
+                                                    "type": "array",
+                                                    "listItems": 3,
+                                                    "items": [
+                                                        {
+                                                            "type": "div",
+                                                            "displayFlex": true,
+                                                            "flex-direction": "row",
+                                                            "items": [
+                                                                {
+                                                                    "key": "local.devices[].dpMappingArray[].dpCode",
+                                                                    "placeholder": "switch"
+                                                                },
+                                                                {
+                                                                    "key": "local.devices[].dpMappingArray[].dpID",
+                                                                    "placeholder": "1"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
                                             ]
                                         }
                                     ]
@@ -426,15 +488,643 @@
                                     "type": "string",
                                     "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
                                 },
-                                "dpMapping": {
+                                "dpMappingArray": {
                                     "title": "Custom DP Mapping (Advanced)",
-                                    "description": "Override default DP-to-function mappings as JSON. Example: {\"switch_1\": 1, \"bright_value\": 2, \"temp_value\": 3}",
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "integer"
+                                    "description": "Override default DP-to-function mappings as JSON.",
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "required": ["dpCode", "dpID"],
+                                        "properties": {
+                                            "dpCode": {
+                                                "type": "string",
+                                                "title": "DP Code"
+                                            },
+                                            "dpID": {
+                                                "type": "integer",
+                                                "title": "DP ID"
+                                            }
+                                        }
                                     },
                                     "condition": {
-                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) && ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].category : undefined) !== '';"
+                                        "functionBody": "return ['other'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                    }
+                                },
+                                "dpMapping": {
+                                    "title": "DP Mapping (Advanced)",
+                                    "description": "Override default DP-to-function mappings as JSON. Example: {\"switch_1\": 1, \"bright_value\": 2, \"temp_value\": 3}",
+                                    "type": "object",
+                                    "condition": { "functionBody": "return !['other', '', undefined].includes(model.local?.devices?.[arrayIndices[0]]?.category);" },
+                                    "properties": {
+                                        "add_ele": {
+                                            "type": "integer",
+                                            "title": "add_ele",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "air_quality": {
+                                            "type": "integer",
+                                            "title": "air_quality",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "alarm_message": {
+                                            "type": "integer",
+                                            "title": "alarm_message",
+                                            "condition": {
+                                                "functionBody": "return ['sp', 'wxml'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "alarm_propel_switch": {
+                                            "type": "integer",
+                                            "title": "alarm_propel_switch",
+                                            "condition": {
+                                                "functionBody": "return ['wxml'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "battery_percentage": {
+                                            "type": "integer",
+                                            "title": "battery_percentage",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "bright_value": {
+                                            "type": "integer",
+                                            "title": "bright_value",
+                                            "condition": {
+                                                "functionBody": "return ['dj', 'fs', 'jsq', 'ldcg', 'tgq', 'wnykq', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "bright_value_v2": {
+                                            "type": "integer",
+                                            "title": "bright_value_v2",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "child_lock": {
+                                            "type": "integer",
+                                            "title": "child_lock",
+                                            "condition": {
+                                                "functionBody": "return ['cs', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "co2_state": {
+                                            "type": "integer",
+                                            "title": "co2_state",
+                                            "condition": {
+                                                "functionBody": "return ['co2bj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "co2_value": {
+                                            "type": "integer",
+                                            "title": "co2_value",
+                                            "condition": {
+                                                "functionBody": "return ['co2bj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "co_status": {
+                                            "type": "integer",
+                                            "title": "co_status",
+                                            "condition": {
+                                                "functionBody": "return ['cobj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "co_value": {
+                                            "type": "integer",
+                                            "title": "co_value",
+                                            "condition": {
+                                                "functionBody": "return ['cobj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "colour_data": {
+                                            "type": "integer",
+                                            "title": "colour_data",
+                                            "condition": {
+                                                "functionBody": "return ['bzyd', 'dj', 'fs', 'jsq', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "colour_data_v2": {
+                                            "type": "integer",
+                                            "title": "colour_data_v2",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "control": {
+                                            "type": "integer",
+                                            "title": "control",
+                                            "condition": {
+                                                "functionBody": "return ['mg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "cur_current": {
+                                            "type": "integer",
+                                            "title": "cur_current",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "cur_power": {
+                                            "type": "integer",
+                                            "title": "cur_power",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "cur_voltage": {
+                                            "type": "integer",
+                                            "title": "cur_voltage",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "dehumidify_set_value": {
+                                            "type": "integer",
+                                            "title": "dehumidify_set_value",
+                                            "condition": {
+                                                "functionBody": "return ['cs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorbell_call": {
+                                            "type": "integer",
+                                            "title": "doorbell_call",
+                                            "condition": {
+                                                "functionBody": "return ['wxml'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorbell_pic": {
+                                            "type": "integer",
+                                            "title": "doorbell_pic",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorbell_ring_exist": {
+                                            "type": "integer",
+                                            "title": "doorbell_ring_exist",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorbell_volume_value": {
+                                            "type": "integer",
+                                            "title": "doorbell_volume_value",
+                                            "condition": {
+                                                "functionBody": "return ['wxml'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorcontact_state": {
+                                            "type": "integer",
+                                            "title": "doorcontact_state",
+                                            "condition": {
+                                                "functionBody": "return ['ckmkzq', 'mcs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "fan_direction": {
+                                            "type": "integer",
+                                            "title": "fan_direction",
+                                            "condition": {
+                                                "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "fan_speed": {
+                                            "type": "integer",
+                                            "title": "fan_speed",
+                                            "condition": {
+                                                "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "fan_speed_enum": {
+                                            "type": "integer",
+                                            "title": "fan_speed_enum",
+                                            "condition": {
+                                                "functionBody": "return ['cs', 'fs', 'kj', 'kt', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "feed_report": {
+                                            "type": "integer",
+                                            "title": "feed_report",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "feed_state": {
+                                            "type": "integer",
+                                            "title": "feed_state",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "floodlight_lightness": {
+                                            "type": "integer",
+                                            "title": "floodlight_lightness",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "floodlight_switch": {
+                                            "type": "integer",
+                                            "title": "floodlight_switch",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "gas_sensor_status": {
+                                            "type": "integer",
+                                            "title": "gas_sensor_status",
+                                            "condition": {
+                                                "functionBody": "return ['rqbj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "humidity_current": {
+                                            "type": "integer",
+                                            "title": "humidity_current",
+                                            "condition": {
+                                                "functionBody": "return ['jsq', 'kt'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "humidity_indoor": {
+                                            "type": "integer",
+                                            "title": "humidity_indoor",
+                                            "condition": {
+                                                "functionBody": "return ['cs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "humidity_set": {
+                                            "type": "integer",
+                                            "title": "humidity_set",
+                                            "condition": {
+                                                "functionBody": "return ['jsq', 'kt'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "level": {
+                                            "type": "integer",
+                                            "title": "level",
+                                            "condition": {
+                                                "functionBody": "return ['xxj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "light": {
+                                            "type": "integer",
+                                            "title": "light",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq', 'fs', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "lock": {
+                                            "type": "integer",
+                                            "title": "lock",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'kt', 'qn', 'qn_old', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "lock_motor_state": {
+                                            "type": "integer",
+                                            "title": "lock_motor_state",
+                                            "condition": {
+                                                "functionBody": "return ['ms'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "manual_feed": {
+                                            "type": "integer",
+                                            "title": "manual_feed",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "master_mode": {
+                                            "type": "integer",
+                                            "title": "master_mode",
+                                            "condition": {
+                                                "functionBody": "return ['mal'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "meal_plan": {
+                                            "type": "integer",
+                                            "title": "meal_plan",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "mode": {
+                                            "type": "integer",
+                                            "title": "mode",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'kt', 'mjj', 'wk', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "motion_switch": {
+                                            "type": "integer",
+                                            "title": "motion_switch",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "movement_detect_pic": {
+                                            "type": "integer",
+                                            "title": "movement_detect_pic",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "open_close": {
+                                            "type": "integer",
+                                            "title": "open_close",
+                                            "condition": {
+                                                "functionBody": "return ['ms'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "percent_control": {
+                                            "type": "integer",
+                                            "title": "percent_control",
+                                            "condition": {
+                                                "functionBody": "return ['mg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "percent_state": {
+                                            "type": "integer",
+                                            "title": "percent_state",
+                                            "condition": {
+                                                "functionBody": "return ['mg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pir": {
+                                            "type": "integer",
+                                            "title": "pir",
+                                            "condition": {
+                                                "functionBody": "return ['pir'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pir_state": {
+                                            "type": "integer",
+                                            "title": "pir_state",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pm10_value": {
+                                            "type": "integer",
+                                            "title": "pm10_value",
+                                            "condition": {
+                                                "functionBody": "return ['pm25'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pm25": {
+                                            "type": "integer",
+                                            "title": "pm25",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pm25_value": {
+                                            "type": "integer",
+                                            "title": "pm25_value",
+                                            "condition": {
+                                                "functionBody": "return ['pm25'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "position": {
+                                            "type": "integer",
+                                            "title": "position",
+                                            "condition": {
+                                                "functionBody": "return ['mg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "presence_state": {
+                                            "type": "integer",
+                                            "title": "presence_state",
+                                            "condition": {
+                                                "functionBody": "return ['hps'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "quick_feed": {
+                                            "type": "integer",
+                                            "title": "quick_feed",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "shake": {
+                                            "type": "integer",
+                                            "title": "shake",
+                                            "condition": {
+                                                "functionBody": "return ['qn', 'qn_old'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "shock_state": {
+                                            "type": "integer",
+                                            "title": "shock_state",
+                                            "condition": {
+                                                "functionBody": "return ['zd'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "slow_feed": {
+                                            "type": "integer",
+                                            "title": "slow_feed",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "smoke_sensor_status": {
+                                            "type": "integer",
+                                            "title": "smoke_sensor_status",
+                                            "condition": {
+                                                "functionBody": "return ['ywbj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "sos_state": {
+                                            "type": "integer",
+                                            "title": "sos_state",
+                                            "condition": {
+                                                "functionBody": "return ['mal'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "speed": {
+                                            "type": "integer",
+                                            "title": "speed",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "swing": {
+                                            "type": "integer",
+                                            "title": "swing",
+                                            "condition": {
+                                                "functionBody": "return ['cs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch": {
+                                            "type": "integer",
+                                            "title": "switch",
+                                            "condition": {
+                                                "functionBody": "return ['cs', 'cwwsq', 'cz', 'dj', 'dlq', 'ggq', 'jsq', 'kj', 'kt', 'mjj', 'qn', 'qn_old', 'tgq', 'wk', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_1": {
+                                            "type": "integer",
+                                            "title": "switch_1",
+                                            "condition": {
+                                                "functionBody": "return ['ckmkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_fan": {
+                                            "type": "integer",
+                                            "title": "switch_fan",
+                                            "condition": {
+                                                "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_horizontal": {
+                                            "type": "integer",
+                                            "title": "switch_horizontal",
+                                            "condition": {
+                                                "functionBody": "return ['fs', 'kt'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_inching": {
+                                            "type": "integer",
+                                            "title": "switch_inching",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_led": {
+                                            "type": "integer",
+                                            "title": "switch_led",
+                                            "condition": {
+                                                "functionBody": "return ['bzyd', 'dj', 'jsq', 'xxj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_mode1": {
+                                            "type": "integer",
+                                            "title": "switch_mode1",
+                                            "condition": {
+                                                "functionBody": "return ['wxkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_music": {
+                                            "type": "integer",
+                                            "title": "switch_music",
+                                            "condition": {
+                                                "functionBody": "return ['bzyd'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_pir": {
+                                            "type": "integer",
+                                            "title": "switch_pir",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_sound": {
+                                            "type": "integer",
+                                            "title": "switch_sound",
+                                            "condition": {
+                                                "functionBody": "return ['xxj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_spray": {
+                                            "type": "integer",
+                                            "title": "switch_spray",
+                                            "condition": {
+                                                "functionBody": "return ['xxj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_current": {
+                                            "type": "integer",
+                                            "title": "temp_current",
+                                            "condition": {
+                                                "functionBody": "return ['jsq', 'kt', 'mjj', 'qn', 'qn_old', 'wk'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_indoor": {
+                                            "type": "integer",
+                                            "title": "temp_indoor",
+                                            "condition": {
+                                                "functionBody": "return ['cs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_set": {
+                                            "type": "integer",
+                                            "title": "temp_set",
+                                            "condition": {
+                                                "functionBody": "return ['kt', 'mjj', 'qn', 'qn_old', 'wk'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_unit_convert": {
+                                            "type": "integer",
+                                            "title": "temp_unit_convert",
+                                            "condition": {
+                                                "functionBody": "return ['kt', 'mjj', 'qn', 'qn_old', 'wk'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_value": {
+                                            "type": "integer",
+                                            "title": "temp_value",
+                                            "condition": {
+                                                "functionBody": "return ['dj', 'fs', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_value_v2": {
+                                            "type": "integer",
+                                            "title": "temp_value_v2",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "tvoc": {
+                                            "type": "integer",
+                                            "title": "tvoc",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "va_humidity": {
+                                            "type": "integer",
+                                            "title": "va_humidity",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq', 'pm25', 'wnykq', 'wsdcg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "va_temperature": {
+                                            "type": "integer",
+                                            "title": "va_temperature",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq', 'pm25', 'wnykq', 'wsdcg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "voc_value": {
+                                            "type": "integer",
+                                            "title": "voc_value",
+                                            "condition": {
+                                                "functionBody": "return ['pm25'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "work_mode": {
+                                            "type": "integer",
+                                            "title": "work_mode",
+                                            "condition": {
+                                                "functionBody": "return ['dj', 'fs', 'jsq', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "work_state": {
+                                            "type": "integer",
+                                            "title": "work_state",
+                                            "condition": {
+                                                "functionBody": "return ['mjj', 'qn', 'qn_old', 'wk'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "work_status": {
+                                            "type": "integer",
+                                            "title": "work_status",
+                                            "condition": {
+                                                "functionBody": "return ['kt'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        }
                                     }
                                 },
                                 "outletCount": {
@@ -478,326 +1168,6 @@
                                     "condition": {
                                         "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== undefined && ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== '';"
                                     }
-                                },
-                                "outlets": {
-                                    "type": "array",
-                                    "title": "Outlets",
-                                    "orderable": false,
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "name": {
-                                                "type": "string"
-                                            },
-                                            "dp": {
-                                                "type": "integer"
-                                            }
-                                        }
-                                    },
-                                    "condition": {
-                                        "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
-                                    }
-                                },
-                                "dpPower": {
-                                    "type": "integer",
-                                    "title": "Power DP",
-                                    "placeholder": 1,
-                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz', 'dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpBrightness": {
-                                    "type": "integer",
-                                    "title": "Brightness DP",
-                                    "placeholder": 2,
-                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpColorTemperature": {
-                                    "type": "integer",
-                                    "title": "Color Temperature DP",
-                                    "placeholder": 3,
-                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "minWhiteColor": {
-                                    "type": "integer",
-                                    "title": "Min White Color",
-                                    "placeholder": 140,
-                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "maxWhiteColor": {
-                                    "type": "integer",
-                                    "title": "Max White Color",
-                                    "placeholder": 400,
-                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpMode": {
-                                    "type": "integer",
-                                    "title": "Mode DP",
-                                    "placeholder": 2,
-                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpColor": {
-                                    "type": "integer",
-                                    "title": "Color DP",
-                                    "placeholder": 5,
-                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "colorFunction": {
-                                    "type": "string",
-                                    "title": "Color Function",
-                                    "placeholder": "HEXHSB",
-                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "scaleBrightness": {
-                                    "type": "integer",
-                                    "title": "Scale Brightness",
-                                    "placeholder": 255,
-                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "scaleWhiteColor": {
-                                    "type": "integer",
-                                    "title": "Scale White Color",
-                                    "placeholder": 255,
-                                    "condition": { "functionBody": "return ['dj', 'dsd', 'xdd', 'tgq', 'tgkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "voltsId": {
-                                    "type": "integer",
-                                    "title": "Voltage DP",
-                                    "placeholder": 9,
-                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "ampsId": {
-                                    "type": "integer",
-                                    "title": "Amperage DP",
-                                    "placeholder": 8,
-                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "wattsId": {
-                                    "type": "integer",
-                                    "title": "Power DP",
-                                    "placeholder": 7,
-                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"}
-                                },
-                                "voltsDivisor": {
-                                    "type": "integer",
-                                    "title": "Voltage Divisor",
-                                    "placeholder": 10,
-                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "ampsDivisor": {
-                                    "type": "integer",
-                                    "title": "Amperage Divisor",
-                                    "placeholder": 1000,
-                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "wattsDivisor": {
-                                    "type": "integer",
-                                    "title": "Power Divisor",
-                                    "placeholder": 10,
-                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "noCool": {
-                                    "type": "boolean",
-                                    "title": "No Cool Mode",
-                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "noHeat": {
-                                    "type": "boolean",
-                                    "title": "No Heat Mode",
-                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "cmdCool": {
-                                    "type": "string",
-                                    "title": "Cool Command",
-                                    "placeholder": "COOL",
-                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "cmdHeat": {
-                                    "type": "string",
-                                    "title": "Heat Command",
-                                    "placeholder": "HEAT",
-                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "noSwing": {
-                                    "type": "boolean",
-                                    "title": "No Swing Mode",
-                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "minTemperature": {
-                                    "type": "integer",
-                                    "title": "Min Temperature",
-                                    "placeholder": 15,
-                                    "condition": { "functionBody": "return ['kt', 'ktkzq', 'qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "maxTemperature": {
-                                    "type": "integer",
-                                    "title": "Max Temperature",
-                                    "placeholder": 40,
-                                    "condition": { "functionBody": "return ['kt', 'ktkzq', 'qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "minTemperatureSteps": {
-                                    "type": "integer",
-                                    "title": "Min Temperature Steps",
-                                    "placeholder": 1,
-                                    "condition": { "functionBody": "return ['kt', 'ktkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpActive": {
-                                    "type": "integer",
-                                    "title": "Active DP",
-                                    "placeholder": 7,
-                                    "condition": { "functionBody": "return ['qn', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpDesiredTemperature": {
-                                    "type": "integer",
-                                    "title": "Desired Temperature DP",
-                                    "placeholder": 2,
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpCurrentTemperature": {
-                                    "type": "integer",
-                                    "title": "Current Temperature DP",
-                                    "placeholder": 3,
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpAction": {
-                                    "type": "integer",
-                                    "title": "Action DP",
-                                    "placeholder": 1,
-                                    "condition": { "functionBody": "return ['ckmkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpStatus": {
-                                    "type": "integer",
-                                    "title": "Status DP",
-                                    "placeholder": 2,
-                                    "condition": { "functionBody": "return ['ckmkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "flipState": {
-                                    "type": "boolean",
-                                    "title": "Flip State",
-                                    "condition": { "functionBody": "return ['ckmkzq', 'cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "timeToOpen": {
-                                    "type": "integer",
-                                    "title": "Time to Open (seconds)",
-                                    "placeholder": 45,
-                                    "condition": { "functionBody": "return ['cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "timeToTighten": {
-                                    "type": "integer",
-                                    "title": "Time to Tighten (seconds)",
-                                    "placeholder": 0,
-                                    "condition": { "functionBody": "return ['cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "timeToClose": {
-                                    "type": "integer",
-                                    "title": "Time to Close (seconds)",
-                                    "placeholder": 30,
-                                    "description": "Time in seconds for blinds to fully open or close",
-                                    "condition": { "functionBody": "return ['cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpLight": {
-                                    "type": "integer",
-                                    "title": "Light DP",
-                                    "placeholder": 1,
-                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpBlindType": {
-                                    "type": "integer",
-                                    "title": "Blind Type DP",
-                                    "placeholder": 1,
-                                    "condition": { "functionBody": "return ['cl', 'clkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpLightOn": {
-                                    "type": "integer",
-                                    "title": "Light On DP",
-                                    "placeholder": 9,
-                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpFanOn": {
-                                    "type": "integer",
-                                    "title": "Fan On DP",
-                                    "placeholder": 1,
-                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpRotationSpeed": {
-                                    "type": "integer",
-                                    "title": "Rotation Speed DP",
-                                    "placeholder": 4,
-                                    "condition": { "functionBody": "return ['qn', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpRotationDirection": {
-                                    "type": "integer",
-                                    "title": "Rotation Direction DP",
-                                    "placeholder": 63,
-                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "maxSpeed": {
-                                    "type": "integer",
-                                    "title": "Max Speed",
-                                    "placeholder": 3,
-                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "fanDefaultSpeed": {
-                                    "type": "integer",
-                                    "title": "Fan Default Speed",
-                                    "placeholder": 1,
-                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "useStrings": {
-                                    "type": "boolean",
-                                    "title": "Use Strings",
-                                    "placeholder": true,
-                                    "condition": { "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpChildLock": {
-                                    "type": "integer",
-                                    "title": "Child Lock DP",
-                                    "placeholder": 6,
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "dpTemperatureDisplayUnits": {
-                                    "type": "integer",
-                                    "title": "Temperature Display Units DP",
-                                    "placeholder": 19,
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "cmdLow": {
-                                    "type": "string",
-                                    "title": "Low Command",
-                                    "placeholder": "Low",
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "cmdHigh": {
-                                    "type": "string",
-                                    "title": "High Command",
-                                    "placeholder": "High",
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "noChildLock": {
-                                    "type": "boolean",
-                                    "title": "No Child Lock",
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "noTemperatureUnit": {
-                                    "type": "boolean",
-                                    "title": "No Temperature Unit",
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "temperatureDivisor": {
-                                    "type": "integer",
-                                    "title": "Temperature Divisor",
-                                    "placeholder": 1,
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "thresholdTemperatureDivisor": {
-                                    "type": "integer",
-                                    "title": "Threshold Temperature Divisor",
-                                    "placeholder": 1,
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
-                                },
-                                "temperatureOffset": {
-                                    "type": "integer",
-                                    "title": "Temperature Offset",
-                                    "placeholder": 0,
-                                    "condition": { "functionBody": "return ['qn'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
                                 }
                             }
                         }

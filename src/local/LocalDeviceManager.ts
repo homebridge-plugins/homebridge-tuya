@@ -505,7 +505,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       return;
     }
 
-    const effectiveMap = Object.assign({}, DEFAULT_DP_MAP, cfg.dpMapping ?? {});
+    const effectiveMap = Object.assign({}, cfg.dpMapping ?? DEFAULT_DP_MAP);
     // override dpcodes
     for (const [dpCode, dpID] of Object.entries(effectiveMap)) {
       const schemaConfig = this.getDeviceSchemaConfig({ id: cfg.tuyaDeviceId} as any, dpCode);
@@ -732,7 +732,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       const switchCodes: string[] = [];
       for (const [code, dp] of Object.entries(dpMapping)) {
         // Keep non-switch DPs (brightness, temp, color, etc.)
-        if (!code.startsWith('switch')) {
+        if (!code.match(/^switch_(\d+)$/)) {
           filteredMapping[code] = dp;
         }
         // For switches, only include switch_1..switch_N

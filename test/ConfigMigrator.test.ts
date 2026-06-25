@@ -570,6 +570,35 @@ describe('ConfigMigrator migrate', () => {
       const result = migrator['cleanupConfig'](inputConfig as any);
       expect(result).toEqual(outputConfig);
     });
+
+    test('remove unset dpMapping', () => {
+      const migrator = new ConfigMigrator();
+      const inputConfig = {
+        local: {
+          devices: [ {
+            tuyaDeviceId: 'deviceID',
+            dpMapping: {
+              'dpCode1': undefined,
+              'dpCode2': 1,
+              'dpCode3': -1
+            }
+          } ]
+        }
+      };
+      const outputConfig = {
+        local: {
+          devices: [ {
+            tuyaDeviceId: 'deviceID',
+            dpMapping: {
+              'dpCode2': 1,
+            }
+          } ]
+        }
+      };
+
+      const result = migrator['cleanupConfig'](inputConfig as any);
+      expect(result).toEqual(outputConfig);
+    });
   });
     
   describe('ConfigMigrator diffConfig', () => {

@@ -156,6 +156,15 @@ export default class ConfigMigrator {
       });
       // Because the Homebridge configuration UI does not officially support nested tabs, unused tabs may sometimes be generated.
       localConfig.deviceOverrides?.forEach(i => i.schema = i.schema?.filter(j => j.code !== undefined) ?? []);
+
+      // delete unset dpMapping
+      localConfig.devices?.forEach(i => {
+        for (const key of Object.keys(i.dpMapping ?? {})) {
+          if (i.dpMapping![key] < 1) {
+            delete i.dpMapping![key];
+          }
+        }
+      });
     }
     if (commonConfig) {
       if (!commonConfig.debug) {
