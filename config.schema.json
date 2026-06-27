@@ -507,7 +507,7 @@
                                         }
                                     },
                                     "condition": {
-                                        "functionBody": "return ['other'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                        "functionBody": "return ['wnykq', 'qt', 'infrared_', 'other'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
                                     }
                                 },
                                 "dpMapping": {
