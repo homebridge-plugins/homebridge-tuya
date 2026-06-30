@@ -10,7 +10,10 @@ export function configureSwingMode(accessory: BaseAccessory, service: Service, s
   const { SWING_DISABLED, SWING_ENABLED } = accessory.Characteristic.SwingMode;
   service.getCharacteristic(accessory.Characteristic.SwingMode)
     .onGet(() => {
-      const status = accessory.getStatus(schema.code)!;
+      const status = accessory.getStatus(schema.code);
+      if (!status) {
+        return SWING_DISABLED;
+      }
       return (status.value as boolean) ? SWING_ENABLED : SWING_DISABLED;
     })
     .onSet(async (value) => {
