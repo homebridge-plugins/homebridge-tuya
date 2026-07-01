@@ -1,4 +1,5 @@
 import { TuyaDeviceSchemaIntegerProperty } from '../../../cloud/device/TuyaDevice';
+import { limit } from '../../util/util';
 import BaseAccessory from '../BaseAccessory';
 
 const SCHEMA_CODE = {
@@ -20,9 +21,9 @@ export function configureCurrentWetBulbGlobeTemperature(accessory: BaseAccessory
       const t = accessory.getStatus(tSchema!.code)?.value as number || 1;
       const rhProperty = rhSchema?.property as TuyaDeviceSchemaIntegerProperty || {};
       const rhMultiple = Math.pow(10, rhProperty['scale'] || 0);
-      const tProperty = rhSchema?.property as TuyaDeviceSchemaIntegerProperty || {};
+      const tProperty = tSchema?.property as TuyaDeviceSchemaIntegerProperty || {};
       const tMultiple = Math.pow(10, tProperty['scale'] || 0);
-      return calculateWBGT(t/tMultiple, rh/rhMultiple).wbgtIndoor;
+      return limit(calculateWBGT(t / tMultiple, rh / rhMultiple).wbgtIndoor, -273.15, 100);
     })
     .setProps({
       unit: '℃',
