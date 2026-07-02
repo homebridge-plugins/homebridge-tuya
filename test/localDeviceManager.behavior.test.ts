@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import LocalDeviceManager from '../src/local/LocalDeviceManager';
 import type { LocalConfig } from '../src/local/config';
+import { TuyaPluginMode } from '../src/config';
+import { TuyaDeviceSchemaType } from '../src/cloud/device/TuyaDevice';
 import { ExLogger, initLogger } from '../src/shared/util/Logger';
 
 const createdConnections: any[] = [];
@@ -167,5 +169,75 @@ describe('LocalDeviceManager command and local mapping behavior', () => {
     expect(discovered).toBeDefined();
     expect(discovered?.ip).toBe('192.168.1.30');
     expect(discovered?.product_id).toBe('prod1');
+  });
+
+  test('keeps DP mapping when a local override uses the same code as a no-op rename', async () => {
+    const config: LocalConfig = {
+      autoDiscoverDevices: false,
+      deviceOverrides: [{
+        id: 'dev-1',
+        configFor: TuyaPluginMode.local,
+        schema: [{
+          code: 'humidity_indoor',
+          newCode: 'humidity_indoor',
+          type: TuyaDeviceSchemaType.Integer,
+          property: { min: 0, max: 100, scale: 0, step: 1 },
+        }],
+      }],
+      devices: [{
+        tuyaDeviceId: 'dev-1',
+        ip: '192.168.1.10',
+        tuyaKey: 'abcdef1234567890',
+        protocolVersion: '3.5',
+        dpMapping: {
+          humidity_indoor: 6,
+        },
+      }],
+    };
+
+    const manager = new LocalDeviceManager(config);
+    await manager.initLocalDevices();
+
+    const device = manager.getDevice('dev-1');
+    const dpMap = (manager as any).dpMaps.get('dev-1');
+    const reverseMap = (manager as any).reverseDpMaps.get('dev-1');
+
+    expect(dpMap?.humidity_indoor).toBe(6);
+    expect(reverseMap?.[6]).toBe('humidity_indoor');
+    expect(device?.schema.some(schema => schema.code === 'humidity_indoor' && schema.type === TuyaDeviceSchemaType.Integer)).toBe(true);
+  });
+
+  test('applies local overrides without a rename using the original code', async () => {
+    const config: LocalConfig = {
+      autoDiscoverDevices: false,
+      deviceOverrides: [{
+        id: 'dev-1',
+        configFor: TuyaPluginMode.local,
+        schema: [{
+          code: 'humidity_indoor',
+          type: TuyaDeviceSchemaType.Integer,
+          property: { min: 0, max: 100, scale: 0, step: 1 },
+        }],
+      }],
+      devices: [{
+        tuyaDeviceId: 'dev-1',
+        ip: '192.168.1.10',
+        tuyaKey: 'abcdef1234567890',
+        protocolVersion: '3.5',
+        dpMapping: {
+          humidity_indoor: 6,
+        },
+      }],
+    };
+
+    const manager = new LocalDeviceManager(config);
+    await manager.initLocalDevices();
+
+    const device = manager.getDevice('dev-1');
+    const schema = device?.schema.find(item => item.code === 'humidity_indoor');
+
+    expect(schema).toBeDefined();
+    expect(schema?.type).toBe(TuyaDeviceSchemaType.Integer);
+    expect(device?.schema.every(item => !!item.code)).toBe(true);
   });
 });

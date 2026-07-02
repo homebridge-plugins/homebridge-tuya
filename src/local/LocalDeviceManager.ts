@@ -508,11 +508,18 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     const effectiveMap = Object.assign({}, cfg.dpMapping ?? DEFAULT_DP_MAP);
     // override dpcodes
     for (const [dpCode, dpID] of Object.entries(effectiveMap)) {
-      const schemaConfig = this.getDeviceSchemaConfig({ id: cfg.tuyaDeviceId} as any, dpCode);
-      if (!!schemaConfig && !!schemaConfig.newCode) {
-        effectiveMap[schemaConfig.newCode] = dpID;
-        delete effectiveMap[dpCode];
+      const schemaConfig = this.getDeviceSchemaConfig({ id: cfg.tuyaDeviceId } as any, dpCode);
+      if (!schemaConfig?.newCode) {
+        continue;
       }
+
+      const targetCode = schemaConfig.newCode.trim();
+      if (!targetCode || targetCode === dpCode) {
+        continue;
+      }
+
+      effectiveMap[targetCode] = dpID;
+      delete effectiveMap[dpCode];
     }
     this.dpMaps.set(cfg.tuyaDeviceId, effectiveMap);
     this.reverseDpMaps.set(cfg.tuyaDeviceId, buildDpToCodeMap(effectiveMap));
@@ -761,13 +768,22 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
     // apply overrides
     this.getDeviceConfig(device)?.schema?.forEach(s => {
-      const schema = schemas.find(t => t.code === s.newCode);
+      if (!s.code) {
+        return;
+      }
+
+      const targetCode = s.newCode?.trim() || s.code;
+      if (!targetCode) {
+        return;
+      }
+
+      const schema = schemas.find(t => t.code === targetCode);
       if (!!schema) {
         schema.type = s.type ?? schema.type;
         schema.property = s.property ?? schema.property;
       } else {
         schemas.push({
-          code: s.newCode!,
+          code: targetCode,
           mode: TuyaDeviceSchemaMode.READ_WRITE,
           type: s.type ?? TuyaDeviceSchemaType.Boolean,
           property: s.property ?? {},
