@@ -137,8 +137,18 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   }
 
   override getDeviceSchemaConfig(device: TuyaDevice, dpCode: string) {
-    const schemaConfig = this.getDeviceConfig(device)?.schema?.find(s => s.code === dpCode);
-    return schemaConfig;
+    const schema = this.getDeviceConfig(device)?.schema;
+    if (!schema || !dpCode) {
+      return undefined;
+    }
+
+    // ignore case - allow both the device code and its (optional) rename
+    const target = dpCode.toString().toLowerCase();
+    return schema.find(s => {
+      const code = s.code?.toString().toLowerCase();
+      const newCode = s.newCode?.toString().toLowerCase();
+      return code === target || newCode === target;
+    });
   }
 
   override enableGarageDoorUseContactSensorForState(device: TuyaDevice): boolean {
@@ -512,6 +522,12 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       if (!schemaConfig?.newCode) {
         continue;
       }
+      // Only treat newCode as a rename when it actually differs from the device code.
+      // Renaming to the same key would set-then-delete it, dropping the dp↔code mapping.
+      if (schemaConfig.newCode && schemaConfig.newCode !== dpCode) {
+        effectiveMap[schemaConfig.newCode] = dpID;
+        delete effectiveMap[dpCode];
+      }
 
       const targetCode = schemaConfig.newCode.trim();
       if (!targetCode || targetCode === dpCode) {
@@ -766,7 +782,8 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       property: {},
     }) as TuyaDeviceSchema);
 
-    // apply overrides
+    // apply overrides. The synthetic schemas are keyed on the (possibly renamed)
+    // dp code, so match on newCode when a rename is set, otherwise on the device code.
     this.getDeviceConfig(device)?.schema?.forEach(s => {
       if (!s.code) {
         return;

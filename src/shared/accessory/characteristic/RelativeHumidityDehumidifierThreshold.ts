@@ -20,8 +20,8 @@ export function configureRelativeHumidityDehumidifierThreshold(accessory: BaseAc
   service.getCharacteristic(accessory.Characteristic.RelativeHumidityDehumidifierThreshold)
     .onGet(() => {
       const status = accessory.getStatus(schema.code);
-      if (!status?.value) {
-        return 0;
+      if (!status) {
+        return props.minValue;
       }
       return limit(status.value as number / multiple, 0, 100);
     })

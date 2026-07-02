@@ -11,7 +11,10 @@ export function configureLockPhysicalControls(accessory: BaseAccessory, service:
   service.getCharacteristic(accessory.Characteristic.LockPhysicalControls)
     .onGet(() => {
       const status = accessory.getStatus(schema.code);
-      return (status?.value as boolean) ? CONTROL_LOCK_ENABLED : CONTROL_LOCK_DISABLED;
+      if (!status) {
+        return CONTROL_LOCK_DISABLED;
+      }
+      return (status.value as boolean) ? CONTROL_LOCK_ENABLED : CONTROL_LOCK_DISABLED;
     })
     .onSet(async value => {
       await accessory.sendCommands([{

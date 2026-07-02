@@ -19,8 +19,8 @@ export function configureCurrentRelativeHumidity(accessory: BaseAccessory, servi
   service.getCharacteristic(accessory.Characteristic.CurrentRelativeHumidity)
     .onGet(() => {
       const status = accessory.getStatus(schema.code);
-      if (!status?.value) {
-        return 0;
+      if (!status) {
+        return props['minValue'] ?? 0;
       }
       return limit(status.value as number / multiple, props['minValue'], props['maxValue']);
     })
