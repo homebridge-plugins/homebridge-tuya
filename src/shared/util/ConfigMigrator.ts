@@ -52,8 +52,10 @@ export default class ConfigMigrator {
     if (!!config.cloud) {
       config.cloud.deviceOverrides?.forEach(this.migrateDeviceConfig);
       // Updated deviceOverrides so it can be used in both cloud and local modes.
-      const cloudDeviceOverrides = config.cloud.deviceOverrides?.filter(config => [TuyaPluginMode.cloud, TuyaPluginMode.both, undefined].includes(config.configFor as any));
-      const localDeviceOverrides = config.cloud.deviceOverrides?.filter(config => [TuyaPluginMode.local, TuyaPluginMode.both].includes(config.configFor as any));
+      const cloudDeviceOverrides = config.cloud.deviceOverrides?.
+        filter(config => [TuyaPluginMode.cloud, TuyaPluginMode.both, undefined].includes(config.configFor as any));
+      const localDeviceOverrides = config.cloud.deviceOverrides?.
+        filter(config => [TuyaPluginMode.local, TuyaPluginMode.both].includes(config.configFor as any));
       config.cloud.deviceOverrides = cloudDeviceOverrides;
       if (!!config.local) {
         config.local.deviceOverrides = localDeviceOverrides;

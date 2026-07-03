@@ -51,6 +51,7 @@ import IRControlHubSubAccessory from './IRControlHubSubAccessory';
 import LocationWeatherAccessory from './LocationWeatherAccessory';
 import TowelRackAccessory from './TowerRackAccessory';
 import BlindsAccessory from './BlindsAccessory';
+import IRFanAccessory from './IRFanAccessory';
 
 export default class AccessoryFactory {
   static readonly platformAccessoryOverrides:Partial<
@@ -84,6 +85,10 @@ export default class AccessoryFactory {
     handler = this.resolveAccessoryByProductID(platform, accessory, device.product_id)
       || this.resolveAccessoryByCategory(platform, accessory, device.category);
 
+    if (handler && !handler.checkRequirements()) {
+      handler = undefined;
+    }
+
     // basically use should set the handler at the switch-case
     if (!handler) {
       platform.log.warn(`no handler for category:${device.category}`);
@@ -94,6 +99,20 @@ export default class AccessoryFactory {
             platform.log.warn('case IRAirConditionerAccessory');
             handler = new IRAirConditionerAccessory(platform, accessory);
             break;
+          case 8: // Fan
+            platform.log.warn('case IRFanAccessory');
+            handler = new IRFanAccessory(platform, accessory);
+            break;
+          case 1: // STB
+          case 2: // TV
+          case 3: // TV Box
+          case 4: // DVD
+          case 6: // Projector
+          case 7: // Audio
+          case 9: // Camera
+          case 10: // Light
+          case 11: // Air Purifier
+          case 12: // Water Heater
           default:
             platform.log.warn('case IRGenericAccessory');
             handler = new IRGenericAccessory(platform, accessory);
@@ -268,6 +287,11 @@ export default class AccessoryFactory {
       case 'hwktwkq':
       case 'wsdykq':
         return new IRControlHubAccessory(platform, accessory);
+
+      case 'infrared_ac':
+        return new IRAirConditionerAccessory(platform, accessory);
+      case 'infrared_fan':
+        return new IRFanAccessory(platform, accessory);
 
       case 'qt':
         platform.log.debug('early product. add switch-case at function resolveAccessoryByProductID()');

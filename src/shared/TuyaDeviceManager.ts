@@ -87,7 +87,7 @@ export default abstract class TuyaDeviceManager extends EventEmitter {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  updateInfraredRemotes(allDevices: TuyaDevice[]) : void {}
+  async updateInfraredRemotes(allDevices: TuyaDevice[]) : Promise<void> {}
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getCurrentWeather(lat: string, lon: string) : Promise<TuyaOpenAPIResponse> {

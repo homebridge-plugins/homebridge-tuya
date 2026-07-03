@@ -88,7 +88,7 @@ export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
       .catch(() => this.cloudDeviceManager.sendCommands(deviceID, commands));
   }
 
-  override updateInfraredRemotes(allDevices: TuyaDevice[]): void {
+  override async updateInfraredRemotes(allDevices: TuyaDevice[]): Promise<void> {
     this.localDeviceManager.updateInfraredRemotes(allDevices);
     this.cloudDeviceManager.updateInfraredRemotes(allDevices);
   }

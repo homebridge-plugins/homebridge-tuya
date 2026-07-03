@@ -266,7 +266,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     this.deviceManager = deviceManager;
 
     const devices = await this.deviceManager.pullDevices();
-    this.deviceManager.updateInfraredRemotes(devices);
+    await this.deviceManager.updateInfraredRemotes(devices);
 
     for (const device of devices) {
       this.addAccessory(device);
