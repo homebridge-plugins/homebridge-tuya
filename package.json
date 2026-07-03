@@ -1,7 +1,7 @@
 {
   "name": "@homebridge-plugins/homebridge-tuya",
   "displayName": "Homebridge Tuya",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Forked from 0x5e/homebridge-tuya-platform, with a focus on fixing bugs and adding new device support.",
   "license": "MIT",
   "repository": {
