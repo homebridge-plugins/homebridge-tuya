@@ -75,7 +75,7 @@ export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
 
     // Find matching override, respecting source filtering
     const matches = this.config.deviceOverrides?.filter(config => {
-      const sourceMatch = config.configFor === TuyaPluginMode.cloud;
+      const sourceMatch = [TuyaPluginMode.cloud, TuyaPluginMode.both].includes(config.configFor as TuyaPluginMode);
       const idMatch = config.id === device.id || config.id === device.uuid ||
                       config.id === device.product_id || config.id === 'global';
       return sourceMatch && idMatch;

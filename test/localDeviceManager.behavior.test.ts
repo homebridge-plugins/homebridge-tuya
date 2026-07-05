@@ -240,4 +240,111 @@ describe('LocalDeviceManager command and local mapping behavior', () => {
     expect(schema?.type).toBe(TuyaDeviceSchemaType.Integer);
     expect(device?.schema.every(item => !!item.code)).toBe(true);
   });
+
+  test('applies local overrides', async () => {
+    const config: LocalConfig = {
+      autoDiscoverDevices: false,
+      devices: [],
+      deviceOverrides: [{
+        id: 'dev-1',
+        category: 'jsq',
+        configFor: TuyaPluginMode.local,
+        schema: [{
+          code: 'humidity_indoor',
+          type: TuyaDeviceSchemaType.Integer,
+          property: { min: 0, max: 100, scale: 0, step: 1 },
+        }],
+      }],
+    };
+
+    const manager = new LocalDeviceManager(config);
+    await manager.initLocalDevices();
+
+    (manager as any)._onDiscovered({
+      id: 'dev-1',
+      ip: '192.168.0.1',
+      version: '3.3',
+      productKey: 'prod1',
+    });
+
+    const device = manager.getDevice('dev-1');
+
+    expect(device).toBeDefined();
+    expect(device?.ip).toBe('192.168.0.1');
+    expect(device?.product_id).toBe('prod1');
+    expect(device?.category).toBe('jsq');
+    expect(device?.schema?.length).toBe(1);
+    expect(device?.schema?.[0].code).toBe('humidity_indoor');
+  });
+
+  test('do not apply cloud overrides to local devices', async () => {
+    const config: LocalConfig = {
+      autoDiscoverDevices: false,
+      devices: [],
+      deviceOverrides: [{
+        id: 'dev-1',
+        category: 'jsq',
+        configFor: TuyaPluginMode.cloud,
+        schema: [{
+          code: 'humidity_indoor',
+          type: TuyaDeviceSchemaType.Integer,
+          property: { min: 0, max: 100, scale: 0, step: 1 },
+        }],
+      }],
+    };
+
+    const manager = new LocalDeviceManager(config);
+    await manager.initLocalDevices();
+
+    (manager as any)._onDiscovered({
+      id: 'dev-1',
+      ip: '192.168.0.1',
+      version: '3.3',
+      productKey: 'prod1',
+    });
+
+    const device = manager.getDevice('dev-1');
+
+    expect(device).toBeDefined();
+    expect(device?.ip).toBe('192.168.0.1');
+    expect(device?.product_id).toBe('prod1');
+    expect(device?.category).toBe('unknown');
+    expect(device?.schema?.length).toBe(0);
+  });
+
+  test('applies overrides local device (configFor:both)', async () => {
+    const config: LocalConfig = {
+      autoDiscoverDevices: false,
+      devices: [],
+      deviceOverrides: [{
+        id: 'dev-1',
+        category: 'jsq',
+        configFor: TuyaPluginMode.both,
+        schema: [{
+          code: 'humidity_indoor',
+          type: TuyaDeviceSchemaType.Integer,
+          property: { min: 0, max: 100, scale: 0, step: 1 },
+        }],
+      }],
+    };
+
+    const manager = new LocalDeviceManager(config);
+    await manager.initLocalDevices();
+
+    (manager as any)._onDiscovered({
+      id: 'dev-1',
+      ip: '192.168.0.1',
+      version: '3.3',
+      productKey: 'prod1',
+    });
+
+    const device = manager.getDevice('dev-1');
+
+    expect(device).toBeDefined();
+    expect(device?.ip).toBe('192.168.0.1');
+    expect(device?.product_id).toBe('prod1');
+    expect(device?.category).toBe('jsq');
+    expect(device?.schema?.length).toBe(1);
+    expect(device?.schema?.[0].code).toBe('humidity_indoor');
+  });
 });

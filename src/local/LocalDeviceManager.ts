@@ -131,9 +131,16 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     return ConfigHash.computeHash(configToHash);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   override configDevice(device: TuyaDevice): void {
-    // In the Local case, device objects are generally created from the LocalConfig, so there is nothing that needs to be handled here.
+    const deviceConfig = this.getDeviceConfig(device);
+    if (deviceConfig?.category) {
+      this.log.warn('Override %o category from %o to %o', device.name, device.category, deviceConfig.category);
+      device.category = deviceConfig.category;
+    }
+    if (deviceConfig?.unbridged) {
+      this.log.warn('Unbridge %o category %o', device.name, device.category);
+      device.unbridged = deviceConfig.unbridged;
+    }
   }
 
   override getDeviceSchemaConfig(device: TuyaDevice, dpCode: string) {
@@ -162,7 +169,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
 
     // Find matching override, respecting source filtering
     const matches = this.config.deviceOverrides?.filter(config => {
-      const sourceMatch = config.configFor === TuyaPluginMode.local;
+      const sourceMatch = [TuyaPluginMode.local, TuyaPluginMode.both].includes(config.configFor as TuyaPluginMode);
       const idMatch = config.id === device.id || config.id === device.uuid ||
                       config.id === device.product_id || config.id === 'global';
       return sourceMatch && idMatch;
@@ -271,6 +278,11 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
         const configSchema = this.getDeviceConfig(device)?.schema?.find(cs => cs.code === s.code);
         if (configSchema) {
           Object.assign(s, configSchema);
+        }
+      });
+      this.getDeviceConfig(device)?.schema?.forEach(cs => {
+        if (!device.schema.some(s => s.code === cs.code)) {
+          device.schema.push(cs as TuyaDeviceSchema);
         }
       });
     }
