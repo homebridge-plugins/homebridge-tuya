@@ -25,9 +25,14 @@ const SCHEMA_CODE = {
   TARGET_HUMIDITY: ['humidity_set'],
 };
 
-const AC_MODES = ['auto', 'cold', 'hot'];
-const DEHUMIDIFIER_MODE = 'wet';
-const FAN_MODE = 'wind';
+// Mode values
+const AC_HEAT_MODES = ['hot', 'heat'];
+const AC_COOL_MODES = ['cold', 'cool'];
+const AC_MODES = ['auto', ...AC_HEAT_MODES, ...AC_COOL_MODES];
+// Added support for dyr, which is included because some devices return a misspelled code value.
+const DEHUMIDIFIER_MODE = ['wet', 'dry', 'dyr'];
+const FAN_MODE = ['wind', 'fan'];
+
 
 export default class AirConditionerAccessory extends BaseAccessory {
 
@@ -96,7 +101,8 @@ export default class AirConditionerAccessory extends BaseAccessory {
     const activeSchema = this.getSchema(...SCHEMA_CODE.ACTIVE)!;
     const modeSchema = this.getSchema(...SCHEMA_CODE.MODE)!;
     const property = modeSchema.property as TuyaDeviceSchemaEnumProperty;
-    if (!property.range.includes(DEHUMIDIFIER_MODE)) {
+    const dehumidifierCode = property.range.find(code => DEHUMIDIFIER_MODE.includes(code.toLowerCase()));
+    if (!dehumidifierCode) {
       return;
     }
 
@@ -108,7 +114,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
       .onGet(() => {
         const activeStatus = this.getStatus(activeSchema.code)!;
         const modeStatus = this.getStatus(modeSchema.code)!;
-        return (activeStatus.value === true && modeStatus.value === DEHUMIDIFIER_MODE) ? ACTIVE : INACTIVE;
+        return (activeStatus.value === true && modeStatus.value === dehumidifierCode) ? ACTIVE : INACTIVE;
       })
       .onSet(async value => {
         await this.sendCommands([{
@@ -116,7 +122,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
           value: (value === ACTIVE) ? true : false,
         }, {
           code: modeSchema.code,
-          value: DEHUMIDIFIER_MODE,
+          value: dehumidifierCode,
         }], true);
       });
 
@@ -145,7 +151,8 @@ export default class AirConditionerAccessory extends BaseAccessory {
     const activeSchema = this.getSchema(...SCHEMA_CODE.ACTIVE)!;
     const modeSchema = this.getSchema(...SCHEMA_CODE.MODE)!;
     const property = modeSchema.property as TuyaDeviceSchemaEnumProperty;
-    if (!property.range.includes(FAN_MODE)) {
+    const fanCode = property.range.find(code => FAN_MODE.includes(code.toLowerCase()));
+    if (!fanCode) {
       return;
     }
 
@@ -157,7 +164,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
       .onGet(() => {
         const activeStatus = this.getStatus(activeSchema.code)!;
         const modeStatus = this.getStatus(modeSchema.code)!;
-        return (activeStatus.value === true && modeStatus.value === FAN_MODE) ? ACTIVE : INACTIVE;
+        return (activeStatus.value === true && modeStatus.value === fanCode) ? ACTIVE : INACTIVE;
       })
       .onSet(async value => {
         await this.sendCommands([{
@@ -165,7 +172,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
           value: (value === ACTIVE) ? true : false,
         }, {
           code: modeSchema.code,
-          value: FAN_MODE,
+          value: fanCode,
         }], true);
       });
 
@@ -223,10 +230,10 @@ export default class AirConditionerAccessory extends BaseAccessory {
     if (property.range.includes('auto')) {
       validValues.push(AUTO);
     }
-    if (property.range.includes('hot')) {
+    if (property.range.some(mode => AC_HEAT_MODES.includes(mode.toLowerCase()))) {
       validValues.push(HEAT);
     }
-    if (property.range.includes('cold')) {
+    if (property.range.some(mode => AC_COOL_MODES.includes(mode.toLowerCase()))) {
       validValues.push(COOL);
     }
 
@@ -238,9 +245,9 @@ export default class AirConditionerAccessory extends BaseAccessory {
     this.mainService().getCharacteristic(this.Characteristic.TargetHeaterCoolerState)
       .onGet(() => {
         const status = this.getStatus(schema.code)!;
-        if (status.value === 'hot') {
+        if (AC_HEAT_MODES.includes(String(status.value).toLowerCase())) {
           return HEAT;
-        } else if (status.value === 'cold') {
+        } else if (AC_COOL_MODES.includes(String(status.value).toLowerCase())) {
           return COOL;
         }
 
@@ -250,9 +257,9 @@ export default class AirConditionerAccessory extends BaseAccessory {
 
         let mode: string;
         if (value === HEAT) {
-          mode = 'hot';
+          mode = property.range.find(m => AC_HEAT_MODES.includes(m.toLowerCase())) || AC_HEAT_MODES[0];
         } else if (value === COOL) {
-          mode = 'cold';
+          mode = property.range.find(m => AC_COOL_MODES.includes(m.toLowerCase())) || AC_COOL_MODES[0];
         } else {
           mode = 'auto';
         }
