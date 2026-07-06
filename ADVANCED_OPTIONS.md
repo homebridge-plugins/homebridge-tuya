@@ -240,6 +240,26 @@ Most curtain motor have "reverse mode" setting in the Tuya App, if you don't hav
 }
 ```
 
+### Set an offset for the device’s status value.
+
+Some devices return status values without applying any offset, so we override onGet and onSet to apply a custom offset.
+For example, if you want to apply an offset of `+10` to the `temperature` dpCode.
+
+```js
+{
+  "options": {
+    // ...
+    "deviceOverrides": [{
+      "id": "{device_id}",
+      "schema": [{
+        "code": "temperature",
+        "onGet": "(value + 10)",
+        "onSet": "(value - 10)"
+      }]
+    }]
+  }
+}
+```
 
 ### Skip send on/off command when touching brightness/speed slider
 
