@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.4.0] - (2026.7.4)
+
+### Fixed
+ - fixed the WBGT calculation
+ 
+### Changed
+ - Added additional supported product types for AirConditionerAccessory
+ 
+
 ## [2.3.0] - (2026.6.12)
 
 ### Added
