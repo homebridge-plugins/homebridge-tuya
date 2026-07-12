@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.5.0] - (2026.7.12)
+
+### Added
+ - RTSP cameras can now be added through the plugin’s “Advanced Settings” section.
+ 
 ## [2.4.0] - (2026.7.4)
 
 ### Fixed
