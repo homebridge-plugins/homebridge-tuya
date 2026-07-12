@@ -3,7 +3,8 @@
 [![verified-by-homebridge](https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=for-the-badge&logoColor=%23FFFFFF&logo=homebridge)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
 ![node](https://badgen.net/npm/node/@homebridge-plugins/homebridge-tuya)
-![homebridge](https://img.shields.io/github/package-json/dependency-version/homebridge-plugins/homebridge-tuya/dev/homebridge)
+<img alt="homebridge badge" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2Fhomebridge-plugins%2Fhomebridge-tuya%2Fraw%2Frefs%2Fheads%2Flatest%2Fpackage.json&query=%24.engines.homebridge&label=homebridge&color=%23491F59">
+
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-❤-ff69b4)](https://github.com/sponsors/tassy-h)
 [![version](https://badgen.net/npm/v/@homebridge-plugins/homebridge-tuya)](https://npmjs.com/package/@homebridge-plugins/homebridge-tuya)
