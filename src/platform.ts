@@ -9,7 +9,7 @@ import TuyaCustomDeviceManager from './device/TuyaCustomDeviceManager';
 import TuyaHomeDeviceManager from './device/TuyaHomeDeviceManager';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { TuyaPlatformConfigOptions, customOptionsSchema, homeOptionsSchema } from './config';
+import { TuyaPlatformConfig, customOptionsSchema, homeOptionsSchema } from './config';
 import AccessoryFactory from './accessory/AccessoryFactory';
 import BaseAccessory from './accessory/BaseAccessory';
 import { sanitizeName } from './util/util';
@@ -26,7 +26,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
-  public options = this.config.options as TuyaPlatformConfigOptions;
+  public options = (this.config as TuyaPlatformConfig).options;
 
   // this is used to track restored cached accessories
   public cachedAccessories: PlatformAccessory[] = [];
@@ -196,6 +196,13 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     for (const device of devices) {
       this.addAccessory(device);
     }
+
+    // add RTSP camera accessories
+    (this.config as TuyaPlatformConfig).cameras?.
+      filter(cconfig => !devices.map(device => device.id).includes(cconfig.deviceId)).forEach(cconfig => {
+        const device = this.deviceManager!.createRTSPCameraDevice(cconfig);
+        this.addAccessory(device);
+      });
 
     // remove unused accessories
     for (const cachedAccessory of this.cachedAccessories) {

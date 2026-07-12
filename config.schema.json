@@ -356,6 +356,45 @@
                         "default": false
                     }
                 }
+            },
+            "cameras": {
+                "title": "RTSP Camera",
+                "description": "Specifying a local IP address causes the communication to be routed within the local network (LAN).",
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["rtspUrl"],
+                    "properties": {
+                        "deviceId": {
+                            "title": "DeviceID",
+                            "description": "Device ID. If the device is not a Tuya camera, you don’t need to enter anything.",
+                            "type": "string"
+                        },
+                        "deviceName": {
+                            "title": "Device Name",
+                            "description": "Display Name",
+                            "type": "string"
+                        },
+                        "rtspUrl":  {
+                            "title": "RTSP URL",
+                            "description": "RTSP URLs (starting with rtsp://) for real-time video/audio streaming.",
+                            "type": "string"
+                        },
+                        "username":  {
+                            "title": "username",
+                            "description": "The authentication username for accessing the RTSP stream. If authentication is not required, please leave it empty.",
+                            "type": "string"
+                        },
+                        "password":  {
+                            "title": "password",
+                            "description": "The authentication password for accessing the RTSP stream. If authentication is not required, please leave it empty.",
+                            "type": "string",
+                            "x-schema-form": {
+                                "type": "password"
+                            }
+                        }
+                    }
+                }
             }
         },
         "required":["name"]
@@ -566,7 +605,39 @@
                 "options.weatherAPI",
                 "options.forceIPv4",
                 "options.debug",
-                "options.debugLevel"
+                "options.debugLevel",
+                {
+                    "type": "fieldset",
+                    "title": "RTSP Camera",
+                    "expandable": true,
+                    "expanded": false,
+                    "notitle": false,
+                    "items": [
+                        {
+                            "key": "cameras",
+                            "add": "Add Camera",
+                            "title": "{{ 'New Camera' }}",
+                            "type": "tabarray",
+                            "notitle": true,
+                            "items": [
+                                {
+                                    "type": "div",
+                                    "displayFlex": false,
+                                    "flex-direction": "row",
+                                    "notitle": true,
+                                    "title": "{{ value.deviceName }}",
+                                    "items": [
+                                        "cameras[].deviceId",
+                                        "cameras[].deviceName",
+                                        "cameras[].rtspUrl",
+                                        "cameras[].username",
+                                        "cameras[].password"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
             ]
         }
     ]

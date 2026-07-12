@@ -64,10 +64,19 @@ export interface TuyaPlatformHomeConfigOptions {
   forceIPv4: boolean;
 }
 
+export interface RTSPCameraConfig {
+  deviceId: string;
+  deviceName?: string;
+  rtspUrl: string;
+  username?: string;
+  password?: string;
+}
+
 export type TuyaPlatformConfigOptions = TuyaPlatformCustomConfigOptions | TuyaPlatformHomeConfigOptions;
 
 export interface TuyaPlatformConfig extends PlatformConfig {
   options: TuyaPlatformConfigOptions;
+  cameras?: Array<RTSPCameraConfig>;
 }
 
 export const customOptionsSchema = {

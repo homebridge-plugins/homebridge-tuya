@@ -6,9 +6,12 @@ import TuyaDevice, {
   TuyaDeviceSchema,
   TuyaDeviceSchemaMode,
   TuyaDeviceSchemaProperty,
+  TuyaDeviceSchemaType,
   TuyaDeviceStatus,
   TuyaIRRemoteKeyListItem,
 } from './TuyaDevice';
+import { RTSPCameraConfig } from '../config';
+import { uuidFromSeed } from '../util/util';
 
 enum Events {
   DEVICE_ADD = 'DEVICE_ADD',
@@ -56,6 +59,38 @@ export default class TuyaDeviceManager extends EventEmitter {
     cloneDevice.parent_id = baseDevice.id;
     cloneDevice.remote_keys = undefined;
     return cloneDevice;
+  }
+
+  createRTSPCameraDevice(cameraConfig: RTSPCameraConfig): TuyaDevice {
+    const device = new TuyaDevice({
+      id: cameraConfig.deviceId ?? uuidFromSeed(cameraConfig.rtspUrl),
+      uuid: cameraConfig.deviceId ?? uuidFromSeed(cameraConfig.rtspUrl),
+      name: cameraConfig.deviceName ?? 'RTSP Camera',
+      online: true,
+      owner_id: '',
+      product_id: 'rstp-camera-product',
+      product_name: 'RTSP Camera',
+      icon: '',
+      category: 'sp',
+      schema: [
+        {
+          code: 'motion_switch', // camera accessory requires a motion sensor service, so we add a dummy schema for it
+          mode: TuyaDeviceSchemaMode.READ_WRITE,
+          type: TuyaDeviceSchemaType.Boolean,
+          property: {},
+        },
+      ],
+      status: [],
+      ip: '',
+      lat: '',
+      lon: '',
+      time_zone: '',
+      create_time: 0,
+      active_time: 0,
+      update_time: 0,
+    });
+    this.devices.push(device);
+    return device;
   }
 
   getDevice(deviceID: string) {
@@ -375,6 +410,20 @@ export default class TuyaDeviceManager extends EventEmitter {
     // eslint-disable-next-line max-len
     const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m`, { cache: 'no-cache' });
     return await res.json();
+  }
+
+  async retrieveDeviceRTSP(device: TuyaDevice): Promise<string> {
+    if (device['camera'] && device['camera'].rtspUrl) {
+      const cameraConfig = device['camera'] as RTSPCameraConfig;
+      const rtspUrl = cameraConfig.rtspUrl;
+      if (rtspUrl.includes('@') || !cameraConfig.username) {
+        return rtspUrl;
+      } else {
+        return `rtsp://${cameraConfig.username}:${cameraConfig.password}@${rtspUrl.substring('rtsp://'.length)}`;
+      }
+    }
+    const data = await this.api.post(`/v1.0/devices/${device.id}/stream/actions/allocate`, { type: 'rtsp' });
+    return data.result.url;
   }
 
 

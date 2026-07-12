@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { TuyaDeviceSchemaProperty } from '../device/TuyaDevice';
 
 export function remap(
@@ -70,4 +71,17 @@ export function sanitizeName(name?: string): string | undefined {
     return undefined;
   }
   return s;
+}
+
+
+export function uuidFromSeed(seed: string): string {
+  const hash = createHash('sha256').update(seed).digest('hex');
+
+  return [
+    hash.substring(0, 8),
+    hash.substring(8, 12),
+    '4' + hash.substring(13, 16), // version 4
+    ((parseInt(hash.substring(16, 17), 16) & 0x3) | 0x8).toString(16) + hash.substring(17, 20),
+    hash.substring(20, 32),
+  ].join('-');
 }
