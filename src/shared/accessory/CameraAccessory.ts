@@ -59,7 +59,7 @@ export default class CameraAccessory extends BaseAccessory {
     configureProgrammableSwitchEvent(this, this.getDoorbellService(), schema);
   }
 
-  configureCamera() {
+  async configureCamera() {
     if (this.stream !== undefined) {
       return;
     }
@@ -68,7 +68,7 @@ export default class CameraAccessory extends BaseAccessory {
       return;
     }
 
-    this.stream = new TuyaStreamingDelegate(this);
+    this.stream = await TuyaStreamingDelegate.create(this);
     this.accessory.configureController(this.stream.controller);
   }
 

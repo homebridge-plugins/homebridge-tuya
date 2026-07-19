@@ -58,7 +58,20 @@ export default class ConfigMigrator {
         filter(config => [TuyaPluginMode.local, TuyaPluginMode.both].includes(config.configFor as any));
       config.cloud.deviceOverrides = cloudDeviceOverrides;
       if (!!config.local) {
-        config.local.deviceOverrides = localDeviceOverrides;
+        config.local.deviceOverrides = [...config.local.deviceOverrides ?? [], ...localDeviceOverrides ?? []];
+      }
+    }
+
+    // rtsp camera settings moved to LocalConfig
+    if (!!(config as any).cameras) {
+      if (!config.local) {
+        config.local = {};
+      }
+      config.local.cameras = (config as any).cameras;
+      delete (config as any).cameras;
+      if (!config.mode) {
+        // this case is v2 config. camera settings only used for local. set mode to both.
+        config.mode = TuyaPluginMode.both;
       }
     }
   }

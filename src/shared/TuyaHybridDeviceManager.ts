@@ -1,4 +1,4 @@
-import TuyaOpenAPI from '../cloud/api/TuyaOpenAPI';
+import TuyaOpenAPI, { TuyaOpenAPIResponse } from '../cloud/api/TuyaOpenAPI';
 import TuyaCloudDeviceManager from '../cloud/device/TuyaCloudDeviceManager';
 import TuyaCustomDeviceManager from '../cloud/device/TuyaCustomDeviceManager';
 import TuyaDevice, { TuyaDeviceStatus } from '../cloud/device/TuyaDevice';
@@ -13,6 +13,7 @@ import {
 import { LocalDeviceConfig } from '../local/config';
 import LocalDeviceManager from '../local/LocalDeviceManager';
 import TuyaDeviceManager from './TuyaDeviceManager';
+import { merge } from './util/util';
 
 export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
   private cloudDeviceManager: TuyaCloudDeviceManager;
@@ -30,13 +31,13 @@ export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
     this.localDeviceManager = new LocalDeviceManager(localConfig, debug);
 
     this.cloudDeviceManager!
-      .on(TuyaDeviceManager.Events.DEVICE_ADD, this.emit.bind(TuyaDeviceManager.Events.DEVICE_ADD))
-      .on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.emit.bind(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE))
-      .on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.emit.bind(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE))
-      .on(TuyaDeviceManager.Events.DEVICE_DELETE, this.emit.bind(TuyaDeviceManager.Events.DEVICE_DELETE));
+      .on(TuyaDeviceManager.Events.DEVICE_ADD, this.mergeCloudDevice.bind(this))
+      .on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.emit.bind(this, TuyaDeviceManager.Events.DEVICE_INFO_UPDATE))
+      .on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.emit.bind(this, TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE))
+      .on(TuyaDeviceManager.Events.DEVICE_DELETE, this.emit.bind(this, TuyaDeviceManager.Events.DEVICE_DELETE));
 
     this.localDeviceManager!
-      .on(TuyaDeviceManager.Events.DEVICE_ADD, this.emit.bind(TuyaDeviceManager.Events.DEVICE_ADD))
+      .on(TuyaDeviceManager.Events.DEVICE_ADD, this.mergeLocalDevice.bind(this))
       .on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.emit.bind(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE))
       .on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, this.emit.bind(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE))
       .on(TuyaDeviceManager.Events.DEVICE_DELETE, this.emit.bind(TuyaDeviceManager.Events.DEVICE_DELETE));
@@ -51,8 +52,20 @@ export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
       this.localConfig = await this.enrichLocalConfigFromCloud(cloudDevices, this.localConfig);
     }
     const localDevices = await this.localDeviceManager.pullDevices();
-    const mergedDevices = [...localDevices];
+    const mergedDevices:TuyaDevice[] = [];
+    for (const localDevice of localDevices) {
+      const cloudDevice = cloudDevices.find(cd => cd.id === localDevice.id);
+      if (cloudDevice) {
+        const mergedDevice = merge(localDevice, cloudDevice);
+        this.log.error(`mergedDevice:${JSON.stringify(mergedDevice)}`);
+        mergedDevices.push(mergedDevice);
+      } else {
+        mergedDevices.push(localDevice);
+      }
+    }
+    // Sub‑devices generally cannot be added unless their information is retrieved from the Cloud.
     mergedDevices.push(...cloudDevices.filter(cd => !mergedDevices.some(md => md.id === cd.id)));
+    this.devices = mergedDevices;
     return mergedDevices;
   }
 
@@ -75,17 +88,28 @@ export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
   override getDeviceSchemaConfig(device: TuyaDevice, dpCode: string): TuyaPlatformDeviceSchemaConfig | undefined {
     return this.localDeviceManager.getDeviceSchemaConfig(device, dpCode)
       || this.cloudDeviceManager.getDeviceSchemaConfig(device, dpCode);
-
   }
 
-  override async sendCommands(deviceID: string, commands: TuyaDeviceStatus[]): Promise<unknown> {
+  override async sendCommands(deviceID: string, commands: TuyaDeviceStatus[]): Promise<boolean> {
     return this.localDeviceManager.sendCommands(deviceID, commands)
       .then((value) => {
         if (!value) {
           return this.cloudDeviceManager.sendCommands(deviceID, commands);
         }
+        return value;
       })
       .catch(() => this.cloudDeviceManager.sendCommands(deviceID, commands));
+  }
+
+  override async executeScene(ownerID: string, deviceID: string) : Promise<TuyaOpenAPIResponse> {
+    return this.localDeviceManager.executeScene(ownerID, deviceID)
+      .then((value) => {
+        if (!value.success) {
+          return this.cloudDeviceManager.executeScene(ownerID, deviceID);
+        }
+        return value;
+      })
+      .catch(() => this.cloudDeviceManager.executeScene(ownerID, deviceID));
   }
 
   override async updateInfraredRemotes(allDevices: TuyaDevice[]): Promise<void> {
@@ -93,8 +117,36 @@ export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
     this.cloudDeviceManager.updateInfraredRemotes(allDevices);
   }
 
+  override async getCurrentWeather(lat: string, lon: string) : Promise<TuyaOpenAPIResponse> {
+    return this.localDeviceManager.getCurrentWeather(lat, lon)
+      .then((value) => {
+        if (!value.success) {
+          return this.cloudDeviceManager.getCurrentWeather(lat, lon);
+        }
+        return value;
+      })
+      .catch(() => this.cloudDeviceManager.getCurrentWeather(lat, lon));
+  }
+
   override enableAdaptiveLighting(device: TuyaDevice): boolean {
-    return !!this.cloudDeviceManager.getDeviceConfig(device)?.adaptiveLighting;
+    return this.localDeviceManager.getDeviceConfig(device)?.adaptiveLighting
+      ?? !!this.cloudDeviceManager.getDeviceConfig(device)?.adaptiveLighting;
+  }
+
+  override enableGarageDoorUseContactSensorForState(device: TuyaDevice): boolean {
+    return this.localDeviceManager.enableGarageDoorUseContactSensorForState(device)
+      ?? this.cloudDeviceManager.enableGarageDoorUseContactSensorForState(device);
+  }
+
+  override async retrieveDeviceRTSP(deviceID: string): Promise<string> {
+    return this.localDeviceManager.retrieveDeviceRTSP(deviceID)
+      .then((value) => {
+        if (!value) {
+          return this.cloudDeviceManager.retrieveDeviceRTSP(deviceID);
+        }
+        return value;
+      })
+      .catch(() => this.cloudDeviceManager.retrieveDeviceRTSP(deviceID));
   }
 
   /**
@@ -167,5 +219,25 @@ export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
     }
     this.log.debug(`enrichedLocalConfig:${JSON.stringify(clonedConfig, null, 2)}`);
     return clonedConfig;
+  }
+
+  private mergeCloudDevice(cloudDevice: TuyaDevice) {
+    const localDevice = this.localDeviceManager.devices.find(device => device.id === cloudDevice.id);
+    if (!!localDevice) {
+      const mergedDevice = merge(localDevice, cloudDevice);
+      this.emit(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, mergedDevice);
+    } else {
+      this.emit(TuyaDeviceManager.Events.DEVICE_ADD, cloudDevice);
+    }
+  }
+
+  private mergeLocalDevice(localDevice: TuyaDevice) {
+    const cloudDevice = this.cloudDeviceManager.devices.find(device => device.id === localDevice.id);
+    if (!!cloudDevice) {
+      const mergedDevice = merge(localDevice, cloudDevice);
+      this.emit(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, mergedDevice);
+    } else {
+      this.emit(TuyaDeviceManager.Events.DEVICE_ADD, localDevice);
+    }
   }
 }

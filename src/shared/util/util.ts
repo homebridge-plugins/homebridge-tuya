@@ -185,3 +185,35 @@ export function createDelegate<T extends object>(
     },
   });
 }
+
+export function merge(obj1: any, obj2: any) {
+  const result = { ...obj1 };
+
+  for (const key of Object.keys(obj2)) {
+    const v1 = obj1[key];
+    const v2 = obj2[key];
+
+    if (Array.isArray(v1) || Array.isArray(v2)) {
+      const isEmptyArray = Array.isArray(v1) && v1.length === 0;
+      if (v1 === null || isEmptyArray) {
+        result[key] = v2;
+      }
+      continue;
+    }
+
+    if (isPlainObject(v1) && isPlainObject(v2)) {
+      result[key] = merge(v1, v2);
+      continue;
+    }
+
+    if (v1 === null) {
+      result[key] = v2;
+    }
+  }
+
+  return result;
+}
+
+function isPlainObject(value: any) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}

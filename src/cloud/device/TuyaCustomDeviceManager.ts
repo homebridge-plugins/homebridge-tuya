@@ -92,6 +92,7 @@ export default class TuyaCustomDeviceManager extends TuyaCloudDeviceManager {
     this.ownerIDs = assetIDList;
     const devices = await this.updateDevices(assetIDList);
     this.log.info(`Got ${devices.length} device(s) and scene(s).`);
+    await this.updateInfraredRemotes(devices);
     return devices;
   }
 

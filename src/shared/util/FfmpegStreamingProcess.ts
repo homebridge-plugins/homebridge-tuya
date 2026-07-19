@@ -160,3 +160,51 @@ export class FfmpegStreamingProcess {
     }, 2 * 1000);
   }
 }
+
+export async function isEncoderAvailable(defaultFfmpegPath: string, encoderName: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const ffmpeg = spawn(defaultFfmpegPath, ['-hide_banner', '-encoders'], { env: process.env });
+    let output = '';
+
+    ffmpeg.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    ffmpeg.stderr.on('data', (data) => {
+      output += data.toString();
+    });
+
+    ffmpeg.on('error', () => {
+      resolve(false);
+    });
+
+    ffmpeg.on('close', () => {
+      const escapedEncoderName = encoderName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      resolve(new RegExp(`\\b${escapedEncoderName}\\b`).test(output));
+    });
+  });
+}
+
+export async function isFfmpegOptionSupported(defaultFfmpegPath: string, optionName: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const ffmpeg = spawn(defaultFfmpegPath, ['-hide_banner', '-h', 'full'], { env: process.env });
+    let output = '';
+
+    ffmpeg.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    ffmpeg.stderr.on('data', (data) => {
+      output += data.toString();
+    });
+
+    ffmpeg.on('error', () => {
+      resolve(false);
+    });
+
+    ffmpeg.on('close', () => {
+      const escapedOptionName = optionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      resolve(new RegExp(`\\b${escapedOptionName}\\b`).test(output));
+    });
+  });
+}

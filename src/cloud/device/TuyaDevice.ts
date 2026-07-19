@@ -74,6 +74,17 @@ export type TuyaIRRemoteFanListItem = {
   fan_name: string;
 };
 
+export type TuyaIRRemote = {
+  brand_id: number;
+  brand_name: string;
+  category_id: number;
+  remote_id: string;
+  remote_index: number;
+  remote_name: string;
+  org_category_id: number;
+  resolved: boolean;
+};
+
 export type TuyaIRRemoteKeys = {
   category_id: number;
   org_category_id: number;

@@ -55,7 +55,7 @@ export default class IRFanAccessory extends IRAdapter(FanAccessory) {
     }
   }
 
-  override async sendCommands(commands: TuyaDeviceStatus[], debounce?: boolean): Promise<void> {
+  override async sendCommands(commands: TuyaDeviceStatus[], debounce?: boolean): Promise<boolean> {
     this.powerMap.defaultValue = true;
     const codes = commands.map(command => command.code);
     const keyItemMap = this.getKeyItemMaps().find(i => codes.includes(i.key_name) || codes.includes(i.dp_code));

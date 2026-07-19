@@ -320,6 +320,141 @@ describe('ConfigMigrator migrate', () => {
     expect(newConfig).toEqual(expected);
   });
 
+  test('camera settings only used for local', () => {
+    const migrator = new ConfigMigrator();
+
+    const before = {
+      name: 'Tuya',
+      mode: 'both',
+      cloud: {
+        projectType: '2',
+        appSchema: 'tuyaSmart',
+        generateWeatherAccessory: false,
+        weatherAPI: 'Open-Meteo',
+        deviceOverrides: [],
+        debug: false
+      },
+      local: {
+        autoDiscoverDevices: false,
+        devices: [ { tuyaDeviceId: 'localID', name: 'test name' } ],
+        discoverTimeout: 1,
+        rediscoverInterval: 100,
+        deviceOverrides: [
+          { id: 'localID', schema: [], configFor: 'local' },
+          { id: 'bothID', schema: [],  configFor: 'both' },
+        ]
+      },
+      cameras: [
+        {
+          deviceId: 'camera-device1',
+          deviceName: 'camera-deviceName1',
+          rtspUrl: 'rtsp://192.168.0.1:554/live',
+          username: 'username1',
+          password: 'password1'
+        }
+      ]
+    } as any;
+
+    const after = {
+      mode: TuyaPluginMode.both,
+      name: 'Tuya',
+      cloud: {
+        projectType: '2',
+        appSchema: 'tuyaSmart',
+        generateWeatherAccessory: false,
+        weatherAPI: 'Open-Meteo',
+        deviceOverrides: []
+      },
+      local: {
+        autoDiscoverDevices: false,
+        devices: [ { tuyaDeviceId: 'localID', name: 'test name' } ],
+        discoverTimeout: 1,
+        rediscoverInterval: 100,
+        deviceOverrides: [
+          { id: 'localID', schema: [], configFor: 'local' },
+          { id: 'bothID', schema: [],  configFor: 'both' },
+        ],
+        cameras: [
+          {
+            deviceId: 'camera-device1',
+            deviceName: 'camera-deviceName1',
+            rtspUrl: 'rtsp://192.168.0.1:554/live',
+            username: 'username1',
+            password: 'password1'
+          }
+        ]
+      },
+      common: {
+        debug: false,
+        debugLevel: undefined
+      }
+    } as any;
+
+    const newConfig = migrator.migrate(before);
+
+    expect(newConfig).toEqual(after);
+  });
+
+  test('camera settings moved to local config. (config.schema.json v2.x -> v3.x)', () => {
+    const migrator = new ConfigMigrator();
+
+    const v2config = {
+      name: 'Tuya',
+      options: {
+        projectType: '2',
+        appSchema: 'tuyaSmart',
+        generateWeatherAccessory: false,
+        weatherAPI: 'Open-Meteo',
+        deviceOverrides: [],
+        debug: false
+      },
+      cameras: [
+        {
+          deviceId: 'camera-device1',
+          deviceName: 'camera-deviceName1',
+          rtspUrl: 'rtsp://192.168.0.1:554/live',
+          username: 'username1',
+          password: 'password1'
+        }
+      ]
+    } as any;
+
+    const v3config = {
+      mode: TuyaPluginMode.both,
+      name: 'Tuya',
+      cloud: {
+        projectType: '2',
+        appSchema: 'tuyaSmart',
+        generateWeatherAccessory: false,
+        weatherAPI: 'Open-Meteo',
+        deviceOverrides: []
+      },
+      local: {
+        autoDiscoverDevices: true,
+        discoverTimeout: 5,
+        rediscoverInterval: 900,
+        devices: [],
+        cameras: [
+          {
+            deviceId: 'camera-device1',
+            deviceName: 'camera-deviceName1',
+            rtspUrl: 'rtsp://192.168.0.1:554/live',
+            username: 'username1',
+            password: 'password1'
+          }
+        ]
+      },
+      common: {
+        debug: false,
+        debugLevel: undefined
+      }
+    } as any;
+
+    const newConfig = migrator.migrate(v2config);
+
+    expect(newConfig).toEqual(v3config);
+  });
+
   test('no migration', () => {
     const migrator = new ConfigMigrator();
 

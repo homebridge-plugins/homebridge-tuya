@@ -53,6 +53,12 @@
                                                 "local.devices[].dpMapping",
                                                 "local.devices[].outletCount",
                                                 {
+                                                "type": "help",
+                                                "labelHtmlClass": "alert-link alert-warning",
+                                                "helpvalue": "Set up the camera streaming in the Common Settings > RTSP Camera Settings.",
+                                                "condition": { "functionBody": "return (model.local?.devices?.[arrayIndices[0]].category === 'sp')" }
+                                                },
+                                                {
                                                     "type": "fieldset",
                                                     "items": [
                                                         "local.devices[].dpMapping.add_ele",
@@ -334,6 +340,38 @@
                                 },
                                 {
                                     "type": "fieldset",
+                                    "title": "RTSP Camera Settings",
+                                    "expandable": true,
+                                    "expanded": false,
+                                    "notitle": false,
+                                    "items": [
+                                        {
+                                            "key": "cameras",
+                                            "add": "Add Camera",
+                                            "title": "{{ 'New Camera' }}",
+                                            "type": "tabarray",
+                                            "notitle": true,
+                                            "items": [
+                                                {
+                                                    "type": "div",
+                                                    "displayFlex": false,
+                                                    "flex-direction": "row",
+                                                    "notitle": true,
+                                                    "title": "{{ value.deviceName }}",
+                                                    "items": [
+                                                        "cameras[].deviceId",
+                                                        "cameras[].deviceName",
+                                                        "cameras[].rtspUrl",
+                                                        "cameras[].username",
+                                                        "cameras[].password"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "fieldset",
                                     "title": "Debug Settings",
                                     "expandable": true,
                                     "expanded": false,
@@ -365,8 +403,8 @@
                 "type": "string",
                 "default": "cloud",
                 "oneOf": [
-                    { "title": "Cloud (Tuya OpenAPI)", "enum": ["cloud"] },
                     { "title": "Local (LAN / direct TCP)", "enum": ["local"] },
+                    { "title": "Cloud (Tuya OpenAPI)", "enum": ["cloud"] },
                     { "title": "Both (Cloud + Local)", "enum": ["both"] }
                 ]
             },
@@ -1717,6 +1755,45 @@
                         "type": "string",
                         "condition": {
                             "functionBody": "return (model.common.debug);"
+                        }
+                    }
+                }
+            },
+            "cameras": {
+                "title": "RTSP Camera",
+                "description": "Specifying a local IP address causes the communication to be routed within the local network (LAN).",
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["rtspUrl"],
+                    "properties": {
+                        "deviceId": {
+                            "title": "DeviceID",
+                            "description": "Device ID. If the device is not a Tuya camera, you don’t need to enter anything.",
+                            "type": "string"
+                        },
+                        "deviceName": {
+                            "title": "Device Name",
+                            "description": "Display Name",
+                            "type": "string"
+                        },
+                        "rtspUrl":  {
+                            "title": "RTSP URL",
+                            "description": "RTSP URLs (starting with rtsp://) for real-time video/audio streaming.",
+                            "type": "string"
+                        },
+                        "username":  {
+                            "title": "username",
+                            "description": "The authentication username for accessing the RTSP stream. If authentication is not required, please leave it empty.",
+                            "type": "string"
+                        },
+                        "password":  {
+                            "title": "password",
+                            "description": "The authentication password for accessing the RTSP stream. If authentication is not required, please leave it empty.",
+                            "type": "string",
+                            "x-schema-form": {
+                                "type": "password"
+                            }
                         }
                     }
                 }

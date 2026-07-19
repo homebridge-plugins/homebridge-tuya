@@ -1,5 +1,4 @@
 import { PlatformAccessory } from 'homebridge';
-import TuyaHomeDeviceManager from '../../cloud/device/TuyaHomeDeviceManager';
 import { TuyaPlatform, TuyaPluginAccessoryContext } from '../../platform';
 import BaseAccessory from './BaseAccessory';
 
@@ -17,7 +16,7 @@ export default class SceneAccessory extends BaseAccessory {
         if (value === false) {
           return;
         }
-        const deviceManager = this.platform.deviceManager as TuyaHomeDeviceManager;
+        const deviceManager = this.platform.deviceManager;
         const res = await deviceManager.executeScene(this.device.owner_id, this.device.id);
         setTimeout(() => {
           service.getCharacteristic(this.Characteristic.On).updateValue(false);

@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable max-len */
-
 import {
   AudioStreamingCodecType,
   AudioStreamingSamplerate,
@@ -10,20 +7,20 @@ import {
   CameraStreamingDelegate,
   CameraStreamingOptions,
   EventTriggerOption,
+  HAP,
   H264Level,
   H264Profile,
-  HAP,
   MediaContainerType,
   PrepareStreamCallback,
   PrepareStreamRequest,
-  PrepareStreamResponse,
   Resolution,
   SnapshotRequest,
   SnapshotRequestCallback,
   SRTPCryptoSuites,
-  StartStreamRequest,
   StreamingRequest,
   StreamRequestCallback,
+  PrepareStreamResponse,
+  StartStreamRequest,
 } from 'homebridge';
 
 import {
@@ -33,9 +30,18 @@ import {
 
 import CameraAccessory from '../accessory/CameraAccessory';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { TuyaRecordingDelegate } from './TuyaRecordingDelegate';
 import { spawn } from 'child_process';
 import { createSocket, Socket } from 'dgram';
-import { StreamingDelegate as FfmpegStreamingDelegate, FfmpegStreamingProcess } from './FfmpegStreamingProcess';
+import {
+  FfmpegStreamingProcess,
+  StreamingDelegate as FfmpegStreamingDelegate,
+  isFfmpegOptionSupported,
+  isEncoderAvailable,
+} from './FfmpegStreamingProcess';
+
+import { logger, PrefixLogger } from './Logger';
 
 interface SessionInfo {
     address: string; // address of the HAP controller
@@ -69,55 +75,54 @@ interface SampleRateEntry {
     audioChannels: number;
 }
 */
+enum _H264Profile {
+    BASELINE = 0,
+    MAIN = 1,
+    HIGH = 2
+}
+enum _H264Level {
+    LEVEL3_1 = 0,
+    LEVEL3_2 = 1,
+    LEVEL4_0 = 2
+}
+
+const resolutions: Resolution[] = [
+  [320, 180, 30],
+  [320, 240, 15],
+  [320, 240, 30],
+  [480, 270, 30],
+  [480, 360, 30],
+  [640, 360, 30],
+  [640, 480, 30],
+  [1280, 720, 30],
+  [1280, 960, 30],
+  [1920, 1080, 30],
+  [1600, 1200, 30],
+];
 
 export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStreamingDelegate {
-  public readonly controller: CameraController;
+  public controller!: CameraController;
 
   private pendingSessions: { [index: string]: SessionInfo } = {};
   private ongoingSessions: { [index: string]: ActiveSession } = {};
 
   private readonly camera: CameraAccessory;
   private readonly hap: HAP;
-  constructor(camera: CameraAccessory) {
+  private log: PrefixLogger;
+
+  private constructor(camera: CameraAccessory) {
     this.camera = camera;
     this.hap = camera.platform.api.hap;
+    this.log = new PrefixLogger(logger(), `TuyaStreamingDelegate(${camera.accessory.displayName})`);
+  }
 
+  public static async create(camera: CameraAccessory): Promise<TuyaStreamingDelegate> {
+    const delegate = new TuyaStreamingDelegate(camera);
     // this.recordingDelegate = new TuyaRecordingDelegate();
 
-    const resolutions: Resolution[] = [
-      [320, 180, 30],
-      [320, 240, 15],
-      [320, 240, 30],
-      [480, 270, 30],
-      [480, 360, 30],
-      [640, 360, 30],
-      [640, 480, 30],
-      [1280, 720, 30],
-      [1280, 960, 30],
-      [1920, 1080, 30],
-      [1600, 1200, 30],
-    ];
+    const streamingOptions = await TuyaStreamingDelegate.createStreamingOptions(delegate);
 
-    const streamingOptions: CameraStreamingOptions = {
-      supportedCryptoSuites: [SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80],
-      video: {
-        codec: {
-          profiles: [H264Profile.BASELINE, H264Profile.MAIN, H264Profile.HIGH],
-          levels: [H264Level.LEVEL3_1, H264Level.LEVEL3_2, H264Level.LEVEL4_0],
-        },
-        resolutions: resolutions,
-      },
-      audio: {
-        twoWayAudio: false,
-        codecs: [
-          {
-            type: AudioStreamingCodecType.AAC_ELD,
-            samplerate: AudioStreamingSamplerate.KHZ_16,
-          },
-        ],
-      },
-    };
-
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const recordingOptions: CameraRecordingOptions = {
       overrideEventTriggerOptions: [
         EventTriggerOption.MOTION,
@@ -144,20 +149,20 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
           ],
         },
         resolutions: resolutions,
-        type: this.hap.VideoCodecType.H264,
+        type: camera.platform.api.hap.VideoCodecType.H264,
       },
       audio: {
         codecs: [
           {
-            samplerate: this.hap.AudioRecordingSamplerate.KHZ_32,
-            type: this.hap.AudioRecordingCodecType.AAC_LC,
+            samplerate: camera.platform.api.hap.AudioRecordingSamplerate.KHZ_32,
+            type: camera.platform.api.hap.AudioRecordingCodecType.AAC_LC,
           },
         ],
       },
     };
 
     const options: CameraControllerOptions = {
-      delegate: this,
+      delegate: delegate,
       streamingOptions: streamingOptions,
       // recording: {
       // options: recordingOptions,
@@ -165,7 +170,45 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
       // }
     };
 
-    this.controller = new this.hap.CameraController(options);
+    delegate.controller = new camera.platform.api.hap.CameraController(options);
+
+    return delegate;
+  }
+
+  private static async createStreamingOptions(delegate: TuyaStreamingDelegate): Promise<CameraStreamingOptions> {
+
+    const opusCodec = {
+      type: AudioStreamingCodecType.OPUS,
+      samplerate: [AudioStreamingSamplerate.KHZ_16, AudioStreamingSamplerate.KHZ_24],
+    };
+    const aacELDCodec = {
+      type: AudioStreamingCodecType.AAC_ELD,
+      samplerate: [AudioStreamingSamplerate.KHZ_16, AudioStreamingSamplerate.KHZ_24],
+    };
+
+    const streamingOptions: CameraStreamingOptions = {
+      supportedCryptoSuites: [SRTPCryptoSuites.AES_CM_128_HMAC_SHA1_80],
+      video: {
+        codec: {
+          profiles: [H264Profile.BASELINE],
+          levels: [H264Level.LEVEL3_1],
+        },
+        resolutions: resolutions,
+      },
+      audio: {
+        twoWayAudio: false,
+        codecs: [],
+      },
+    };
+
+    streamingOptions.audio!.codecs.push(opusCodec);
+
+    if (await isEncoderAvailable(defaultFfmpegPath, 'libfdk_aac')) {
+      streamingOptions.audio!.codecs.push(aacELDCodec);
+    } else {
+      delegate.log.warn('ffmpeg libfdk_aac encoder not available. AAC-ELD audio streaming will not be supported.');
+    }
+    return streamingOptions;
   }
 
   stopStream(sessionId: string): void {
@@ -179,24 +222,24 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
       try {
         session.socket?.close();
       } catch (error) {
-        this.camera.log.error(`Error occurred closing socket: ${error}`);
+        this.log.error(`Error occurred closing socket: ${error}`);
       }
 
       try {
         session.mainProcess?.stop();
       } catch (error) {
-        this.camera.log.error(`Error occurred terminating main FFmpeg process: ${error}`);
+        this.log.error(`Error occurred terminating main FFmpeg process: ${error}`);
       }
 
       try {
         session.returnProcess?.stop();
       } catch (error) {
-        this.camera.log.error(`Error occurred terminating two-way FFmpeg process: ${error}`);
+        this.log.error(`Error occurred terminating two-way FFmpeg process: ${error}`);
       }
 
       delete this.ongoingSessions[sessionId];
 
-      this.camera.log.info('Stopped video stream.');
+      this.log.info('Stopped video stream.');
     }
   }
 
@@ -209,11 +252,11 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
     callback: SnapshotRequestCallback,
   ) {
     try {
-      this.camera.log.debug(`Snapshot requested: ${request.width} x ${request.height}`);
+      this.log.debug(`Snapshot requested: ${request.width} x ${request.height}`);
 
-      const snapshot = await this.fetchSnapshot();
+      const snapshot = await this.fetchSnapshot(request.width, request.height);
 
-      this.camera.log.debug('Sending snapshot');
+      this.log.debug('Sending snapshot');
 
       callback(undefined, snapshot);
     } catch (error) {
@@ -241,13 +284,13 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
 
       audioCryptoSuite: request.audio.srtpCryptoSuite,
       audioPort: request.audio.port,
-      audioSRTP: Buffer.concat([request.audio.srtp_key as Uint8Array, request.audio.srtp_salt as Uint8Array]),
+      audioSRTP: Buffer.concat([request.audio.srtp_key, request.audio.srtp_salt]),
       audioSSRC: audioSSRC,
       audioIncomingPort: audioIncomingPort[0],
 
       videoCryptoSuite: request.video.srtpCryptoSuite,
       videoPort: request.video.port,
-      videoSRTP: Buffer.concat([request.video.srtp_key as Uint8Array, request.video.srtp_salt as Uint8Array]),
+      videoSRTP: Buffer.concat([request.video.srtp_key, request.video.srtp_salt]),
       videoSSRC: videoSSRC,
       videoIncomingPort: videoIncomingPort[0],
     };
@@ -277,21 +320,23 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
   ) {
     switch (request.type) {
       case this.hap.StreamRequestTypes.START: {
-        this.camera.log.debug(`Start stream requested: ${request.video.width}x${request.video.height}, ${request.video.fps} fps, ${request.video.max_bit_rate} kbps`);
+        // eslint-disable-next-line max-len
+        this.log.debug(`Start stream requested: ${request.video.width}x${request.video.height}, ${request.video.fps} fps, ${request.video.max_bit_rate} kbps`);
 
         await this.startStream(request, callback);
         break;
       }
 
       case this.hap.StreamRequestTypes.RECONFIGURE: {
-        this.camera.log.debug(`Reconfigure stream requested: ${request.video.width}x${request.video.height}, ${request.video.fps} fps, ${request.video.max_bit_rate} kbps (Ignored)`);
+        // eslint-disable-next-line max-len
+        this.log.debug(`Reconfigure stream requested: ${request.video.width}x${request.video.height}, ${request.video.fps} fps, ${request.video.max_bit_rate} kbps (Ignored)`);
 
         callback();
         break;
       }
 
       case this.hap.StreamRequestTypes.STOP: {
-        this.camera.log.debug('Stop stream requested');
+        this.log.debug('Stop stream requested');
 
         this.stopStream(request.sessionID);
         callback();
@@ -300,94 +345,152 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
     }
   }
 
+  private async getAudioEncodingArgs(requestedCodec: AudioStreamingCodecType): Promise<{ codec: string; args: string[] }> {
+    if (requestedCodec === AudioStreamingCodecType.OPUS) {
+      return {
+        codec: 'libopus',
+        args: ['-c:a', 'libopus', '-application', 'lowdelay', '-frame_duration', '20'],
+      };
+    }
+
+    if (requestedCodec === AudioStreamingCodecType.AAC_ELD) {
+      return {
+        codec: 'libfdk_aac',
+        args: ['-c:a', 'libfdk_aac', '-profile:a', 'aac_eld', '-flags:a', '+global_header'],
+      };
+    }
+
+    throw new Error(`Unsupported audio codec requested: ${requestedCodec}`);
+  }
+
+  private async getVideoSyncArgs(): Promise<string[]> {
+    const supportsFpsMode = await isFfmpegOptionSupported(defaultFfmpegPath, 'fps_mode');
+
+    if (supportsFpsMode) {
+      this.log.debug('Using ffmpeg fps_mode for stream synchronization.');
+      return ['-fps_mode', 'cfr'];
+    }
+
+    this.log.debug('ffmpeg fps_mode is not available. Falling back to vsync.');
+    return ['-vsync', '0'];
+  }
+
   private async startStream(request: StartStreamRequest, callback: StreamRequestCallback) {
     const sessionInfo = this.pendingSessions[request.sessionID];
 
     if (!sessionInfo) {
-      this.camera.log.error('Error finding session information.');
+      this.log.error('Error finding session information.');
       callback(new Error('Error finding session information'));
+      return;
     }
 
-    const vcodec = 'libx264';
-    const mtu = 1316; // request.video.mtu is not used
+    this.log.debug(`request: ${JSON.stringify(request)}`);
 
-    const fps = request.video.fps;
+    const vcodec = 'libx264';
+    const mtu = request.video.mtu || 1316;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const fps = request.video.fps; // Since the stream may use variable bitrate, FPS will not be used.
     const videoBitrate = request.video.max_bit_rate;
 
-    const rtspUrl = await this.camera.deviceManager?.retrieveDeviceRTSP(this.camera.device?.id!)!;
+    const rtspUrl = await this.camera.deviceManager.retrieveDeviceRTSP(this.camera.device.id);
 
     const ffmpegArgs: string[] = [
       '-hide_banner',
-      '-loglevel', 'verbose',
+      // '-re',
+      // '-fflags', '+genpts',
+      // '-fflags', '+genpts+discardcorrupt+igndts',
+      // '-fflags', 'nobuffer',
+      // '-fflags', 'flush_packets',
+      // '-rtbufsize', '1M',
+      // '-avoid_negative_ts', 'make_zero',
+      // '-async', '1',
+      // '-vsync', '0',
+      // '-max_delay', '0',
+      // '-thread_queue_size', '1024',
+      '-rtsp_transport', 'tcp',
       '-i', rtspUrl,
-      '-an', '-sn', '-dn',
-      '-r', fps.toString(),
-      '-codec:v', vcodec,
-      '-pix_fmt', 'yuv420p',
-      '-color_range', 'mpeg',
-      '-f', 'rawvideo',
     ];
 
-    const encoderOptions = '-preset ultrafast -tune zerolatency';
-
-    if (encoderOptions) {
-      ffmpegArgs.push(...encoderOptions.split(/\s+/));
-    }
-
-    if (videoBitrate > 0) {
-      ffmpegArgs.push('-b:v', `${videoBitrate}k`);
+    if (this.log.debugMode) {
+      ffmpegArgs.push('-loglevel', 'verbose');
+      ffmpegArgs.push('-progress', 'pipe:1');
     }
 
     // Video Stream
 
+    const videoSyncArgs = await this.getVideoSyncArgs();
+
     ffmpegArgs.push(
+      '-map', '0:v:0',
+      '-an',
+      // '-fflags', '+genpts',
+      // '-avoid_negative_ts', 'make_zero',
+      '-profile:v', `${_H264Profile[request.video.profile].toLowerCase()}`,
+      '-level:v', `${_H264Level[request.video.level].replace(/LEVEL(\d)_(\d)/, '$1.$2')}`,
+      // '-r', fps.toString(),
+      // '-g', `${fps * 2}`,
+      ...videoSyncArgs,
+      '-c:v', vcodec,
+      '-pix_fmt', 'yuv420p',
+      '-preset', 'ultrafast',
+      '-tune', 'zerolatency',
       '-payload_type', `${request.video.pt}`,
       '-ssrc', `${sessionInfo.videoSSRC}`,
       '-f', 'rtp',
       '-srtp_out_suite', 'AES_CM_128_HMAC_SHA1_80',
       '-srtp_out_params', sessionInfo.videoSRTP.toString('base64'),
-      `srtp://${sessionInfo.address}:${sessionInfo.videoPort}?rtcpport=${sessionInfo.videoPort}&pkt_size=${mtu}`,
     );
+
+    if (videoBitrate > 0) {
+      ffmpegArgs.push('-b:v', `${videoBitrate*1000}`);
+    }
+
+    ffmpegArgs.push(`srtp://${sessionInfo.address}:${sessionInfo.videoPort}?rtcpport=${sessionInfo.videoPort}&pkt_size=${mtu}`);
 
     // Setting up audio
 
+    this.log.info(`Audio codec requested: ${request.audio.codec}`);
     if (
       request.audio.codec === AudioStreamingCodecType.OPUS ||
             request.audio.codec === AudioStreamingCodecType.AAC_ELD
     ) {
-      ffmpegArgs.push('-vn', '-sn', '-dn');
+      ffmpegArgs.push(
+        '-map', '0:a:0',
+        '-vn',
+      );
 
-      if (request.audio.codec === AudioStreamingCodecType.OPUS) {
-        ffmpegArgs.push('-acodec', 'libopus', '-application', 'lowdelay');
-      } else {
-        ffmpegArgs.push('-acodec', 'libfdk_aac', '-profile:a', 'aac_eld');
-      }
+      const audioEncodingArgs = await this.getAudioEncodingArgs(request.audio.codec);
+      ffmpegArgs.push(...audioEncodingArgs.args);
 
       ffmpegArgs.push(
-        '-flags', '+global_header',
-        '-f', 'null',
-        '-ar', `${request.audio.sample_rate}k`,
-        '-b:a', `${request.audio.max_bit_rate}k`,
+        // '-thread_queue_size', '512',
+        // '-max_delay', '0',
+        // '-fflags', 'nobuffer',
+        '-ar', `${request.audio.sample_rate*1000}`,
+        '-b:a', `${request.audio.max_bit_rate*1000}`,
         '-ac', `${request.audio.channel}`,
+        // '-af', 'aresample=async=1',
+        '-af', 'aresample=async=1:min_hard_comp=0.100000:first_pts=0',
+        // '-af', 'aresample=resampler=soxr',
         '-payload_type', `${request.audio.pt}`,
         '-ssrc', `${sessionInfo.audioSSRC}`,
         '-f', 'rtp',
+        // '-cutoff', '12000',
         '-srtp_out_suite', 'AES_CM_128_HMAC_SHA1_80',
         '-srtp_out_params', sessionInfo.audioSRTP.toString('base64'),
         `srtp://${sessionInfo.address}:${sessionInfo.audioPort}?rtcpport=${sessionInfo.audioPort}&pkt_size=188`,
       );
     } else {
-      this.camera.log.error(`Unsupported audio codec requested: ${request.audio.codec}`);
+      this.log.error(`Unsupported audio codec requested: ${request.audio.codec}`);
     }
-
-    ffmpegArgs.push('-progress', 'pipe:1');
 
     const activeSession: ActiveSession = {};
 
     activeSession.socket = createSocket(sessionInfo.addressVersion === 'ipv6' ? 'udp6' : 'udp4');
 
     activeSession.socket.on('error', (err: Error) => {
-      this.camera.log.error('Socket error: ' + err.message);
+      this.log.error('Socket error: ' + err.message);
       this.stopStream(request.sessionID);
     });
 
@@ -396,7 +499,7 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
         clearTimeout(activeSession.timeout);
       }
       activeSession.timeout = setTimeout(() => {
-        this.camera.log.info('Device appears to be inactive. Stopping stream.');
+        this.log.info('Device appears to be inactive. Stopping stream.');
         this.controller.forceStopStreamingSession(request.sessionID);
         this.stopStream(request.sessionID);
       }, request.video.rtcp_interval * 5 * 1000);
@@ -408,7 +511,7 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
       request.sessionID,
       defaultFfmpegPath,
       ffmpegArgs,
-      this.camera.log,
+      this.log,
       this,
       callback,
     );
@@ -417,30 +520,42 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
     delete this.pendingSessions[request.sessionID];
   }
 
-  private async fetchSnapshot(): Promise<Buffer> {
-    if (!this.camera.device!.online) {
-      this.camera.log.debug('Device is currently offline.');
+  private async fetchSnapshot(width: number, height: number): Promise<Buffer> {
+    if (!this.camera.device.online) {
+      this.log.debug('Device is currently offline.');
       throw new Error('Device is currently offline.');
     }
 
     // TODO: Check if there is a stream already running to fetch snapshot.
 
-    const rtspUrl = await this.camera.deviceManager?.retrieveDeviceRTSP(this.camera.device?.id!)!;
-
-    const ffmpegArgs = [
-      '-i', rtspUrl,
-      '-frames:v', '1',
+    const rtspUrl = await this.camera.deviceManager.retrieveDeviceRTSP(this.camera.device.id);
+    const ffmpegArgs: string[] = [
       '-hide_banner',
-      '-loglevel',
-      'error',
-      '-f',
-      'image2',
+      '-loglevel', 'error',
+      '-i', rtspUrl,
+      // '-analyzeduration', '0',
+      // '-probesize', '32',
+      '-vframes:v', '1',
+      '-vf', `scale=${width}:${height}`,
+      // '-pix_fmt', 'yuvj422p',
+      '-f', 'mjpeg',
       '-',
     ];
+    // old version
+    // const ffmpegArgs = [
+    //   '-i', rtspUrl,
+    //   '-frames:v', '1',
+    //   '-hide_banner',
+    //   '-loglevel',
+    //   'error',
+    //   '-f',
+    //   'image2',
+    //   '-',
+    // ];
 
     return new Promise((resolve, reject) => {
 
-      this.camera.log.debug(`Running Snapshot command: ${defaultFfmpegPath} ${ffmpegArgs.map(value => JSON.stringify(value)).join(' ')}`);
+      this.log.debug(`Running Snapshot command: ${defaultFfmpegPath} ${ffmpegArgs.map(value => JSON.stringify(value)).join(' ')}`);
 
       const ffmpeg = spawn(
         defaultFfmpegPath,
@@ -457,7 +572,7 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
       });
 
       ffmpeg.on('error', (error) => {
-        this.camera.log.error(`FFmpeg process creation failed: ${error.message} - Showing "offline" image instead.`);
+        this.log.error(`FFmpeg process creation failed: ${error.message} - Showing "offline" image instead.`);
         reject('Failed to fetch snapshot.');
       });
 
@@ -470,10 +585,10 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
         if (snapshotBuffer.length > 0) {
           resolve(snapshotBuffer);
         } else {
-          this.camera.log.error('Failed to fetch snapshot. Showing "offline" image instead.');
+          this.log.error('Failed to fetch snapshot. Showing "offline" image instead.');
 
           if (errors.length > 0) {
-            this.camera.log.error(errors.join(' - '));
+            this.log.error(errors.join(' - '));
           }
 
           reject('Unable to fetch snapshot.');

@@ -114,7 +114,7 @@ describe('LocalDeviceManager command and local mapping behavior', () => {
 
     const result = await manager.sendCommands('missing-device', [{ code: 'switch_1', value: true }]);
 
-    expect(result).toBeUndefined();
+    expect(result).toBe(false);
   });
 
   test('updates existing configured device IP on discovery and disconnects stale connection', async () => {

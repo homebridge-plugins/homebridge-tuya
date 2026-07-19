@@ -77,6 +77,7 @@ export default class TuyaHomeDeviceManager extends TuyaCloudDeviceManager {
     }
 
     this.log.info(`Got ${devices.length} device(s) and scene(s).`);
+    await this.updateInfraredRemotes(devices);
     return devices;
   }
 
@@ -99,6 +100,11 @@ export default class TuyaHomeDeviceManager extends TuyaCloudDeviceManager {
     // this.log.debug('Devices updated.\n', JSON.stringify(devices, null, 2));
     this.devices = devices;
     return devices;
+  }
+
+  override async executeScene(homeID: string | number, sceneID: string) {
+    const res = await this.api.post(`/v1.0/homes/${homeID}/scenes/${sceneID}/trigger`);
+    return res;
   }
 
   async getHomeList() {
@@ -139,8 +145,4 @@ export default class TuyaHomeDeviceManager extends TuyaCloudDeviceManager {
     return scenes;
   }
 
-  async executeScene(homeID: string | number, sceneID: string) {
-    const res = await this.api.post(`/v1.0/homes/${homeID}/scenes/${sceneID}/trigger`);
-    return res;
-  }
 }

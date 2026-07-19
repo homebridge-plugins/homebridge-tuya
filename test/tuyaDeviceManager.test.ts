@@ -602,7 +602,7 @@ describe('TuyaDeviceManager', () =>
     });
 
     describe('infrared remote resolution', () => {
-      test('resolveInfraredRemotes returns empty array when no IR devices', () => {
+      test('resolveInfraredRemotes returns empty array when no IR devices', async () => {
         const parentDevice = new TuyaDevice({
           id: 'parent_001',
           name: 'Hub',
@@ -612,16 +612,16 @@ describe('TuyaDeviceManager', () =>
           status: [],
         });
 
-        const result = manager.resolveInfraredRemotes(parentDevice, [parentDevice]);
+        const result = await manager.resolveInfraredRemotes(parentDevice, [parentDevice]);
         expect(Array.isArray(result)).toBe(true);
         expect(result.length).toBe(0);
       });
 
-      test('resolveInfraredRemotes finds IR devices with matching location', () => {
+      test('resolveInfraredRemotes finds IR devices with matching location', async () => {
         const parentDevice = new TuyaDevice({
           id: 'parent_001',
           name: 'Hub',
-          category: 'wifizigbee',
+          category: 'wnykq',
           product_id: 'hub_prod',
           schema: [],
           status: [],
@@ -641,16 +641,16 @@ describe('TuyaDeviceManager', () =>
           lon: '-74.0060',
         });
 
-        const result = manager.resolveInfraredRemotes(parentDevice, [parentDevice, irDevice]);
+        const result = await manager.resolveInfraredRemotes(parentDevice, [parentDevice, irDevice]);
         expect(result.length).toBeGreaterThan(0);
       });
 
-      test('resolveInfraredRemotes finds IR devices with matching update_time', () => {
+      test('resolveInfraredRemotes finds IR devices with matching update_time', async () => {
         const timestamp = 1234567890;
         const parentDevice = new TuyaDevice({
           id: 'parent_001',
           name: 'Hub',
-          category: 'wifizigbee',
+          category: 'wnykq',
           product_id: 'hub_prod',
           schema: [],
           status: [],
@@ -668,7 +668,7 @@ describe('TuyaDeviceManager', () =>
           update_time: timestamp,
         });
 
-        const result = manager.resolveInfraredRemotes(parentDevice, [parentDevice, irDevice]);
+        const result = await manager.resolveInfraredRemotes(parentDevice, [parentDevice, irDevice]);
         expect(result.length).toBeGreaterThan(0);
       });
     });

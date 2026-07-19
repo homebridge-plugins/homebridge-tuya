@@ -114,8 +114,13 @@ export default class AccessoryFactory {
           case 11: // Air Purifier
           case 12: // Water Heater
           default:
-            platform.log.warn('case IRGenericAccessory');
-            handler = new IRGenericAccessory(platform, accessory);
+            if (device.sub) {
+              platform.log.warn('case IRControlHubSubAccessory');
+              handler = new IRControlHubSubAccessory(platform, accessory);
+            } else {
+              platform.log.warn('case IRGenericAccessory');
+              handler = new IRGenericAccessory(platform, accessory);
+            }
             break;
         }
       }

@@ -6,6 +6,7 @@ import TuyaDevice, {
   TuyaDeviceSchemaMode,
   TuyaDeviceSchemaProperty,
   TuyaDeviceStatus,
+  TuyaIRRemote,
   TuyaIRRemoteKeyListItem,
 } from './TuyaDevice';
 import { TuyaPlatformCloudConfig, TuyaPluginMode } from '../../config';
@@ -213,10 +214,16 @@ export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
     return res;
   }
 
-  resolveInfraredRemotes(parentDevice: TuyaDevice, allDevices: TuyaDevice[]) {
-    const isInfraredRemoteDevice = (parent:TuyaDevice, target:TuyaDevice) => {
+  async resolveInfraredRemotes(parentDevice: TuyaDevice, allDevices: TuyaDevice[]) : Promise<TuyaIRRemote[]> {
+    const isInfraredRemoteDevice = async (parent:TuyaDevice, target:TuyaDevice) => {
+      if (!parent.isIRControlHub()) {
+        return false;
+      }
       if (!target.sub || !target.category.startsWith('infrared_')) {
         return false;
+      }
+      if (parent.id === target.parent_id) {
+        return true;
       }
       if (parent.lat === target.lat && parent.lon === target.lon) {
         return true;
@@ -224,17 +231,33 @@ export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
       if (parent.update_time === target.update_time) {
         return true;
       }
+      if ((await this.getInfraredDIYKeys(parentDevice.id, target.id)).success) {
+        return true;
+      }
+      if ((await this.getInfraredKeys(parentDevice.id, target.id)).success) {
+        return true;
+      }
       return false;
     };
-    const infraredRemotes = allDevices.filter(device => {
-      return isInfraredRemoteDevice(parentDevice, device);
-    }).map(device => {
-      return {
-        'category_id': 999,
-        'remote_id': device.id,
-        'resolved': true,
-      };
-    });
+    const infraredRemotes:TuyaIRRemote[] = [];
+    for (const device of allDevices) {
+      if (!await isInfraredRemoteDevice(parentDevice, device)) {
+        continue;
+      }
+      infraredRemotes.push(
+        {
+          'brand_id': 0,
+          'brand_name': '',
+          'category_id': 999,
+          'remote_id': device.id,
+          'remote_index': -1,
+          'remote_name': device.name,
+          'resolved': true,
+          'org_category_id': 999,
+        },
+      );
+    }
+    this.log.debug(`infraredRemotes founded: ${infraredRemotes.length}`);
     return infraredRemotes;
   }
 
@@ -262,6 +285,8 @@ export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
 
   override async updateInfraredRemotes(allDevices: TuyaDevice[]) {
     const irDevices = allDevices.filter(device => device.isIRControlHub());
+    const orphanDevices = allDevices.filter(device => device.sub && !device.parent_id);
+    this.log.debug(`irhubs:${JSON.stringify(irDevices.map(d => d.name))}`);
     for (const irDevice of irDevices) {
       const res = await this.getInfraredRemotes(irDevice.id);
 
@@ -269,8 +294,15 @@ export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
         this.log.warn('Get infrared remotes failed. deviceId = %s, code = %s, msg = %s', irDevice.id, res.code, res.msg);
         continue;
       }
-      let resResult = res.result;
-      for (const resolvedRemoteDevice of this.resolveInfraredRemotes(irDevice, allDevices)) {
+      let resResult:TuyaIRRemote[] = res.result;
+      const remoteDeviceIDs = resResult.map(item => item.remote_id);
+      for (let i = orphanDevices.length - 1; i >= 0; i--) {
+        if (remoteDeviceIDs.includes(orphanDevices[i].id)) {
+          orphanDevices.splice(i, 1);
+        }
+      }
+      const resolvedRemoteDevices = await this.resolveInfraredRemotes(irDevice, orphanDevices);
+      for (const resolvedRemoteDevice of resolvedRemoteDevices) {
         resResult.forEach(remoteDevice => {
           if (remoteDevice.remote_id === resolvedRemoteDevice.remote_id) {
             remoteDevice.org_category_id = remoteDevice.category_id;
@@ -278,13 +310,16 @@ export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
             remoteDevice.resolved = true;
           }
         });
-      }
-      if (resResult.length === 0) {
-        // for legacy devices
-        this.log.warn('no result for Get infrared remotes.');
-        this.log.info('resolving infrared remotes from device list...');
-        resResult = this.resolveInfraredRemotes(irDevice, allDevices);
-        this.log.success(`${resResult.length} infrared remote device found.`);
+        if (!resResult.map(remoteDevice => remoteDevice.remote_id).includes(resolvedRemoteDevice.remote_id)) {
+          this.log.success(`infrared remote device found: ${resolvedRemoteDevice.remote_name}`);
+          resResult.push(resolvedRemoteDevice);
+          for (let i = orphanDevices.length - 1; i >= 0; i--) {
+            if (resolvedRemoteDevice.remote_id === orphanDevices[i].id) {
+              orphanDevices.splice(i, 1);
+              break;
+            }
+          }
+        }
       }
 
       for (const { category_id, remote_id, resolved } of resResult) {

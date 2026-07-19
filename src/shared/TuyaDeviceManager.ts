@@ -1,8 +1,8 @@
 import EventEmitter from 'events';
 import { ExLogger, logger, PrefixLogger } from './util/Logger';
-import TuyaDevice, { TuyaDeviceStatus } from '../cloud/device/TuyaDevice';
+import TuyaDevice, { TuyaDeviceSchemaMode, TuyaDeviceSchemaType, TuyaDeviceStatus } from '../cloud/device/TuyaDevice';
 import { TuyaOpenAPIResponse } from '../cloud/api/TuyaOpenAPI';
-import { TuyaPlatformDeviceSchemaConfig } from '../config';
+import { RTSPCameraConfig, TuyaPlatformDeviceSchemaConfig } from '../config';
 import { v5 as uuidv5 } from 'uuid';
 
 enum Events {
@@ -52,6 +52,29 @@ export default abstract class TuyaDeviceManager extends EventEmitter {
     return virtualDevice;
   }
 
+  createRTSPCameraDevice(cameraConfig: RTSPCameraConfig): TuyaDevice {
+    const device = new TuyaDevice({
+      id: cameraConfig.deviceId ?? uuidv5(cameraConfig.rtspUrl, TuyaDeviceManager.UUID),
+      uuid: cameraConfig.deviceId ?? uuidv5(cameraConfig.rtspUrl, TuyaDeviceManager.UUID),
+      name: cameraConfig.deviceName ?? 'RTSP Camera',
+      online: true,
+      product_id: 'rstp-camera-product',
+      product_name: 'RTSP Camera',
+      category: 'sp',
+      schema: [
+        {
+          code: 'motion_switch', // camera accessory requires a motion sensor service, so we add a dummy schema for it
+          mode: TuyaDeviceSchemaMode.READ_WRITE,
+          type: TuyaDeviceSchemaType.Boolean,
+          property: {},
+        },
+      ],
+      status: [],
+    });
+    cameraConfig.deviceId = device.id;
+    return device;
+  }
+
   async getCurrentWeatherByOpenMeteo(lat: string, lon: string) {
     /** <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> */
 
@@ -70,7 +93,9 @@ export default abstract class TuyaDeviceManager extends EventEmitter {
   abstract configDevice(device: TuyaDevice) : void;
   abstract getDevice(deviceID: string): TuyaDevice | undefined;
   abstract getDeviceSchemaConfig(device: TuyaDevice, dpCode: string) : TuyaPlatformDeviceSchemaConfig | undefined;
-  abstract sendCommands(deviceID: string, commands: TuyaDeviceStatus[]): Promise<unknown>;
+  abstract sendCommands(deviceID: string, commands: TuyaDeviceStatus[]): Promise<boolean>;
+  abstract enableGarageDoorUseContactSensorForState(device: TuyaDevice): boolean;
+  abstract retrieveDeviceRTSP(deviceID: string): Promise<string>;
 
   // TODO: Unimplemented methods in LocalDeviceManager.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -87,25 +112,20 @@ export default abstract class TuyaDeviceManager extends EventEmitter {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async updateInfraredRemotes(allDevices: TuyaDevice[]) : Promise<void> {}
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getCurrentWeather(lat: string, lon: string) : Promise<TuyaOpenAPIResponse> {
+  async executeScene(ownerID: string, deviceID: string) : Promise<TuyaOpenAPIResponse> {
     return Promise.resolve({ success: false, result: undefined, code: 200, msg: 'unimplemented', t: new Date().getTime(), tid: 'default' });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  retrieveDeviceRTSP(deviceID: string): Promise<string> {
-    return Promise.resolve('rtsp://localhost:7000/')
+  async updateInfraredRemotes(allDevices: TuyaDevice[]) : Promise<void> {}
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async getCurrentWeather(lat: string, lon: string) : Promise<TuyaOpenAPIResponse> {
+    return { success: false, result: undefined, code: 200, msg: 'unimplemented', t: new Date().getTime(), tid: 'default' };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   enableAdaptiveLighting(device: TuyaDevice): boolean {
-    return false;
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  enableGarageDoorUseContactSensorForState(device: TuyaDevice): boolean {
     return false;
   };
 }

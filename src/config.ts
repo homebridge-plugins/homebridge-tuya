@@ -89,6 +89,14 @@ export interface CommonConfig {
   debugLevel?: string;
 }
 
+export interface RTSPCameraConfig {
+  deviceId: string;
+  deviceName?: string;
+  rtspUrl: string;
+  username?: string;
+  password?: string;
+}
+
 // ── Unified top-level plugin config ──────────────────────────────────────────
 
 /**
@@ -133,6 +141,9 @@ export interface TuyaPlatformConfig extends PlatformConfig {
 
   /** Common settings */
   common?: CommonConfig;
+
+  /** @deprecated for JSON Schema. RTSP Camera settings. use LocalConfig.cameras for backend. */
+  cameras?: Array<RTSPCameraConfig>;
 }
 
 // ── JSON-Schema validators (used by platform.ts validation) ──────────────────

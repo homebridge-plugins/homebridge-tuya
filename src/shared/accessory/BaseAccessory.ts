@@ -368,7 +368,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
   }
 
 
-  override async sendCommands(commands: TuyaDeviceStatus[], debounce?: boolean) {
+  override async sendCommands(commands: TuyaDeviceStatus[], debounce?: boolean) : Promise<boolean | undefined> {
     if (!this.device) {
       await super.sendCommands(commands, debounce);
       return;

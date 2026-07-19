@@ -176,7 +176,7 @@ describe('LocalDeviceManager – Zigbee integration', () => {
 
       // CHILD_ID_A is not yet registered in the first pass
       const result = await manager.sendCommands('nonexistent_device', [{ code: 'switch_1', value: true }]);
-      expect(result).toBeUndefined();
+      expect(result).toBe(false);
     });
 
     it('handles sendCommands for a known device that has a dpMapping', async () => {

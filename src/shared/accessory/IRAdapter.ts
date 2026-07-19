@@ -56,10 +56,11 @@ export function IRAdapter<TBase extends Constructor<BaseAccessory>>(Base: TBase)
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    override async sendCommands(commands: TuyaDeviceStatus[], debounce?: boolean): Promise<void> {
+    override async sendCommands(commands: TuyaDeviceStatus[], debounce?: boolean): Promise<boolean> {
       const codes = commands.map(command => command.code);
       const keyItem = this.resolveKeyListItem(codes);
-      return this.sendInfraredCommands(keyItem!);
+      this.sendInfraredCommands(keyItem!);
+      return true;
     }
 
     getKeyItemMaps() : IRKeyItemMap[] {
@@ -120,11 +121,12 @@ export function IRAdapter<TBase extends Constructor<BaseAccessory>>(Base: TBase)
       }
     }
 
-    async sendInfraredCommands(key: TuyaIRRemoteKeyListItem) {
+    async sendInfraredCommands(key: TuyaIRRemoteKeyListItem) : Promise<boolean> {
       if (this.tid) {
         clearTimeout(this.tid);
       }
       this.tid = setTimeout(this._sendInfraredCommands.bind(this, key), 500);
+      return true;
     }
 
     async _sendInfraredCommands(key: TuyaIRRemoteKeyListItem) {

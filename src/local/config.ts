@@ -2,7 +2,7 @@
  * Local (LAN) configuration types for homebridge-tuya unified plugin.
  */
 
-import { TuyaPlatformDeviceConfig } from '../config';
+import { RTSPCameraConfig, TuyaPlatformDeviceConfig } from '../config';
 
 export interface LocalConfig {
   /** Enable local LAN mode. Defaults to true. */
@@ -24,6 +24,11 @@ export interface LocalConfig {
    */
   devices?: LocalDeviceConfig[];
   deviceOverrides?: Array<TuyaPlatformDeviceConfig>;
+
+  /**
+   * RTSP Camera settings.
+   */
+  cameras?: Array<RTSPCameraConfig>;
 }
 
 export interface LocalDeviceConfig {

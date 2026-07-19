@@ -162,6 +162,19 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     return this.getDeviceConfig(device)?.garageDoorUseContactSensorForState === true;
   }
 
+  override async retrieveDeviceRTSP(deviceID: string): Promise<string> {
+    const cameraConfig = this.config.cameras?.find(cameraConfig => cameraConfig.deviceId === deviceID);
+    if (cameraConfig) {
+      const rtspUrl = cameraConfig.rtspUrl;
+      if (rtspUrl.includes('@') || !cameraConfig.username) {
+        return rtspUrl;
+      } else {
+        return `rtsp://${cameraConfig.username}:${cameraConfig.password}@${rtspUrl.substring('rtsp://'.length)}`;
+      }
+    }
+    return '';
+  }
+
   getDeviceConfig(device: TuyaDevice) {
     if (!this.config) {
       return undefined;
@@ -294,11 +307,11 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
    * `commands` is the same [{code, value}] format used by the cloud API so
    * all existing accessory handlers work without modification.
    */
-  override async sendCommands(deviceID: string, commands: TuyaDeviceStatus[]): Promise<unknown> {
+  override async sendCommands(deviceID: string, commands: TuyaDeviceStatus[]): Promise<boolean> {
     const dpMap = this.dpMaps.get(deviceID);
     if (!dpMap) {
       this.log.warn(`No dpMapping for local device ${deviceID}`);
-      return;
+      return false;
     }
 
     const dps: Record<string, unknown> = {};
@@ -312,7 +325,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     }
 
     if (Object.keys(dps).length === 0) {
-      return;
+      return false;
     }
 
     // Log the command for user visibility
@@ -334,7 +347,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     if (!conn) {
       conn = this._createConnection(deviceID);
       if (!conn) {
-        return;
+        return false;
       }
     }
 

@@ -178,6 +178,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     this.platformConfig = new ConfigMigrator(!!this.platformConfig.common?.debug).migrate(config);
     this.debug = this.platformConfig.common?.debug ?? false;
     this.debugLevel = this.platformConfig.common?.debugLevel ?? undefined;
+    this.mode = this.platformConfig.mode!;
 
     if (!this.validate()) {
       return;
@@ -266,11 +267,21 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     this.deviceManager = deviceManager;
 
     const devices = await this.deviceManager.pullDevices();
-    await this.deviceManager.updateInfraredRemotes(devices);
+
+    devices.forEach(device => this.log.debug(`${device.id}: ${device.name}`));
 
     for (const device of devices) {
       this.addAccessory(device);
     }
+
+    // add RTSP camera accessories that are not present in either Cloud or Local (non-Tuya devices).
+    this.platformConfig.local?.cameras?.
+      filter(cconfig => !devices.map(device => device.id).includes(cconfig.deviceId)).forEach(cconfig => {
+        this.log.info(`adding non-Tuya device: ${cconfig.deviceName}`);
+        const device = this.deviceManager!.createRTSPCameraDevice(cconfig);
+        this.deviceManager.devices.push(device);
+        this.addAccessory(device);
+      });
 
     deviceManager!.on(TuyaDeviceManager.Events.DEVICE_ADD, this.addAccessory.bind(this));
     deviceManager!.on(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, this.updateAccessoryInfo.bind(this));
