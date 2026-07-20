@@ -21,6 +21,21 @@ let _logger: Logger;
 export const logger = () => _logger ?? console;
 export const initLogger = (logger: Logger) => _logger = logger;
 
+// Mask data that fully matches the regular expression (case‑insensitive).
+const maskingList = [
+  'access_?token',
+  'accesskey',
+  'api_?key',
+  'dataid',
+  'devid',
+  'lat',
+  'lon',
+  'password',
+  'secret',
+  'token',
+  'tuyakey',
+];
+
 export class PrefixLogger implements ExLogger {
   constructor(
     public log: Logger,
@@ -73,8 +88,9 @@ export class PrefixLogger implements ExLogger {
     if (!this.mask || typeof str !== 'string') {
       return str;
     }
-    const regex_single = /'(password|token|access_?token|accessKey|tuyaKey|api_?key|secret)'\s*:\s*'[^']*'/gi;
-    const regex_double = /"(password|token|access_?token|accessKey|tuyaKey|api_?key|secret)"\s*:\s*"[^"]*"/gi;
+    const mask = `(${maskingList.join('|')})`;
+    const regex_single = new RegExp(`'${mask}'\\s*:\\s*'[^']*'`, 'gi');
+    const regex_double = new RegExp(`"${mask}"\\s*:\\s*"[^"]*"`, 'gi');
     const spilts = str.split(/\r\n|\n|\r/);
     if (!spilts.some(s => regex_single.test(s)) && !spilts.some(s => regex_double.test(s))) {
       return str;
@@ -90,7 +106,8 @@ export class PrefixLogger implements ExLogger {
       return obj;
     }
     const cloneObj = cloneDeep(obj);
-    const regex = /(password|token|access_?token|accessKey|tuyakey|api_?key|secret)/i;
+    const mask = `(${maskingList.join('|')})`;
+    const regex = new RegExp(`^${mask}$`, 'i');
     for (const key in cloneObj) {
       const value = cloneObj[key];
       if (typeof value === 'function') {
