@@ -39,6 +39,7 @@ import {
   StreamingDelegate as FfmpegStreamingDelegate,
   isFfmpegOptionSupported,
   isEncoderAvailable,
+  isFfmpegForHomebridge,
 } from './FfmpegStreamingProcess';
 
 import { logger, PrefixLogger } from './Logger';
@@ -172,6 +173,16 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
 
     delegate.controller = new camera.platform.api.hap.CameraController(options);
 
+    isFfmpegForHomebridge(defaultFfmpegPath).then(value => {
+      if (value) {
+        camera.log.debug('FFmpeg for homebridge will be used.');
+      } else {
+        camera.log.warn(`Local FFmpeg will be used. 
+If video or audio does not play correctly, please switch to the FFmpeg bundled with the plugin.
+Below are the commands for forcing its installation.`);
+        camera.log.warn('npm install ffmpeg-for-homebridge --foreground-scripts');
+      }
+    });
     return delegate;
   }
 

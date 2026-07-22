@@ -208,3 +208,29 @@ export async function isFfmpegOptionSupported(defaultFfmpegPath: string, optionN
     });
   });
 }
+
+/**
+ * Determine whether FFmpeg is the ffmpeg-for-homebridge build.
+ * @param ffmpegCommand The actual FFmpeg command to use (e.g., "ffmpeg")
+ * @returns Promise<boolean> true = ffmpeg-for-homebridge / false = local FFmpeg
+ */
+export function isFfmpegForHomebridge(ffmpegCommand: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const proc = spawn(ffmpegCommand, ['-version']);
+
+    let output = '';
+
+    proc.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    proc.on('close', () => {
+      const isHomebridgeBuild = output.includes('homebridge');
+      resolve(isHomebridgeBuild);
+    });
+
+    proc.on('error', () => {
+      resolve(false);
+    });
+  });
+}
