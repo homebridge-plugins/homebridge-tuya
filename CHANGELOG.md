@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.5.1] - (2026.7.22)
+
+### Fixed
+ - Resolved security issues detected by npm audit by applying automated fixes with npm audit fix.
+   - node_modules/brace-expansion v1.1.15 -> v1.1.16
+   - node_modules/js-yaml v4.2.0 -> 4.3.0
+   - node_modules/rimraf/node_modules/brace-expansion v5.0.6 -> 5.0.7
+   - node_modules/tar v7.5.16 -> 7.5.21
+
+
 ## [2.5.0] - (2026.7.12)
 
 ### Added
