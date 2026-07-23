@@ -410,7 +410,7 @@
             },
             "local": {
                 "title": "Local Settings",
-                "description": "Configure local LAN devices. For help getting local keys, see the <a href='#' onClick='alert(\"Visit: wiki/Get-Local-Keys-for-Your-Devices.md\")'>Local Keys Setup Guide</a>.",
+                "description": "Configure local LAN devices. For help getting local keys, see the <a href='#' onClick='alert(\"Visit: docs/Get-Local-Keys-for-Your-Devices.md\")'>Local Keys Setup Guide</a>.",
                 "type": "object",
                 "properties": {
                     "autoDiscoverDevices": {

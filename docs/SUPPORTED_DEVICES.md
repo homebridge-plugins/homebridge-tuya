@@ -1,9 +1,30 @@
 # Supported Tuya Devices
 
-First-class category name, sedond-class category name, category code can be found here:
-https://developer.tuya.com/docs/iot/standarddescription?id=K9i5ql6waswzq
+This plugin supports **60+ device categories** from Tuya's ecosystem. Use this page to find your device's category code and verify HomeKit service support.
 
-Most category code is pinyin abbreviation of Chinese name.
+---
+
+## How to Use This Guide
+
+1. **Find your device** — Locate it in the table by name or category
+2. **Check the code** — Note the category code (e.g., `dj`, `kg`, `ms`)
+3. **Verify support** — ✅ = supported, ❌ = not yet supported
+4. **For unsupported devices** — See [ADVANCED_OPTIONS.md](./ADVANCED_OPTIONS.md) for custom mappings
+
+---
+
+## Table Legend
+
+| Column | Meaning |
+|--------|---------|
+| Name | English device name |
+| Name (zh) | Chinese device name |
+| Code | Tuya category code (use in device overrides) |
+| Homebridge Service | HomeKit accessory type |
+| Supported | ✅ = supported, ❌ = not supported |
+| Links | Link to official Tuya documentation |
+
+**Reference:** [Tuya Standard Instruction Set](https://developer.tuya.com/docs/iot/standarddescription?id=K9i5ql6waswzq)
 
 ## Lighting
 
