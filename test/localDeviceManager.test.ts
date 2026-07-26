@@ -159,7 +159,7 @@ describe('LocalDeviceManager', () => {
       const sendPromise = mgr.sendCommands('device1', [{ code: 'switch_1', value: true }]);
       jest.advanceTimersByTime(10000);
 
-      await expect(sendPromise).rejects.toThrow('Local command response timeout');
+      await expect(sendPromise).resolves.toBe(false);
       jest.useRealTimers();
     });
 
@@ -179,7 +179,7 @@ describe('LocalDeviceManager', () => {
 
       await expect(firstSend).resolves.toBe(true);
       jest.advanceTimersByTime(10000);
-      await expect(secondSend).rejects.toThrow('Local command response timeout');
+      await expect(secondSend).resolves.toBe(false);
       jest.useRealTimers();
     });
 

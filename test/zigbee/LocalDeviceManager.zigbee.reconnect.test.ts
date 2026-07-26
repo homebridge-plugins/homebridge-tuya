@@ -79,6 +79,7 @@ describe('LocalDeviceManager – Zigbee gateway reconnection', () => {
           ip: DEVICE_IP,
           tuyaKey: DEVICE_KEY,
           dpMapping: { 'switch_1': 1, 'bright_value': 2 },
+          isZigbeeGateway: true
         },
         {
           tuyaDeviceId: CHILD_ID,

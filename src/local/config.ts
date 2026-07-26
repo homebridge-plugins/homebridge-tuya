@@ -2,7 +2,13 @@
  * Local (LAN) configuration types for homebridge-tuya unified plugin.
  */
 
+import { TuyaIRRemoteKeys } from '../cloud/device/TuyaDevice';
 import { RTSPCameraConfig, TuyaPlatformDeviceConfig } from '../config';
+
+export interface DPMap {
+  dpCode: string,
+  dpID: number
+}
 
 export interface LocalConfig {
   /** Enable local LAN mode. Defaults to true. */
@@ -53,6 +59,14 @@ export interface LocalDeviceConfig {
    * Example: { "switch_1": 1, "bright_value": 2, "temp_value": 3 }
    */
   dpMapping?: Record<string, number>;
+  /**
+   * Custom DP Mapping for Learning IR Devices, etc.
+   * Optional DP → code mapping so existing accessory handlers can work.
+   * Keys are Tuya standard instruction codes (e.g. "switch_1", "bright_value").
+   * Values are the integer DP number reported by the device.
+   * Example: [ { "dpCode": "key_data", "dpID": 107 }, { "dpCode": "key_data1", "dpID": 108 } ]
+   */
+  dpMappingArray?: Array<DPMap>;
   /**
    * Override the device category for accessory type selection.
    * Uses Tuya category codes: "dj" (light), "cz" (outlet), "kt" (AC), etc.
@@ -109,4 +123,11 @@ export interface LocalDeviceConfig {
    * Useful when child is a different device type than the gateway.
    */
   childCategory?: string;
+
+  /**
+   * IRControl Learning IR Code.
+   * The dpCode is fixed to 'key_data'.
+   * @see IRControlHubSubAccessory
+   */
+  remote_keys?: TuyaIRRemoteKeys;
 }

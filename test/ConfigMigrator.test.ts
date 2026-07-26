@@ -137,6 +137,103 @@ describe('ConfigMigrator migrate', () => {
     expect(local!.devices).toEqual([]);
   });
 
+  test('migrate should apply local defaults when mode is local (including remote_keys)', () => {
+    const migrator = new ConfigMigrator();
+
+    const inputConfig = {
+      mode: TuyaPluginMode.local,
+      // cloud intentionally provided to ensure it is not overwritten for local-only mode
+      cloud: { projectType: '1' },
+      local: {
+        devices: [
+          {
+            tuyaDeviceId: 'localID',
+            name: 'test name',
+            remote_keys: {
+              brand_id: 1,
+              key_list: [
+                {
+                  key_name: 'keyName_1',
+                  learning_code: '0123456789',
+                },
+                {
+                  key_name: '   ',
+                  learning_code: '9876543210',
+                  standard_key: true,
+                }
+              ]
+            }
+          }
+        ]
+      }
+    } as any;
+
+    const result = migrator.migrate(inputConfig);
+
+    // local defaults applied
+    const local = result.local;
+    expect(local).toBeDefined();
+    expect(local!.autoDiscoverDevices).toBe(true);
+    expect(local!.discoverTimeout).toBe(5);
+    expect(local!.rediscoverInterval).toBe(900);
+    expect(local!.devices).toBeDefined();
+    expect(local!.devices?.length).toEqual(1);
+    expect(local!.devices![0].remote_keys).toBeDefined();
+    expect(local!.devices![0].remote_keys?.brand_id).toBe(1);
+    expect(local!.devices![0].remote_keys?.category_id).toBe(999);
+    expect(local!.devices![0].remote_keys?.duplicate_power).toBe(false);
+    expect(local!.devices![0].remote_keys?.org_category_id).toBe(999);
+    expect(local!.devices![0].remote_keys?.remote_index).toBe(0);
+    expect(local!.devices![0].remote_keys?.single_air).toBe(false);
+    expect(local!.devices![0].remote_keys?.key_list.length).toBe(2);
+    expect(local!.devices![0].remote_keys?.key_list[0].key_name).toBe('keyName 1');
+    expect(local!.devices![0].remote_keys?.key_list[0].key).toBe('keyName 1');
+    expect(local!.devices![0].remote_keys?.key_list[0].key_id).toBe(1000000);
+    expect(local!.devices![0].remote_keys?.key_list[0].standard_key).toBe(false);
+    expect(local!.devices![0].remote_keys?.key_list[0].learning_code).toBe('0123456789');
+    expect(local!.devices![0].remote_keys?.key_list[1].key_name).toBe('   ');
+    expect(local!.devices![0].remote_keys?.key_list[1].key).toBe('   ');
+    expect(local!.devices![0].remote_keys?.key_list[1].key_id).toBe(1000001);
+    expect(local!.devices![0].remote_keys?.key_list[1].standard_key).toBe(true);
+    expect(local!.devices![0].remote_keys?.key_list[1].learning_code).toBe('9876543210');
+
+    // Unnecessary settings are removed.
+    expect(result.cloud).toBeUndefined();
+  });
+
+  test('migrate should apply local defaults when mode is local (without remote_keys)', () => {
+    const migrator = new ConfigMigrator();
+
+    const inputConfig = {
+      mode: TuyaPluginMode.local,
+      // cloud intentionally provided to ensure it is not overwritten for local-only mode
+      cloud: { projectType: '1' },
+      local: {
+        devices: [
+          {
+            tuyaDeviceId: 'localID',
+            name: 'test name',
+          }
+        ]
+      }
+    } as any;
+
+    const result = migrator.migrate(inputConfig);
+
+    // local defaults applied
+    const local = result.local;
+    expect(local).toBeDefined();
+    expect(local!.autoDiscoverDevices).toBe(true);
+    expect(local!.discoverTimeout).toBe(5);
+    expect(local!.rediscoverInterval).toBe(900);
+    expect(local!.devices).toBeDefined();
+    expect(local!.devices?.length).toEqual(1);
+    expect(local!.devices![0].remote_keys).toBeUndefined();
+
+    // Unnecessary settings are removed.
+    expect(result.cloud).toBeUndefined();
+  });
+
   test('migrate should transform device schema oldCode -> code and set newCode', () => {
     const migrator = new ConfigMigrator();
 

@@ -367,6 +367,8 @@ export default class LocalDevice extends EventEmitter {
       return;
     }
 
+    this.log.debug(`cmd:${cmd}, payload:${payload.toString('utf8')}`);
+
     if (cmd === 7 || cmd === 13) {
       // Echo of our own command, ignore
       return;
@@ -468,7 +470,7 @@ export default class LocalDevice extends EventEmitter {
   }
 
   // ── Private: send ─────────────────────────────────────────────────────────
-
+  private cmdFlag:number = -1;
   private _send(o: { cmd: number; data?: unknown; encrypted?: boolean }): void {
     if (!this.socket) {
       return;
@@ -476,6 +478,18 @@ export default class LocalDevice extends EventEmitter {
 
     this.sendCounter++;
     const { cmd, data } = o;
+
+    if (data) {
+      this.cmdFlag += 1;
+      this.log.debug(`cmdFlag:${this.cmdFlag}, sendCounter:${this.sendCounter}`);
+      switch (this.cmdFlag) {
+        default:
+          this.cmdFlag = -1;
+
+      }
+      this.log.debug(`dataid:${(data as any)?.devId}`);
+      this.log.debug(`cmd:${cmd}, data:${JSON.stringify(data)}, encrypted:${o.encrypted}`);
+    }
 
     // Prepare data payload
     let dataBuffer: Buffer = Buffer.alloc(0);

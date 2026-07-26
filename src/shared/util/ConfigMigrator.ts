@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import net from 'net';
-import { CommonConfig, TuyaPlatformConfig, TuyaPlatformDeviceConfig, TuyaPluginMode } from '../../config';
+import { CommonConfig, LocalConfig, TuyaPlatformConfig, TuyaPlatformDeviceConfig, TuyaPluginMode } from '../../config';
 import { ExLogger, logger, PrefixLogger } from './Logger';
 import configSchemaJson from '../../../config.schema.json';
 import { sanitizeName } from './util';
@@ -102,6 +102,7 @@ export default class ConfigMigrator {
     }
     if ([TuyaPluginMode.local, TuyaPluginMode.both].includes(newConfig!.mode as TuyaPluginMode)) {
       newConfig.local = {...defaultLocalConfig, ...newConfig.local};
+      this.applyLocalIRRemoteKeysDefault(newConfig.local!);
     }
     newConfig.common = {...defaultCommonConfig, ...newConfig.common};
     return newConfig;
@@ -121,6 +122,34 @@ export default class ConfigMigrator {
     }
 
     return defaults;
+  }
+
+  private applyLocalIRRemoteKeysDefault(local: LocalConfig) {
+    const defaultRemoteKeys = {
+      brand_id: 0,
+      category_id: 999,
+      duplicate_power: false,
+      key_list: [],
+      key_range: [],
+      org_category_id: 999,
+      remote_index: 0,
+      single_air: false,
+    };
+    const irDevices = local.devices!.filter(device => device.remote_keys);
+    // Certain properties are unnecessary for Local mode and would not normally require configuration.
+    // However, because the Cloud‑side object model is reused, these fields are treated as mandatory, so default values are applied.
+    irDevices.map(device => device.remote_keys!).forEach(keys => {
+      const newKeys = Object.assign({}, defaultRemoteKeys, keys);
+      Object.assign(keys, newKeys);
+      // key_list is a required property even in Local mode.
+      keys.key_list.forEach((key, idx) => {
+        key.key_name = sanitizeName(key.key_name) ?? key.key_name;
+        key.key = key.key_name;
+        key.key_id = key.key_id ?? 1000000 + idx;
+        key.standard_key = key.standard_key ?? false;
+      });
+    });
+
   }
 
   private normalizeConfig(config: TuyaPlatformConfig) {

@@ -135,7 +135,7 @@ export class ZigbeeGatewayDetection {
    * Return true if a device config represents a Zigbee child (sub-device).
    */
   static isChild(cfg: LocalDeviceConfig): boolean {
-    return !!cfg.parentDeviceId;
+    return !!cfg.parentDeviceId && !cfg.remote_keys;
   }
 
   /**
@@ -147,6 +147,10 @@ export class ZigbeeGatewayDetection {
     if (cfg.isZigbeeGateway) {
       return true;
     }
-    return allDevices.some(d => d.parentDeviceId === cfg.tuyaDeviceId);
+    return allDevices.filter(ZigbeeGatewayDetection.isChild).some(d => d.parentDeviceId === cfg.tuyaDeviceId);
+  }
+
+  static isZigbeeDevice(cfg: LocalDeviceConfig) {
+    return ZigbeeGatewayDetection.isChild(cfg) || ZigbeeGatewayDetection.isGateway(cfg, []);
   }
 }

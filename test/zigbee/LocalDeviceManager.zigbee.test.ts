@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, jest } from '@jest/globals';
 import LocalDeviceManager from '../../src/local/LocalDeviceManager';
 import { LocalConfig } from '../../src/local/config';
+import TuyaDevice from '../../src/cloud/device/TuyaDevice';
 import TuyaCloudDeviceManager from '../../src/cloud/device/TuyaCloudDeviceManager';
 import Logger, { ExLogger, initLogger } from '../../src/shared/util/Logger';
 
@@ -164,6 +165,46 @@ describe('LocalDeviceManager – Zigbee integration', () => {
       const errorCalls = errorSpy.mock.calls.map(c => String(c[0]));
       const zigbeeErrorLine = errorCalls.find(s => s.includes('Zigbee'));
       expect(zigbeeErrorLine).toBeDefined();
+    });
+  });
+
+  // ── _syncConnectionInfo: shared local connection metadata ───────────────
+
+  describe('_syncConnectionInfo()', () => {
+    it('copies connection metadata from the sub-device to the parent when the parent is missing it', () => {
+      manager = new LocalDeviceManager(standaloneConfig());
+      const parent = new TuyaDevice({ id: 'parent', name: 'Parent' });
+      const sub = new TuyaDevice({ id: 'sub', name: 'Sub' });
+
+      (sub as TuyaDevice & { localIp?: string }).localIp = '192.168.1.11';
+      (sub as TuyaDevice & { localKey?: string }).localKey = 'sub-key';
+      (sub as TuyaDevice & { localVersion?: string }).localVersion = '3.4';
+
+      (manager as any)._syncConnectionInfo(parent, sub);
+
+      expect((parent as TuyaDevice & { localIp?: string }).localIp).toBe('192.168.1.11');
+      expect((parent as TuyaDevice & { localKey?: string }).localKey).toBe('sub-key');
+      expect((parent as TuyaDevice & { localVersion?: string }).localVersion).toBe('3.4');
+      expect((sub as TuyaDevice & { localIp?: string }).localIp).toBe('192.168.1.11');
+    });
+
+    it('prefers sub-device values over parent values when both are already populated', () => {
+      manager = new LocalDeviceManager(standaloneConfig());
+      const parent = new TuyaDevice({ id: 'parent', name: 'Parent' });
+      const sub = new TuyaDevice({ id: 'sub', name: 'Sub' });
+
+      (parent as TuyaDevice & { localIp?: string }).localIp = '192.168.1.10';
+      (parent as TuyaDevice & { localKey?: string }).localKey = 'parent-key';
+      (parent as TuyaDevice & { localVersion?: string }).localVersion = '3.3';
+      (sub as TuyaDevice & { localIp?: string }).localIp = '192.168.1.12';
+      (sub as TuyaDevice & { localKey?: string }).localKey = 'sub-key';
+      (sub as TuyaDevice & { localVersion?: string }).localVersion = '3.5';
+
+      (manager as any)._syncConnectionInfo(parent, sub);
+
+      expect((parent as TuyaDevice & { localIp?: string }).localIp).toBe('192.168.1.12');
+      expect((parent as TuyaDevice & { localKey?: string }).localKey).toBe('sub-key');
+      expect((parent as TuyaDevice & { localVersion?: string }).localVersion).toBe('3.5');
     });
   });
 
