@@ -586,7 +586,7 @@ systemctl --user restart homebridge
 ## Resources
 
 - 📖 [Tuya Standard Instruction Set](https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq)
-- 🔧 [TuyaDevice.ts Source](./src/cloud/device/TuyaDevice.ts) — See `TuyaDeviceSchemaProperty`
+- 🔧 [TuyaDevice.ts Source](../src/cloud/device/TuyaDevice.ts) — See `TuyaDeviceSchemaProperty`
 - 📱 [Supported Devices](./SUPPORTED_DEVICES.md)
 - 💬 [GitHub Issues](https://github.com/homebridge-plugins/homebridge-tuya/issues)
 

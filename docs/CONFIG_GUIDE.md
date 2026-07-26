@@ -219,10 +219,13 @@ Follow the detailed guide: [Get Local Keys for Your Devices](./Get-Local-Keys-fo
 
 | Field | Required | Description | Default | Example |
 |-------|----------|-------------|---------|---------|
+| `enabled` | ➖ | Enable the local LAN configuration block | `true` | `true` |
 | `autoDiscoverDevices` | ➖ | Auto-discover devices via UDP | `true` | `true` |
-| `discoverTimeout` | ➖ | Discovery wait time (seconds) | `5` | `10` |
-| `rediscoverInterval` | ➖ | Rediscovery interval (seconds) | `3600` | `7200` |
+| `discoverTimeout` | ➖ | Discovery wait time (milliseconds) | `60000` | `10000` |
+| `rediscoverInterval` | ➖ | Periodic rediscovery interval (seconds) | `900` | `7200` |
 | `devices` | ➖ | Manual device list (optional) | | |
+| `deviceOverrides` | ➖ | Per-device override settings such as category or schema mapping | | |
+| `cameras` | ➖ | RTSP camera definitions | | |
 
 **Per-Device Fields:**
 
@@ -230,10 +233,40 @@ Follow the detailed guide: [Get Local Keys for Your Devices](./Get-Local-Keys-fo
 |-------|----------|-------------|---------|
 | `tuyaDeviceId` | ✅ | Device ID from Tuya | `"1234567890abcdef"` |
 | `tuyaKey` | ✅ | Local AES key (16 chars) | `"0123456789abcdef"` |
-| `name` | ➖ | Friendly name in HomeKit | `"Living Room Light"` |
 | `ip` | ➖ | Fixed IP (auto-discover if blank) | `"192.168.1.100"` |
-| `category` | ➖ | Device type override | `"light"`, `"switch"` |
+| `name` | ➖ | Friendly name in HomeKit | `"Living Room Light"` |
 | `protocolVersion` | ➖ | Protocol version (auto-detect if blank) | `"3.3"`, `"3.4"`, `"3.5"` |
+| `dpMapping` | ➖ | System-managed DP mapping (object of DP code → DP ID). This is mainly used by the plugin/UI and is not intended for direct user-side editing of `dpCode` values. | `{ "switch_1": 1, "bright_value": 2 }` |
+| `dpMappingArray` | ➖ | Manual array form of DP mapping. Recommended when editing JSON directly, because you can define arbitrary `dpCode` and `dpID` pairs. | `[{ "dpCode": "switch_1", "dpID": 1 }]` |
+| `category` | ➖ | Device type override | `"light"`, `"switch"` |
+| `switchCount` | ➖ | Number of controllable switch channels on multi-switch devices | `2` |
+| `outletCount` | ➖ | Alias for `switchCount` on outlet-style devices | `4` |
+| `isZigbeeGateway` | ➖ | Mark this local device as a Zigbee gateway parent device | `true` |
+| `parentDeviceId` | ➖ | Parent gateway device ID for a Zigbee child device | `"gw1234567890"` |
+| `zigbeeChildId` | ➖ | Zigbee node ID (CID) for a child device | `"0011223344556601"` |
+| `childDpMapping` | ➖ | Per-child DP mapping override for Zigbee sub-devices | `{ "switch_1": 3 }` |
+| `childCategory` | ➖ | Per-child category override for Zigbee sub-devices | `"switch"` |
+
+> `dpMapping` and `dpMappingArray` are related but different. `dpMapping` is an object that the plugin/system typically populates for internal use, and the UI generally does not allow the user to freely edit the `dpCode` keys. For JSON-based configuration, `dpMappingArray` is the recommended field because it lets you explicitly map any `dpCode` to a `dpID` in a clear array form.
+>
+> Example:
+>
+> ```json
+> {
+>   "local": {
+>     "devices": [
+>       {
+>         "tuyaDeviceId": "abcdef1234567890",
+>         "tuyaKey": "0123456789abcdef",
+>         "dpMappingArray": [
+>           { "dpCode": "switch_1", "dpID": 1 },
+>           { "dpCode": "bright_value", "dpID": 2 }
+>         ]
+>       }
+>     ]
+>   }
+> }
+> ```
 
 ### Troubleshooting Local Connection
 
