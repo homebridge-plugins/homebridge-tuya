@@ -88,6 +88,8 @@ export default class TuyaOpenAPI {
   public deviceArr: Array<object> = [];
 
   public tokenInfo = { access_token: '', refresh_token: '', uid: '', expire: 0 };
+  public loginInfo: { countryCode: number; username: string; password: string; appSchema: string } | null = null;
+  public tokenRecoveryCount = 0;
 
   constructor(
     public endpoint: Endpoints | string,
@@ -139,12 +141,32 @@ export default class TuyaOpenAPI {
     }
 
     this.log.debug('Refreshing access_token');
+    const refreshStart = Date.now();
     const res = await this.get(`/v1.0/token/${this.tokenInfo.refresh_token}`);
+    const refreshElapsed = Date.now() - refreshStart;
     if (!res.success) {
-      this.log.error('Refresh access_token failed. code = %s, msg = %s', res.code, res.msg);
+      this.log.warn('Token refresh failed after %d ms (code=%s, msg=%s)', refreshElapsed, res.code, res.msg);
+      if (res.code === 1010 && this.loginInfo) {
+        this.log.warn('Refresh token rejected by Tuya (1010). Performing full Smart Home login.');
+        const reloginStart = Date.now();
+        const relogin = await this.homeLogin(
+          this.loginInfo.countryCode,
+          this.loginInfo.username,
+          this.loginInfo.password,
+          this.loginInfo.appSchema,
+        );
+        const reloginElapsed = Date.now() - reloginStart;
+        if (relogin.success) {
+          this.tokenRecoveryCount++;
+          this.log.warn('Recovered from expired token by re-authenticating (recovery #%d) in %d ms.', this.tokenRecoveryCount, reloginElapsed);
+          return;
+        }
+        this.log.error('Smart Home re-login failed after %d ms (code=%s, msg=%s)', reloginElapsed, relogin.code, relogin.msg);
+      }
       return;
     }
 
+    this.log.info('Access token refreshed successfully in %d ms.', refreshElapsed);
     const { access_token, refresh_token, uid, expire_time } = res.result;
     this.tokenInfo = {
       access_token: access_token,
@@ -184,6 +206,7 @@ export default class TuyaOpenAPI {
    * @returns
    */
   async homeLogin(countryCode: number, username: string, password: string, appSchema: string) {
+    this.loginInfo = { countryCode, username, password, appSchema };
 
     if (this._isSaltedPassword(password)) {
       this.log.info('Login with md5 salted password.');
