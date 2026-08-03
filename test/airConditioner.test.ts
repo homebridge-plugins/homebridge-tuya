@@ -1,6 +1,17 @@
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import AirConditionerAccessory from '../src/shared/accessory/AirConditionerAccessory';
 import TuyaDevice, { TuyaDeviceSchema, TuyaDeviceStatus, TuyaDeviceSchemaMode, TuyaDeviceSchemaType } from '../src/cloud/device/TuyaDevice';
+import { ExLogger, initLogger } from '../src/shared/util/Logger';
+
+// Mock Logger
+const mockLog: ExLogger = {
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  success: jest.fn(),
+} as unknown as ExLogger;
 
 // Mock data
 const mockSchema = (code: string, type: string, mode: string, property: any): TuyaDeviceSchema => ({
@@ -174,6 +185,7 @@ describe('AirConditionerAccessory', () => {
   let airConditionerAccessory: AirConditionerAccessory;
 
   beforeEach(() => {
+    initLogger(mockLog);
     platform = createMockPlatform();
     accessory = createMockAccessory();
     device = createMockDevice();

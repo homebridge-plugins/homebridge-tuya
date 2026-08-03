@@ -3,7 +3,7 @@ import net from 'net';
 import { CommonConfig, LocalConfig, TuyaPlatformConfig, TuyaPlatformDeviceConfig, TuyaPluginMode } from '../../config';
 import { ExLogger, logger, PrefixLogger } from './Logger';
 import configSchemaJson from '../../../config.schema.json';
-import { sanitizeName } from './util';
+import { deepClone, sanitizeName } from './util';
 
 export default class ConfigMigrator {
   private log: ExLogger;
@@ -14,7 +14,7 @@ export default class ConfigMigrator {
 
   migrate(config: TuyaPlatformConfig) {
     this.log.info('Migrating config...');
-    let clonedConfig = structuredClone(config);
+    let clonedConfig = deepClone(config);
 
     this.migratePlatformConfig(clonedConfig);
 
@@ -153,7 +153,7 @@ export default class ConfigMigrator {
   }
 
   private normalizeConfig(config: TuyaPlatformConfig) {
-    const clonedConfig = structuredClone(config);
+    const clonedConfig = deepClone(config);
 
     const cloudConfig = clonedConfig.cloud;
 
@@ -165,7 +165,7 @@ export default class ConfigMigrator {
   }
 
   private cleanupConfig(config: TuyaPlatformConfig) {
-    const clonedConfig = structuredClone(config);
+    const clonedConfig = deepClone(config);
 
     // Since losing settings during Cloud/Local switching—especially during debugging—would be problematic,
     // the settings are preserved even if one side technically no longer needs them.

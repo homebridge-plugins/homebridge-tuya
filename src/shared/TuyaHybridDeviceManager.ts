@@ -13,7 +13,7 @@ import {
 import { LocalDeviceConfig } from '../local/config';
 import LocalDeviceManager from '../local/LocalDeviceManager';
 import TuyaDeviceManager from './TuyaDeviceManager';
-import { merge } from './util/util';
+import { deepClone, merge } from './util/util';
 
 export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
   private cloudDeviceManager: TuyaCloudDeviceManager;
@@ -154,7 +154,7 @@ export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
    * Called during "both" mode initialization to populate local credentials from cloud API
    */
   private async enrichLocalConfigFromCloud(devices: TuyaDevice[], localConfig: LocalConfig): Promise<LocalConfig> {
-    let clonedConfig = structuredClone(localConfig);
+    let clonedConfig = deepClone(localConfig);
     for (const device of devices) {
       try {
         // Check whether the device is one that should not operate over LAN.

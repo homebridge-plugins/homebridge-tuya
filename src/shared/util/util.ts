@@ -88,6 +88,30 @@ export function deepEqual<T>(a: T, b: T): boolean {
   }
 }
 
+export function deepClone<T>(value: T): T {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (typeof globalThis.structuredClone === 'function') {
+    return globalThis.structuredClone(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => deepClone(item)) as unknown as T;
+  }
+
+  if (typeof value === 'object') {
+    const cloned: Record<string, unknown> = {};
+    for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+      cloned[key] = deepClone(nestedValue);
+    }
+    return cloned as T;
+  }
+
+  return value;
+}
+
 /**
  * Debounce function - delays execution until specified milliseconds pass without calls
  * @param fn Function to debounce

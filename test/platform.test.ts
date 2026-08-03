@@ -3,9 +3,7 @@ import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import { TuyaPlatform } from '../src/platform';
 import { PlatformAccessory } from 'homebridge';
 import { ExLogger, initLogger } from '../src/shared/util/Logger';
-import TuyaCloudDeviceManager from '../src/cloud/device/TuyaCloudDeviceManager';
 import { TuyaPluginMode } from '../src/config';
-import EventEmitter from 'events';
 import LocalDeviceManager from '../src/local/LocalDeviceManager';
 import TuyaHybridDeviceManager from '../src/shared/TuyaHybridDeviceManager';
 import TuyaHomeDeviceManager from '../src/cloud/device/TuyaHomeDeviceManager';
@@ -123,11 +121,6 @@ jest.mock('../src/shared/accessory/AccessoryFactory', () => {
     default: class MockAccessoryFactory {},
   };
 });
-
-jest.mock('../src/shared/util/util', () => ({
-  sanitizeName: (name: string) => name.replace(/[^a-z0-9]/gi, '_'),
-  retry: jest.fn(async (fn: any) => fn()),
-}));
 
 jest.mock('../src/shared/util/ConfigMigrator', () => {
   return class ConfigMigrator {

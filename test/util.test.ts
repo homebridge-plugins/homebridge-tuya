@@ -4,6 +4,7 @@ import {
   remap,
   limit,
   deepEqual,
+  deepClone,
   debounce,
   toHapProperty,
   createDelegate,
@@ -189,6 +190,25 @@ describe('deepEqual', () => {
     expect(deepEqual(null, null)).toBe(true);
     expect(deepEqual(undefined, undefined)).toBe(true);
     expect(deepEqual(null, undefined)).toBe(false);
+  });
+});
+
+describe('deepClone', () => {
+  test('clones nested objects and arrays', () => {
+    const value = { a: 1, b: { c: [2, 3] } };
+    const cloned = deepClone(value);
+
+    expect(cloned).toEqual(value);
+    expect(cloned).not.toBe(value);
+    expect(cloned.b).not.toBe(value.b);
+    expect(cloned.b.c).not.toBe(value.b.c);
+  });
+
+  test('preserves primitives and null', () => {
+    expect(deepClone('test')).toBe('test');
+    expect(deepClone(42)).toBe(42);
+    expect(deepClone(null)).toBeNull();
+    expect(deepClone(undefined)).toBeUndefined();
   });
 });
 

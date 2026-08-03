@@ -18,7 +18,7 @@ import TuyaDeviceManager from './shared/TuyaDeviceManager';
 import ConfigMigrator from './shared/util/ConfigMigrator';
 import AccessoryFactory from './shared/accessory/AccessoryFactory';
 import BaseAccessory from './shared/accessory/BaseAccessory';
-import { sanitizeName } from './shared/util/util';
+import { deepClone, sanitizeName } from './shared/util/util';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import {
@@ -467,7 +467,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
 
       // To reflect configuration changes without discarding the existing
       // cache instance as much as possible, the latest configuration data is created as a separate accessory.
-      const cloneDevice = Object.assign(new TuyaDevice({}), structuredClone(device));
+      const cloneDevice = Object.assign(new TuyaDevice({}), deepClone(device));
       this.deviceManager.devices.push(cloneDevice);
       cloneDevice.id = 'dummyID' + cloneDevice.id;
       cloneDevice.name = 'dummy';
@@ -475,17 +475,17 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       let localConfig = this.platformConfig.local?.devices?.find(i => i.tuyaDeviceId === device.id);
       let serviceConfig = this.platformConfig.cloud?.serviceInformationOverrides?.find(i => i.device_id === device.id);
       if (cloudConfig) {
-        cloudConfig = structuredClone(cloudConfig);
+        cloudConfig = deepClone(cloudConfig);
         cloudConfig.id = cloneDevice.id;
         this.platformConfig.cloud!.deviceOverrides!.push(cloudConfig);
       }
       if (localConfig) {
-        localConfig = structuredClone(localConfig);
+        localConfig = deepClone(localConfig);
         localConfig.tuyaDeviceId = cloneDevice.id;
         this.platformConfig.local!.devices!.push(localConfig);
       }
       if (serviceConfig) {
-        serviceConfig = structuredClone(serviceConfig);
+        serviceConfig = deepClone(serviceConfig);
         serviceConfig.device_id = cloneDevice.id;
         this.platformConfig.cloud!.serviceInformationOverrides!.push(serviceConfig);
       }

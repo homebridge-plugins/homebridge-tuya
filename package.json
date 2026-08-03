@@ -30,7 +30,7 @@
     "check": "npm install && npm outdated",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
-    "test": "jest",
+    "test": "jest --detectOpenHandles",
     "coverage": "npm test -- --coverage",
     "watch": "npm run build && npm link && nodemon",
     "launch": "tsc && homebridge -I -D",
