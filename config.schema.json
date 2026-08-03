@@ -269,6 +269,24 @@
                                                 "condition": {
                                                     "functionBody": "return (model.options && model.options.deviceOverrides);"
                                                 }
+                                            },
+                                            "onGet": {
+                                                "title": "onGet",
+                                                "type": "string",
+                                                "description": "Optional. A one-line JavaScript code to convert the old value to the new value. The function is called with two arguments: device and value. Examples: https://github.com/homebridge-plugins/homebridge-tuya/blob/latest/ADVANCED_OPTIONS.md#examples",
+                                                "placeholder": "value",
+                                                "condition": {
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                }
+                                            },
+                                            "onSet": {
+                                                "title": "onSet",
+                                                "type": "string",
+                                                "description": "Optional. A one-line JavaScript code to convert the new value to the old value. The function is called with two arguments: device and value. Returning undefined means to skip sending the command. Examples: https://github.com/homebridge-plugins/homebridge-tuya/blob/latest/ADVANCED_OPTIONS.md#examples",
+                                                "placeholder": "value",
+                                                "condition": {
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                }
                                             }
                                         }
                                     },
@@ -506,6 +524,12 @@
                                                 {
                                                     "key": "options.deviceOverrides[].schema[].type"
                                                 },
+                                                {
+                                                    "key": "options.deviceOverrides[].schema[].onGet"
+                                                },
+                                                {
+                                                    "key": "options.deviceOverrides[].schema[].onSet"
+                                                },               
                                                 {
                                                     "key": "options.deviceOverrides[].schema[].property",
                                                     "notitle": false,
