@@ -277,6 +277,8 @@
                                                                         "options.deviceOverrides[].schema[].newCode",
                                                                         "options.deviceOverrides[].schema[].hidden",
                                                                         "options.deviceOverrides[].schema[].type",
+                                                                        "options.deviceOverrides[].schema[].onGet",
+                                                                        "options.deviceOverrides[].schema[].onSet",
                                                                         {
                                                                             "key": "options.deviceOverrides[].schema[].property",
                                                                             "items": [
@@ -1206,6 +1208,32 @@
                                     "condition": {
                                         "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== undefined && ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== '';"
                                     }
+                                },
+                                "remote_keys": {
+                                    "title": "IR Keys",
+                                    "description": "",
+                                    "type": "object",
+                                    "condition": { "functionBody": "return !['other', '', undefined].includes(model.local?.devices?.[arrayIndices[0]]?.category);" },
+                                    "properties": {
+                                        "key_list": {
+                                            "title": "IR Learning Code",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "required": ["id"],
+                                                "properties": {
+                                                    "key_name": {
+                                                        "title": "Display Name",
+                                                        "type": "string"
+                                                    },
+                                                    "learning_code": {
+                                                        "title": "Learning Code",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1535,7 +1563,7 @@
                                     "description": "Category Code or `hidden`",
                                     "type": "string",
                                     "condition": {
-                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                        "functionBody": "return (model.options?.deviceOverrides);"
                                     }
                                 },
                                 "unbridged": {
@@ -1543,7 +1571,7 @@
                                     "description": "Would you like to make this device be an external device?",
                                     "type": "boolean",
                                     "condition": {
-                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                        "functionBody": "return (model.options?.deviceOverrides);"
                                     }
                                 },
                                 "adaptiveLighting": {
@@ -1571,7 +1599,7 @@
                                     "description": "For garage door controllers only. Derive CurrentDoorState and TargetDoorState reads from doorcontact_state instead of switch_1.",
                                     "type": "boolean",
                                     "condition": {
-                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                        "functionBody": "return (model.options?.deviceOverrides);"
                                     }
                                 },
                                 "schema": {
@@ -1585,14 +1613,14 @@
                                                 "title": "DP Code",
                                                 "type": "string",
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                                    "functionBody": "return (model.options?.deviceOverrides);"
                                                 }
                                             },
                                             "newCode": {
                                                 "title": "New DP Code",
                                                 "type": "string",
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                 }
                                             },
                                             "type": {
@@ -1608,7 +1636,7 @@
                                                     { "title": "Raw", "enum": [ "Raw" ] }
                                                 ],
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                 }
                                             },
                                             "property": {
@@ -1619,28 +1647,28 @@
                                                         "title": "min",
                                                         "type": "integer",
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     },
                                                     "max": {
                                                         "title": "max",
                                                         "type": "integer",
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     },
                                                     "scale": {
                                                         "title": "scale",
                                                         "type": "integer",
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     },
                                                     "step": {
                                                         "title": "step",
                                                         "type": "integer",
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     },
                                                     "range": {
@@ -1651,25 +1679,43 @@
                                                             "type": "string"
                                                         },
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     }
                                                 },
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                 }
                                             },
                                             "hidden": {
                                                 "title": "Hidden",
                                                 "type": "boolean",
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                                    "functionBody": "return (model.options?.deviceOverrides);"
+                                                }
+                                            },
+                                            "onGet": {
+                                                "title": "onGet",
+                                                "type": "string",
+                                                "description": "Optional. A one-line JavaScript code to convert the old value to the new value. The function is called with two arguments: device and value. Examples: https://github.com/homebridge-plugins/homebridge-tuya/blob/latest/ADVANCED_OPTIONS.md#examples",
+                                                "placeholder": "value",
+                                                "condition": {
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                }
+                                            },
+                                            "onSet": {
+                                                "title": "onSet",
+                                                "type": "string",
+                                                "description": "Optional. A one-line JavaScript code to convert the new value to the old value. The function is called with two arguments: device and value. Returning undefined means to skip sending the command. Examples: https://github.com/homebridge-plugins/homebridge-tuya/blob/latest/ADVANCED_OPTIONS.md#examples",
+                                                "placeholder": "value",
+                                                "condition": {
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                 }
                                             }
                                         }
                                     },
                                     "condition": {
-                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                        "functionBody": "return (model.options?.deviceOverrides);"
                                     }
                                 }
                             }
