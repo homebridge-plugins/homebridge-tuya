@@ -1,5 +1,14 @@
 # Changelog
 
+
+## [2.5.2] - (2026.8.3)
+
+### Fixed
+ - Fix for the issue where edits to the settings JSON file were being lost.
+ Manual changes made directly to the settings JSON file were being lost when saving from the UI, and this problem has now been corrected.
+ - Fix Plugin restarts when Smart Home token expiration error occur
+ Automatically recover from Smart Home token expiration (1010) by re-authenticating
+
 ## [2.5.1] - (2026.7.22)
 
 ### Fixed
