@@ -235,11 +235,6 @@ Once you have your local keys, add them to your Homebridge config in Local or Bo
 - Go back to **Devices Panel** and verify devices appear there first
 - If no devices appear, you may need to check your project's region setting
 
----
-
-## Video Tutorial
-
-For a visual walkthrough, see: [YouTube Tutorial](https://youtu.be/FpY-xsY-pZ8)
 
 ---
 
