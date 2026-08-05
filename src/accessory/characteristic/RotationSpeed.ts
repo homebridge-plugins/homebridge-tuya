@@ -1,5 +1,10 @@
 import { Service } from 'homebridge';
-import { TuyaDeviceSchema, TuyaDeviceSchemaEnumProperty, TuyaDeviceSchemaIntegerProperty } from '../../device/TuyaDevice';
+import {
+  TuyaDeviceSchema,
+  TuyaDeviceSchemaEnumProperty,
+  TuyaDeviceSchemaIntegerProperty,
+  TuyaDeviceSchemaType,
+} from '../../device/TuyaDevice';
 import { limit } from '../../util/util';
 import BaseAccessory from '../BaseAccessory';
 
@@ -14,6 +19,16 @@ export function configureRotationSpeed(
   }
 
   const property = schema.property as TuyaDeviceSchemaIntegerProperty;
+  if (schema.code === 'fan_speed_percent'
+    && schema.type === TuyaDeviceSchemaType.Integer
+    && property.min === 1
+    && property.max === 4
+    && property.scale === 0
+    && property.step === 1) {
+    configureFourLevelRotationSpeed(accessory, service, schema);
+    return;
+  }
+
   const multiple = Math.pow(10, property.scale);
   const props = {
     minValue: property.min / multiple,
@@ -32,6 +47,32 @@ export function configureRotationSpeed(
     })
     .setProps(props);
 
+}
+
+function configureFourLevelRotationSpeed(
+  accessory: BaseAccessory,
+  service: Service,
+  schema: TuyaDeviceSchema,
+) {
+  const props = { minValue: 0, maxValue: 100, minStep: 25 };
+  const onGetHandler = () => {
+    const status = accessory.getStatus(schema.code)!;
+    const level = limit(Math.round(Number(status.value)), 1, 4);
+    return level * 25;
+  };
+
+  service.getCharacteristic(accessory.Characteristic.RotationSpeed)
+    .onGet(onGetHandler)
+    .onSet(async value => {
+      const percent = Number(value);
+      if (!Number.isFinite(percent) || percent <= 0) {
+        return;
+      }
+      const level = limit(Math.round(percent / 25), 1, 4);
+      await accessory.sendCommands([{ code: schema.code, value: level }], true);
+    })
+    .updateValue(onGetHandler())
+    .setProps(props);
 }
 
 export function configureRotationSpeedLevel(
