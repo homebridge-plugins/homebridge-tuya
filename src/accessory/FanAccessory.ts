@@ -4,7 +4,7 @@ import { configureActive } from './characteristic/Active';
 import { configureLight } from './characteristic/Light';
 import { configureLockPhysicalControls } from './characteristic/LockPhysicalControls';
 import { configureOn } from './characteristic/On';
-import { configureRotationSpeed, configureRotationSpeedLevel, configureRotationSpeedOn } from './characteristic/RotationSpeed';
+import { configureRotationSpeed } from './characteristic/RotationSpeed';
 import { configureSwingMode } from './characteristic/SwingMode';
 
 const SCHEMA_CODE = {
@@ -47,9 +47,9 @@ export default class FanAccessory extends BaseAccessory {
     if (this.getFanSpeedSchema()) {
       configureRotationSpeed(this, this.fanService(), this.getFanSpeedSchema());
     } else if (this.getFanSpeedLevelSchema()) {
-      configureRotationSpeedLevel(this, this.fanService(), this.getFanSpeedLevelSchema());
+      configureRotationSpeed(this, this.fanService(), this.getFanSpeedLevelSchema());
     } else {
-      configureRotationSpeedOn(this, this.fanService(), this.getSchema(...SCHEMA_CODE.FAN_ON));
+      configureRotationSpeed(this, this.fanService(), this.getSchema(...SCHEMA_CODE.FAN_ON));
     }
 
     this.configureRotationDirection();

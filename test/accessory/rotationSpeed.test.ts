@@ -1,7 +1,7 @@
 import { describe, expect, jest, test } from '@jest/globals';
 import BaseAccessory from '../../src/accessory/BaseAccessory';
-import { configureRotationSpeed } from '../../src/accessory/characteristic/RotationSpeed';
-import { TuyaDeviceSchemaMode, TuyaDeviceSchemaType } from '../../src/device/TuyaDevice';
+import { configureRotationSpeed, enumToPercentageProperty, integerToPercentageProperty } from '../../src/accessory/characteristic/RotationSpeed';
+import { TuyaDeviceSchemaMode, TuyaDeviceSchemaType, TuyaDeviceSchemaEnumProperty, TuyaDeviceSchemaIntegerProperty } from '../../src/device/TuyaDevice';
 
 describe('configureRotationSpeed', () => {
   test('maps four-level fan_speed_percent values to HomeKit percentages', async () => {
@@ -28,6 +28,7 @@ describe('configureRotationSpeed', () => {
       Characteristic: { RotationSpeed: 'RotationSpeed' },
       getStatus: jest.fn(() => ({ code: 'fan_speed_percent', value: rawLevel })),
       sendCommands,
+      log: { debug: jest.fn() }
     } as unknown as BaseAccessory;
     const schema = {
       code: 'fan_speed_percent',
@@ -38,7 +39,7 @@ describe('configureRotationSpeed', () => {
 
     configureRotationSpeed(accessory, service as never, schema);
 
-    expect(characteristic.setProps).toHaveBeenCalledWith({ minValue: 0, maxValue: 100, minStep: 25 });
+    expect(characteristic.setProps).toHaveBeenCalledWith({ minValue: 0, maxValue: 100, minStep: 25, unit: '%' });
     expect(characteristic.updateValue).toHaveBeenCalledWith(25);
     expect([1, 2, 3, 4].map(level => {
       rawLevel = level;
@@ -56,4 +57,27 @@ describe('configureRotationSpeed', () => {
     await setHandler(0);
     expect(sendCommands).toHaveBeenCalledTimes(4);
   });
+});
+
+describe('convert property', () => {
+  test('integerToPercentageProperty no changes', () => {
+    const property = { min: 1, max: 100, step: 1, scale: 0, unit: '%' } as unknown as TuyaDeviceSchemaIntegerProperty;
+    expect(integerToPercentageProperty(property)).toEqual({ minValue: 0, maxValue: 100, minStep: 1, unit: '%' });
+  });
+
+  test('integerToPercentageProperty returns 25% steps for 1..4 levels', () => {
+    const property = { min: 1, max: 4, step: 1, scale: 0, unit: '' } as unknown as TuyaDeviceSchemaIntegerProperty;
+    expect(integerToPercentageProperty(property)).toEqual({ minValue: 0, maxValue: 100, minStep: 25, unit: '%' });
+  });
+
+  test('integerToPercentageProperty returns 33% steps for 0..3 levels', () => {
+    const property = { min: 0, max: 3, step: 1, scale: 0, unit: '' } as unknown as TuyaDeviceSchemaIntegerProperty;
+    expect(integerToPercentageProperty(property)).toEqual({ minValue: 0, maxValue: 100, minStep: 33, unit: '%' });
+  });
+
+  test('enumToPercentageProperty returns 25% steps for 4 enum values', () => {
+    const property = { range: ['low', 'medium', 'high', 'auto'] } as unknown as TuyaDeviceSchemaEnumProperty;
+    expect(enumToPercentageProperty(property)).toEqual({ minValue: 0, maxValue: 100, minStep: 25, unit: '%' });
+  });
+
 });
