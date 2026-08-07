@@ -116,6 +116,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     if (!cfg) {
       return '';
     }
+    const effectiveSwitchCount = this._getEffectiveSwitchCount(cfg, device);
     // Check if config has changed since last run
     // Hash the config fields that affect device behavior
     const configToHash = {
@@ -123,8 +124,8 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       name: cfg.name,
       tuyaKey: cfg.tuyaKey,
       dpMapping: this._getDPMap(cfg.tuyaDeviceId),
-      switchCount: cfg.switchCount ?? device['switchCount'],
-      outletCount: cfg.outletCount ?? device['outletCount'],
+      switchCount: effectiveSwitchCount,
+      outletCount: effectiveSwitchCount,
       protocolVersion: cfg.protocolVersion,
       category: cfg.category,
     };
@@ -627,7 +628,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
    */
   private _setupAutoDetectionListener(deviceId: string, device: TuyaDevice, conn: LocalDevice): void {
     const cfg = this.config.devices?.find(d => d.tuyaDeviceId === deviceId);
-    if (!cfg || (cfg.switchCount || cfg.outletCount)) {
+    if (!cfg || this._getConfiguredSwitchCount(cfg) !== undefined) {
       return; // Already has explicit count
     }
 
@@ -766,9 +767,10 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     device.parent_id = cfg.parentDeviceId;
     device.remote_keys = cfg.remote_keys;
     device.sub = !ZigbeeGatewayDetection.isChild(cfg) && !!cfg.parentDeviceId;
-    const switchCount = cfg.switchCount ?? cfg.outletCount ?? 1;
-    const autoDetectNote = !cfg.switchCount && !cfg.outletCount && cfg.tuyaKey ? ' (auto-detecting on connect)' : '';
-    const isAutoDetecting = !!(cfg.tuyaKey && !cfg.switchCount && !cfg.outletCount);
+    const configuredSwitchCount = this._getConfiguredSwitchCount(cfg);
+    const switchCount = configuredSwitchCount ?? 1;
+    const autoDetectNote = configuredSwitchCount === undefined && cfg.tuyaKey ? ' (auto-detecting on connect)' : '';
+    const isAutoDetecting = !!(cfg.tuyaKey && configuredSwitchCount === undefined);
     this.log.info(`Building synthetic schema for ${cfg.name} with switchCount=${switchCount}${autoDetectNote}`);
     device.schema = this._buildSyntheticSchema(
       device,
@@ -821,6 +823,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   private _buildSyntheticSchema(device: TuyaDevice, dpMapping: Record<string, number>, switchCount = 1): TuyaDeviceSchema[] {
     // If switchCount is limited, filter switch-related entries to only the needed ones
     let filteredMapping = dpMapping;
+    this.log.error(`deviceID:${device.id}, switchCount:${switchCount}`);
     if (switchCount > 0) {
       // Only include switch_1 through switch_N where N = switchCount
       // Also exclude other switch variants (like switch_led, switch_inching) if limited
@@ -881,6 +884,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       }
     });
 
+    this.log.error('schema:%o', schemas);
     return schemas;
   }
 
@@ -1232,6 +1236,31 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
         this._createConnection(device.id);
       }
     }
+  }
+
+  private _getConfiguredSwitchCount(cfg: LocalDeviceConfig | undefined): number | undefined {
+    if (!cfg) {
+      return undefined;
+    }
+    if (cfg.switchCount !== undefined) {
+      return cfg.switchCount;
+    }
+    if (cfg.outletCount !== undefined) {
+      return cfg.outletCount;
+    }
+    return undefined;
+  }
+
+  private _getEffectiveSwitchCount(cfg: LocalDeviceConfig | undefined, device?: TuyaDevice): number | undefined {
+    const configuredSwitchCount = this._getConfiguredSwitchCount(cfg);
+    if (configuredSwitchCount !== undefined) {
+      return configuredSwitchCount;
+    }
+
+    const deviceCount = device ? (device as TuyaDevice & { switchCount?: number; outletCount?: number }).switchCount
+      ?? (device as TuyaDevice & { switchCount?: number; outletCount?: number }).outletCount
+      : undefined;
+    return deviceCount;
   }
 
   private _createDPMap(cfg: LocalDeviceConfig): Record<string, number> {

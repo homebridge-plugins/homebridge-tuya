@@ -3,6 +3,7 @@ import { describe, expect, test, beforeEach, afterEach, jest } from '@jest/globa
 import LocalDeviceManager from '../src/local/LocalDeviceManager';
 import { LocalConfig } from '../src/local/config';
 import ExLogger, { initLogger, logger } from '../src/shared/util/Logger';
+import { ConfigHash } from '../src/shared/util/ConfigHash';
 import TuyaDevice from '../src/cloud/device/TuyaDevice';
 
 // Mock Logger
@@ -112,6 +113,31 @@ describe('LocalDeviceManager', () => {
       };
       const mgr = new LocalDeviceManager(config);
       expect(mgr).toBeDefined();
+    });
+
+    test('uses outletCount for effective switch count hashing when switchCount is absent', () => {
+      const cfg = {
+        tuyaDeviceId: 'device1',
+        name: 'Patio Lights',
+        outletCount: 2,
+      };
+      const mgr = new LocalDeviceManager({ devices: [cfg as any] });
+      const device = new TuyaDevice({ id: 'device1', uuid: 'device1', name: 'Patio Lights', schema: [], status: [] });
+      (device as any).switchCount = 1;
+
+      const hash = mgr.createDeviceConfigHash(device);
+      const expectedHash = ConfigHash.computeHash({
+        tuyaDeviceId: cfg.tuyaDeviceId,
+        name: cfg.name,
+        tuyaKey: undefined,
+        dpMapping: (mgr as any)._getDPMap(cfg.tuyaDeviceId),
+        switchCount: 2,
+        outletCount: 2,
+        protocolVersion: undefined,
+        category: undefined,
+      });
+
+      expect(hash).toBe(expectedHash);
     });
   });
 
