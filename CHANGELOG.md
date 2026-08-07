@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.5.3] - (2026.8.7)
+
+### Changed
+ - Support for devices whose minimum RotationSpeed is not 0.
+Fixed an issue where devices that do not manage rotation speed as a percentage failed to operate correctly.
 
 ## [2.5.2] - (2026.8.3)
 
