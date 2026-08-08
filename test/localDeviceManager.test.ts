@@ -139,6 +139,79 @@ describe('LocalDeviceManager', () => {
 
       expect(hash).toBe(expectedHash);
     });
+
+    test('creates a DP map from dpMapping and dpMappingArray', () => {
+      const mgr = new LocalDeviceManager({ devices: [] });
+      const cfg = {
+        tuyaDeviceId: 'device1',
+        dpMapping: {
+          switch_1: 1,
+          bright_value: 2,
+        },
+        dpMappingArray: [
+          { dpCode: 'switch_2', dpID: 2 },
+          { dpCode: 'temp_value', dpID: 3 },
+        ],
+      };
+
+      const dpMap = (mgr as any)._createDPMap(cfg);
+
+      expect(dpMap).toEqual({
+        switch_1: 1,
+        bright_value: 2,
+        switch_2: 2,
+        temp_value: 3,
+      });
+    });
+
+    test('applies schema rename overrides when creating DP map', () => {
+      const mgr = new LocalDeviceManager({
+        devices: [],
+        deviceOverrides: [{
+          id: 'device1',
+          configFor: 'local',
+          schema: [{ code: 'switch_1', newCode: 'relay_1' }],
+        } as any],
+      });
+      const cfg = {
+        tuyaDeviceId: 'device1',
+        dpMapping: {
+          switch_1: 1,
+        },
+      };
+
+      const dpMap = (mgr as any)._createDPMap(cfg);
+
+      expect(dpMap).toEqual({
+        relay_1: 1,
+      });
+    });
+
+    test('creating DP map with DEFAULT', () => {
+      const mgr = new LocalDeviceManager({
+        devices: [],
+      });
+      const cfg = {};
+
+      const dpMap = (mgr as any)._createDPMap(cfg);
+
+      expect(dpMap).toEqual({
+        "switch_1": 1,
+        "switch_2": 2,
+        "switch_3": 3,
+        "switch_4": 4,
+        "bright_value": 2,
+        "bright_value_v2": 22,
+        "temp_value": 3,
+        "temp_value_v2": 23,
+        "work_mode": 2,
+        "colour_data": 5,
+        "colour_data_v2": 24,
+        "switch_led": 1,
+        "countdown_1": 9,
+      });
+    });
+
   });
 
   describe('device discovery', () => {

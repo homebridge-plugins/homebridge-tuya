@@ -674,12 +674,12 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
             this._getDPMap(deviceId),
             detectedCount,
           );
-          (device as TuyaDevice & { switchCount?: number }).switchCount = detectedCount;
+          (device as TuyaDevice & { switchCount?: number }).switchCount = this._getEffectiveSwitchCount(cfg) ?? detectedCount;
           // Auto-detection is now complete
           (device as TuyaDevice & { isAutoDetecting?: boolean }).isAutoDetecting = false;
 
           // update config
-          cfg.switchCount = detectedCount;
+          cfg.switchCount = (device as TuyaDevice & { switchCount?: number }).switchCount;
 
           // Notify the platform so configureServices() is re-run and switch_2+ services are added.
           this.emit(TuyaDeviceManager.Events.DEVICE_INFO_UPDATE, device, { schemaUpdated: true });
@@ -831,7 +831,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       const switchCodes: string[] = [];
       for (const [code, dp] of Object.entries(dpMapping)) {
         // Keep non-switch DPs (brightness, temp, color, etc.)
-        if (!code.match(/^switch_(\d+)$/)) {
+        if (!code.startsWith('switch')) {
           filteredMapping[code] = dp;
         }
         // For switches, only include switch_1..switch_N
