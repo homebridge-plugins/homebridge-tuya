@@ -94,7 +94,7 @@ function configureRotationSpeedEnum(
   const onGetHandler = () => {
     const status = accessory.getStatus(schema.code)!;
     const index = range.indexOf(status.value as string);
-    const level = index;
+    const level = index + 1;
     const hapValue = level * rotationSpeedProperty.minStep!;
     return limit(hapValue, rotationSpeedProperty.minValue!, rotationSpeedProperty.maxValue!);
   };
@@ -107,7 +107,7 @@ function configureRotationSpeedEnum(
       if (!Number.isFinite(percent) || percent <= 0) {
         return;
       }
-      const speed = Math.floor(percent / rotationSpeedProperty.minStep!);
+      const speed = String(Math.floor(percent / rotationSpeedProperty.minStep!));
       await accessory.sendCommands([{ code: schema.code, value: speed }], true);
     })
     .updateValue(onGetHandler())
