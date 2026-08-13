@@ -44,7 +44,7 @@ export function toHapProperty(
         break;
       }
       case 'range': {
-        hap['validValues'] = value;
+        hap['validValues'] = [...value];
         break;
       }
       default: {

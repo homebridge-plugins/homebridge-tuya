@@ -1,6 +1,11 @@
-import { Service } from 'homebridge';
-import { TuyaDeviceSchema, TuyaDeviceSchemaEnumProperty, TuyaDeviceSchemaIntegerProperty } from '../../../cloud/device/TuyaDevice';
-import { limit } from '../../util/util';
+import { CharacteristicProps, PartialAllowingNull, Service } from 'homebridge';
+import {
+  TuyaDeviceSchema,
+  TuyaDeviceSchemaEnumProperty,
+  TuyaDeviceSchemaIntegerProperty,
+  TuyaDeviceSchemaType,
+} from '../../../cloud/device/TuyaDevice';
+import { limit, toHapProperty } from '../../util/util';
 import BaseAccessory from '../BaseAccessory';
 
 export function configureRotationSpeed(
@@ -13,25 +18,96 @@ export function configureRotationSpeed(
     return;
   }
 
+  if (schema.type === TuyaDeviceSchemaType.Enum) {
+    configureRotationSpeedEnum(accessory, service, schema, ['auto']);
+  } else if (schema.type === TuyaDeviceSchemaType.Integer) {
+    configureRotationSpeedInteger(accessory, service, schema);
+  } else {
+    configureRotationSpeedOn(accessory, service, schema);
+  }
+}
+
+function configureRotationSpeedInteger(
+  accessory: BaseAccessory,
+  service: Service,
+  schema: TuyaDeviceSchema,
+) {
+  accessory.log.debug('configureRotationSpeedInteger');
+
   const property = schema.property as TuyaDeviceSchemaIntegerProperty;
+  const hapProperty = toHapProperty(property) as PartialAllowingNull<CharacteristicProps>;
+  const rotationSpeedProperty = integerToPercentageProperty(property);
+
   const multiple = Math.pow(10, property.scale);
-  const props = {
-    minValue: property.min / multiple,
-    maxValue: property.max / multiple,
-    minStep: Math.max(1, property.step / multiple),
+
+  const onGetHandler = () => {
+    const status = accessory.getStatus(schema.code)!;
+    const value = status.value as number / multiple;
+    let level = ((value - hapProperty.minValue!) / hapProperty.minStep!);
+    if (hapProperty.minValue !== 0) {
+      level += 1;
+    }
+    const hapValue = level * rotationSpeedProperty.minStep!;
+    return limit(hapValue, rotationSpeedProperty.minValue!, rotationSpeedProperty.maxValue!);
   };
+
+  accessory.log.debug('Set props for RotationSpeed:', rotationSpeedProperty);
   service.getCharacteristic(accessory.Characteristic.RotationSpeed)
-    .onGet(() => {
-      const status = accessory.getStatus(schema.code)!;
-      const value = status.value as number / multiple;
-      return limit(value, props.minValue, props.maxValue);
-    })
+    .onGet(onGetHandler)
     .onSet(async value => {
-      const speed = (value as number) * multiple;
+      const percent = Number(value);
+      if (!Number.isFinite(percent) || percent <= 0) {
+        return;
+      }
+      const hapLevel = Math.floor(percent / rotationSpeedProperty.minStep!);
+      const speed = hapLevel * hapProperty.minStep! * multiple;
       await accessory.sendCommands([{ code: schema.code, value: speed }], true);
     })
-    .setProps(props);
+    .updateValue(onGetHandler())
+    .setProps(rotationSpeedProperty);
+}
 
+function configureRotationSpeedEnum(
+  accessory: BaseAccessory,
+  service: Service,
+  schema: TuyaDeviceSchema,
+  ignoreValues?: string[],
+) {
+  accessory.log.debug('configureRotationSpeedEnum');
+
+  const property = schema.property as TuyaDeviceSchemaEnumProperty;
+  const cloneProperty = structuredClone(property);
+  const range: string[] = [];
+  for (const value of property.range) {
+    if (ignoreValues?.includes(value)) {
+      continue;
+    }
+    range.push(value);
+  }
+  cloneProperty.range = range;
+  const rotationSpeedProperty = enumToPercentageProperty(cloneProperty);
+
+  const onGetHandler = () => {
+    const status = accessory.getStatus(schema.code)!;
+    const index = range.indexOf(status.value as string);
+    const level = index + 1;
+    const hapValue = level * rotationSpeedProperty.minStep!;
+    return limit(hapValue, rotationSpeedProperty.minValue!, rotationSpeedProperty.maxValue!);
+  };
+
+  accessory.log.debug('Set props for RotationSpeed:', rotationSpeedProperty);
+  service.getCharacteristic(accessory.Characteristic.RotationSpeed)
+    .onGet(onGetHandler)
+    .onSet(async value => {
+      const percent = Number(value);
+      if (!Number.isFinite(percent) || percent <= 0) {
+        return;
+      }
+      const speed = String(Math.floor(percent / rotationSpeedProperty.minStep!));
+      await accessory.sendCommands([{ code: schema.code, value: speed }], true);
+    })
+    .updateValue(onGetHandler())
+    .setProps(rotationSpeedProperty);
 }
 
 export function configureRotationSpeedLevel(
@@ -80,17 +156,14 @@ export function configureRotationSpeedLevel(
     .setProps(props);
 }
 
-export function configureRotationSpeedOn(
+function configureRotationSpeedOn(
   accessory: BaseAccessory,
   service: Service,
-  schema?: TuyaDeviceSchema,
+  schema: TuyaDeviceSchema,
 ) {
+  accessory.log.debug('configureRotationSpeedOn');
 
-  if (!schema) {
-    return;
-  }
-
-  const props = { minValue: 0, maxValue: 100, minStep: 100 };
+  const props = { minValue: 0, maxValue: 100, minStep: 100, unit: '%' };
   accessory.log.debug('Set props for RotationSpeed:', props);
 
   service.getCharacteristic(accessory.Characteristic.RotationSpeed)
@@ -99,4 +172,22 @@ export function configureRotationSpeedOn(
       return (status.value as boolean) ? 100 : 0;
     })
     .setProps(props);
+}
+
+export function integerToPercentageProperty(property: TuyaDeviceSchemaIntegerProperty): PartialAllowingNull<CharacteristicProps> {
+  const hapProperty = toHapProperty(property) as PartialAllowingNull<CharacteristicProps>;
+  let stepCount:number;
+  if (hapProperty.minValue === 0) {
+    stepCount = Math.min(100, Math.ceil(hapProperty.maxValue! / hapProperty.minStep!));
+  } else {
+    stepCount = Math.min(100, Math.ceil((hapProperty.maxValue! - hapProperty.minValue!) / hapProperty.minStep!) + 1);
+  }
+  return { minValue: 0, maxValue: 100, minStep: Math.floor(100 / stepCount), unit: '%' };
+}
+
+export function enumToPercentageProperty(property: TuyaDeviceSchemaEnumProperty): PartialAllowingNull<CharacteristicProps> {
+  const min = 0;
+  const max = property.range.length;
+  const step = 1;
+  return integerToPercentageProperty({ min: min, max: max, step: step, scale: 0, unit: '%' });
 }
