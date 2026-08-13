@@ -5,6 +5,7 @@ import BaseAccessory from './BaseAccessory';
 import { configureActive } from './characteristic/Active';
 import { configureCurrentTemperature } from './characteristic/CurrentTemperature';
 import { configureLockPhysicalControls } from './characteristic/LockPhysicalControls';
+import { configureRotationSpeed } from './characteristic/RotationSpeed';
 import { configureSwingMode } from './characteristic/SwingMode';
 import { configureTempDisplayUnits } from './characteristic/TemperatureDisplayUnits';
 
@@ -16,6 +17,7 @@ const SCHEMA_CODE = {
   LOCK: ['lock'],
   SWING: ['shake'],
   TEMP_UNIT_CONVERT: ['temp_unit_convert', 'c_f'],
+  FAN_SPEED: ['level'],
 };
 const STATE_CODE = {
   HEATING: ['heating', 'High'],
@@ -37,6 +39,7 @@ export default class HeaterAccessory extends BaseAccessory {
     configureSwingMode(this, this.mainService(), this.getSchema(...SCHEMA_CODE.SWING));
     this.configureHeatingThresholdTemp();
     configureTempDisplayUnits(this, this.mainService(), this.getSchema(...SCHEMA_CODE.TEMP_UNIT_CONVERT));
+    configureRotationSpeed(this, this.mainService(), this.getSchema(...SCHEMA_CODE.FAN_SPEED));
   }
 
 
