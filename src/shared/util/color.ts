@@ -1,9 +1,20 @@
 import convert from 'color-convert';
-import kelvinToRgb from 'kelvin-to-rgb';
+import colorTemperaturePkg from 'color-temperature';
+const { colorTemperature2rgb } = colorTemperaturePkg;
 
-export function kelvinToHSV(kevin: number) {
-  const [r, g, b] = kelvinToRgb(kevin);
-  const [h, s, v] = convert.rgb.hsv(r, g, b);
+// HomeKit minimum
+const KELVIN_MAX = miredToKelvin(140);
+// HomeKit minimum
+const KELVIN_MIN = miredToKelvin(500);
+
+export function kelvinToHSV(kelvin: number) {
+  if (kelvin < KELVIN_MIN) {
+    kelvin = KELVIN_MIN;
+  } else if (KELVIN_MAX < kelvin) {
+    kelvin = KELVIN_MAX;
+  }
+  const rgb = colorTemperature2rgb(kelvin);
+  const [h, s, v] = convert.rgb.hsv(rgb.red, rgb.green, rgb.blue);
   return { h, s, v };
 }
 
