@@ -93,23 +93,26 @@ export function deepClone<T>(value: T): T {
     return value;
   }
 
-  if (typeof globalThis.structuredClone === 'function') {
-    return globalThis.structuredClone(value);
+  if (typeof value !== 'object') {
+    return value;
   }
 
   if (Array.isArray(value)) {
     return value.map(item => deepClone(item)) as unknown as T;
   }
 
-  if (typeof value === 'object') {
-    const cloned: Record<string, unknown> = {};
-    for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
-      cloned[key] = deepClone(nestedValue);
+  const prototype = Object.getPrototypeOf(value);
+  const cloned = Object.create(prototype) as Record<string, unknown>;
+
+  for (const key of Reflect.ownKeys(value as object)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value as object, key);
+    if (!descriptor || !('value' in descriptor)) {
+      continue;
     }
-    return cloned as T;
+    cloned[String(key)] = deepClone(descriptor.value as never);
   }
 
-  return value;
+  return cloned as T;
 }
 
 /**

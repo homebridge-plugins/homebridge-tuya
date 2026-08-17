@@ -375,8 +375,20 @@ function configureAdaptiveLighting(
     return;
   }
 
-  const { AdaptiveLightingController } = accessory.platform.api.hap;
-  const controller = new AdaptiveLightingController(service);
-  accessory.accessory.configureController(controller);
-  accessory.adaptiveLightingController = controller;
+  const hap = accessory.platform.api.hap as typeof accessory.platform.api.hap & {
+    AdaptiveLightingController?: new(service: Service) => {
+      disableAdaptiveLighting?: () => void;
+    };
+  };
+
+  if (!hap.AdaptiveLightingController) {
+    accessory.log.warn('Adaptive Lighting is not available in this Homebridge version. Skipping controller setup.');
+    return;
+  }
+
+  const controller = new hap.AdaptiveLightingController(service);
+  if (typeof accessory.accessory.configureController === 'function') {
+    accessory.accessory.configureController(controller as never);
+  }
+  accessory.adaptiveLightingController = controller as never;
 }

@@ -376,8 +376,6 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       return false;
     }
 
-    this.log.error(`dpMap:${JSON.stringify(dpMap)}`);
-
     const dps: Record<string, unknown> = {};
     for (const { code, value } of commands) {
       const dp = dpMap[code];
@@ -823,7 +821,6 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
   private _buildSyntheticSchema(device: TuyaDevice, dpMapping: Record<string, number>, switchCount = 1): TuyaDeviceSchema[] {
     // If switchCount is limited, filter switch-related entries to only the needed ones
     let filteredMapping = dpMapping;
-    this.log.error(`deviceID:${device.id}, switchCount:${switchCount}`);
     if (switchCount > 0) {
       // Only include switch_1 through switch_N where N = switchCount
       // Also exclude other switch variants (like switch_led, switch_inching) if limited
@@ -884,7 +881,6 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       }
     });
 
-    this.log.error('schema:%o', schemas);
     return schemas;
   }
 

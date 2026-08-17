@@ -117,7 +117,16 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
     this.log = new PrefixLogger(logger(), `TuyaStreamingDelegate(${camera.accessory.displayName})`);
   }
 
-  public static async create(camera: CameraAccessory): Promise<TuyaStreamingDelegate> {
+  public static async create(camera: CameraAccessory): Promise<TuyaStreamingDelegate | undefined> {
+    const hap = camera.platform.api.hap as typeof camera.platform.api.hap & {
+      CameraController?: new(options: CameraControllerOptions) => CameraController;
+    };
+
+    if (!hap.CameraController) {
+      camera.log.warn('CameraController is unavailable in this Homebridge version. Camera streaming support will be skipped.');
+      return undefined;
+    }
+
     const delegate = new TuyaStreamingDelegate(camera);
     // this.recordingDelegate = new TuyaRecordingDelegate();
 
@@ -171,7 +180,7 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
       // }
     };
 
-    delegate.controller = new camera.platform.api.hap.CameraController(options);
+    delegate.controller = new hap.CameraController(options);
 
     isFfmpegForHomebridge(defaultFfmpegPath).then(value => {
       if (value) {

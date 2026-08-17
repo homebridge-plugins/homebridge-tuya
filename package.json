@@ -20,7 +20,7 @@
   ],
   "engines": {
     "homebridge": "^1.8.0 || ^2.0.0",
-    "node": "^20 || ^22 || ^24 || ^25"
+    "node": ">=18.20.0 <20 || >=20.11.0 <25"
   },
   "peerDependencies": {
     "homebridge": "^1.8.0 || ^2.0.0"
@@ -56,11 +56,11 @@
     "@types/color-convert": "^2.0.4",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.24",
-    "@types/node": "^25.9.4",
+    "@types/node": "^18.19.0",
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
     "eslint": "^10.2.1",
-    "homebridge": "^2.0.0",
+    "homebridge": "^1.8.0",
     "jest": "^30.4.2",
     "nodemon": "^3.1.14",
     "rimraf": "^6.1.3",

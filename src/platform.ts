@@ -229,6 +229,23 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     this.platformAccessories.set(accessory.UUID, accessory as PlatformAccessory<TuyaPluginAccessoryContext>);
   }
 
+  private getPersistPath(): string {
+    const user = this.api.user as typeof this.api.user & {
+      persistPath?: () => string;
+      storagePath?: () => string;
+    };
+
+    if (typeof user.persistPath === 'function') {
+      return user.persistPath();
+    }
+
+    if (typeof user.storagePath === 'function') {
+      return user.storagePath();
+    }
+
+    return path.join(process.cwd(), '.homebridge');
+  }
+
   async saveDeviceList() {
     if (!this.deviceManager) {
       return;
@@ -238,10 +255,11 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       this.tid = undefined;
     }
     this.tid = setTimeout(async () => {
-      const file = path.join(this.api.user.persistPath(), `TuyaDeviceList.${this.platformID}-${this.mode}.json`);
+      const persistPath = this.getPersistPath();
+      const file = path.join(persistPath, `TuyaDeviceList.${this.platformID}-${this.mode}.json`);
       this.log.info('Device list saved at %s', file);
-      if (!fs.existsSync(this.api.user.persistPath())) {
-        await fs.promises.mkdir(this.api.user.persistPath());
+      if (!fs.existsSync(persistPath)) {
+        await fs.promises.mkdir(persistPath, { recursive: true });
       }
       const devices = [...this.platformAccessories.values()].map(accessory => this.deviceManager.getDevice(accessory.context.deviceID));
       await fs.promises.writeFile(file, JSON.stringify(devices, null, 2));

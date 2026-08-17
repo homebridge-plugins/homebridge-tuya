@@ -69,7 +69,14 @@ export default class CameraAccessory extends BaseAccessory {
     }
 
     this.stream = await TuyaStreamingDelegate.create(this);
-    this.accessory.configureController(this.stream.controller);
+    if (!this.stream || !this.stream.controller) {
+      this.log.warn('Camera streaming controller is unavailable in this Homebridge version. Skipping camera setup.');
+      return;
+    }
+
+    if (typeof this.accessory.configureController === 'function') {
+      this.accessory.configureController(this.stream.controller);
+    }
   }
 
   configureFloodLight() {

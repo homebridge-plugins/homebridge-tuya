@@ -5,7 +5,7 @@ import {
   TuyaDeviceSchemaIntegerProperty,
   TuyaDeviceSchemaType,
 } from '../../../cloud/device/TuyaDevice';
-import { limit, toHapProperty } from '../../util/util';
+import { deepClone, limit, toHapProperty } from '../../util/util';
 import BaseAccessory from '../BaseAccessory';
 
 export function configureRotationSpeed(
@@ -76,7 +76,7 @@ function configureRotationSpeedEnum(
   accessory.log.debug('configureRotationSpeedEnum');
 
   const property = schema.property as TuyaDeviceSchemaEnumProperty;
-  const cloneProperty = structuredClone(property);
+  const cloneProperty = deepClone(property);
   const range: string[] = [];
   for (const value of property.range) {
     if (ignoreValues?.includes(value)) {
