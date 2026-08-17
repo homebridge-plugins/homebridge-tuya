@@ -827,19 +827,22 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
       filteredMapping = {};
       const switchCodes: string[] = [];
       for (const [code, dp] of Object.entries(dpMapping)) {
-        // Keep non-switch DPs (brightness, temp, color, etc.)
-        if (!code.startsWith('switch')) {
-          filteredMapping[code] = dp;
-        }
-        // For switches, only include switch_1..switch_N
         const switchMatch = code.match(/^switch_(\d+)$/);
+
         if (switchMatch) {
           const switchNum = parseInt(switchMatch[1], 10);
+
           if (switchNum <= switchCount) {
             filteredMapping[code] = dp;
             switchCodes.push(code);
           }
+
+          continue;
         }
+
+        // Non-numbered switch codes such as switch_fan, switch_led,
+        // switch_horizontal, etc. are preserved.
+        filteredMapping[code] = dp;
       }
       if (switchCodes.length < Object.keys(dpMapping).filter(k => k.startsWith('switch')).length) {
         this.log.debug(`Filtered switches: kept [${switchCodes.join(', ')}], excluded others`);
