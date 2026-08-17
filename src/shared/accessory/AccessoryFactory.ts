@@ -247,6 +247,7 @@ export default class AccessoryFactory {
 
       // Security & Video Surveillance
       case 'sp':
+      case 'cdsxj':
         return new CameraAccessory(platform, accessory);
       case 'ywbj':
         return new SmokeSensorAccessory(platform, accessory);

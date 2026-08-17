@@ -131,7 +131,7 @@ This plugin supports **60+ device categories** from Tuya's ecosystem. Use this p
 | Name | Name (zh) | Code | Homebridge Service | Supported | Links |
 | ---- | ---- | ---- | ---- | ---- | ---- |
 | Alarm Host | 报警主机 | mal | Security System | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorymal?id=Kaiuz33clqxaf) |
-| Smart Camera | 智能摄像机 | sp | Motion Sensor<br> Doorbell | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12) |
+| Smart Camera | 智能摄像机 | sp<br>cdsxj | Motion Sensor<br> Doorbell | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12) |
 | Wireless Doorbell | 无线门铃 | wxml | StatelessProgrammableSwitch | ✅ | Documentation |
 | Siren Alarm | 声光报警传感器 | sgbj | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorysgbj?id=Kaiuz37tlpbnu) |
 | Gas Alarm | 燃气报警传感器 | rqbj | Leak Sensor | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categoryrqbj?id=Kaiuz3d162ubw) |
