@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.5.3] - (2026.8.19)
+## [2.5.4] - (2026.8.19)
 
 ### Fixed
  - WindowCovering: Fixed an issue where the accessory would get stuck in the "Opening" or "Closing" state when operated externally via physical RF remotes due to delayed target state updates from the Tuya cloud.
