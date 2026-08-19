@@ -166,7 +166,7 @@ export default class TuyaOpenAPI {
       return;
     }
 
-    this.log.info('Access token refreshed successfully in %d ms.', refreshElapsed);
+    this.log.debug('Access token refreshed successfully in %d ms.', refreshElapsed);
     const { access_token, refresh_token, uid, expire_time } = res.result;
     this.tokenInfo = {
       access_token: access_token,
