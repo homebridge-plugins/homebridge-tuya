@@ -96,8 +96,8 @@ function configureRotationSpeedEnum(
     const index = range.indexOf(status.value as string);
     const level = index + 1;
     const hapValue = level * rotationSpeedProperty.minStep!;
-    accessory.log.warn(`(get) value from device: ${status.value} (${typeof status.value})`);
-    accessory.log.warn(`to home app: ${hapValue} (${typeof hapValue})`);
+    accessory.log.debug(`(get) value from device: ${status.value} (${typeof status.value})`);
+    accessory.log.debug(`to home app: ${hapValue} (${typeof hapValue})`);
     return limit(hapValue, rotationSpeedProperty.minValue!, rotationSpeedProperty.maxValue!);
   };
 
@@ -110,8 +110,8 @@ function configureRotationSpeedEnum(
         return;
       }
       const speed = String(Math.floor(percent / rotationSpeedProperty.minStep!));
-      accessory.log.warn(`(set) value from Home app: ${value} (${typeof value})`);
-      accessory.log.warn(`to device: ${speed} (${typeof speed})`);
+      accessory.log.debug(`(set) value from Home app: ${value} (${typeof value})`);
+      accessory.log.debug(`to device: ${speed} (${typeof speed})`);
       await accessory.sendCommands([{ code: schema.code, value: speed }], true);
     })
     .updateValue(onGetHandler())
