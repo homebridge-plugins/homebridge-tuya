@@ -87,17 +87,25 @@ export default class WindowCoveringAccessory extends BaseAccessory {
     service.getCharacteristic(this.Characteristic.PositionState)
       .onGet(() => {
         if (!currentSchema || !targetSchema) {
-          return STOPPED;
+          return STOPPED; // (A)
         }
 
         const currentStatus = this.getStatus(currentSchema.code)!;
         const targetStatus = this.getStatus(targetSchema.code)!;
-        if (targetStatus.value === 100 && currentStatus.value !== 100) {
+
+        // Fix applied: Override for physical RF remote bounds check.
+        // If current position reaches hardware limits, force STOPPED state
+        // to prevent UI freezing due to desynced targetStatus.
+        if (currentStatus.value === 0 || currentStatus.value === 100) {
+          return STOPPED;
+        }
+
+        if (targetStatus.value === 100 && currentStatus.value !== 100) { // (B)
           return INCREASING;
-        } else if (targetStatus.value === 0 && currentStatus.value !== 0) {
+        } else if (targetStatus.value === 0 && currentStatus.value !== 0) { // (C)
           return DECREASING;
         } else {
-          return STOPPED;
+          return STOPPED; // (D)
         }
       });
   }
