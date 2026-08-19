@@ -4,6 +4,8 @@
 
 ### Fixed
  - WindowCovering: Fixed an issue where the accessory would get stuck in the "Opening" or "Closing" state when operated externally via physical RF remotes due to delayed target state updates from the Tuya cloud.
+ - Support for devices whose minimum RotationSpeed is not 0.
+Fixed an issue where devices that do not manage rotation speed as a percentage failed to operate correctly.
 
 ## [2.5.2] - (2026.8.3)
 
