@@ -43,6 +43,7 @@ export interface TuyaPlatformCustomConfigOptions {
   debug?: boolean;
   debugLevel?: string;
   forceIPv4: boolean;
+  ignoredDevices?: string[];
 }
 
 export interface TuyaPlatformHomeConfigOptions {
@@ -62,6 +63,7 @@ export interface TuyaPlatformHomeConfigOptions {
   debug?: boolean;
   debugLevel?: string;
   forceIPv4: boolean;
+  ignoredDevices?: string[];
 }
 
 export interface RTSPCameraConfig {

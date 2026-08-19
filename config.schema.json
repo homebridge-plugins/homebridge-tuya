@@ -372,6 +372,14 @@
                         "title": "Forcing IPv4 connection",
                         "type": "boolean",
                         "default": false
+                    },
+                    "ignoredDevices": {
+                        "title": "Ignored Devices",
+                        "description": "List of Device IDs that should not be exported to HomeKit.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },

@@ -194,6 +194,10 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
 
     // add accessories
     for (const device of devices) {
+      if (this.options?.ignoredDevices?.includes(device.id)) {
+        this.log.info(`Skipping ignored device: ${device.name} (${device.id})`);
+        continue;
+      }
       this.addAccessory(device);
     }
 
