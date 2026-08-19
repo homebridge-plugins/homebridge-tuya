@@ -94,10 +94,10 @@ export default class WindowCoveringAccessory extends BaseAccessory {
         const targetStatus = this.getStatus(targetSchema.code)!;
 
         // Fix applied: Override for physical RF remote bounds check.
-        // If current position reaches hardware limits, force STOPPED state 
+        // If current position reaches hardware limits, force STOPPED state
         // to prevent UI freezing due to desynced targetStatus.
         if (currentStatus.value === 0 || currentStatus.value === 100) {
-           return STOPPED;
+          return STOPPED;
         }
 
         if (targetStatus.value === 100 && currentStatus.value !== 100) { // (B)
