@@ -76,8 +76,8 @@ export default class WindowCoveringAccessory extends BaseAccessory {
       .on('change', (context) => {
         if (context.newValue === 0 || context.newValue === 100) {
           service.updateCharacteristic(
-            this.Characteristic.PositionState, 
-            this.Characteristic.PositionState.STOPPED
+            this.Characteristic.PositionState,
+            this.Characteristic.PositionState.STOPPED,
           );
         }
       });
