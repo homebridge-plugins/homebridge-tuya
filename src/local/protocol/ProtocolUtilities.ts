@@ -18,7 +18,7 @@
  *   unknown uint16 BE  0x0000
  *   seqno   uint32 BE
  *   cmd     uint32 BE
- *   length  uint32 BE  (bytes: IV(12) + ciphertext + GCM-tag(16) + suffix(4))
+ *   length  uint32 BE  (bytes: IV(12) + ciphertext + GCM-tag(16); the suffix is NOT counted)
  *   iv      12 bytes
  *   ciphertext variable
  *   tag     16 bytes
@@ -264,11 +264,16 @@ export function packMessage6699(
   plaintext: Buffer,
   hmacKey: Buffer,
 ): Buffer {
-  // Generate IV from current time (matches TinyTuya debug=False behaviour)
-  const iv = Buffer.from(String(Date.now() / 100).slice(0, 12).padStart(12, '0'), 'latin1');
+  // Random 12-byte GCM nonce (TinyTuya uses os.urandom(12)).  It travels inside the
+  // frame, so any unique value is wire-compatible; a time-derived nonce repeats for
+  // every message sent within the same 100 ms, which breaks GCM's uniqueness rule.
+  const iv = randomBytes(12);
 
   // header (18 bytes): prefix(4) + unknown(2) + seqno(4) + cmd(4) + length(4)
-  const length = 12 + plaintext.length + 16 + 4; // IV(12) + cipher(N) + tag(16) + suffix(4)
+  // The length field covers IV(12) + ciphertext(N) + tag(16) and NOT the 4-byte
+  // suffix (TinyTuya pack_message: len(payload) + (calcsize('>16sI') - 4) + 12).
+  // Counting the suffix here makes the device reject the frame without replying.
+  const length = 12 + plaintext.length + 16;
   const header = Buffer.allocUnsafe(HEADER_SIZE_6699);
   header.writeUInt32BE(PREFIX_6699, 0);
   header.writeUInt16BE(0x0000, 4);
@@ -296,10 +301,16 @@ export interface TuyaMessage6699 {
 
 /**
  * Unpack a complete 0x6699 frame.
+ *
+ * @param data      Full frame buffer (prefix through suffix inclusive)
+ * @param hmacKey   Session key, or the device key during key exchange
+ * @param noRetcode Set for frames produced on this side: device→client frames carry a
+ *                  4-byte retcode ahead of the payload, client→device frames do not
  */
 export function unpackMessage6699(
   data: Buffer,
   hmacKey: Buffer,
+  noRetcode = false,
 ): TuyaMessage6699 | null {
   if (data.length < HEADER_SIZE_6699 + 12 + 16 + 4) {
     return null;
@@ -312,7 +323,8 @@ export function unpackMessage6699(
   const cmd = data.readUInt32BE(10);
   const length = data.readUInt32BE(14);
 
-  const totalLen = HEADER_SIZE_6699 + length;
+  // `length` covers IV + ciphertext + tag; the 4-byte suffix follows it
+  const totalLen = HEADER_SIZE_6699 + length + 4;
   if (data.length < totalLen) {
     return null;
   }
@@ -331,8 +343,11 @@ export function unpackMessage6699(
     return null;
   }
 
-  // strip 4-byte retcode if present
-  if (payload.length >= 4 && payload[0] === 0 && payload[1] === 0) {
+  // Device→client 0x6699 frames always carry a 4-byte retcode ahead of the payload,
+  // and TinyTuya strips it unconditionally (unpack_message with no_retcode=False).
+  // Sniffing the first bytes instead mis-slices binary payloads: a key-exchange
+  // response starts with a random nonce, so it was stripped only ~1 time in 65536.
+  if (!noRetcode && payload.length >= 4) {
     payload = payload.subarray(4);
   }
 
@@ -359,7 +374,8 @@ export function isFrameComplete(buffer: Buffer): boolean {
       return false;
     }
     const length = buffer.readUInt32BE(14);
-    return buffer.length >= HEADER_SIZE_6699 + length;
+    // `length` excludes the 4-byte suffix
+    return buffer.length >= HEADER_SIZE_6699 + length + 4;
   }
   return false;
 }
@@ -402,7 +418,9 @@ export function extractFrame(buffer: Buffer): { frame: Buffer; remaining: Buffer
     return null;
   }
   const length = slice.readUInt32BE(14);
-  const frameLen = HEADER_SIZE_6699 + length;
+  // `length` excludes the 4-byte suffix; without it the frame is cut short and the
+  // leftover bytes desync every following frame in the stream
+  const frameLen = HEADER_SIZE_6699 + length + 4;
   if (slice.length < frameLen) {
     return null;
   }
