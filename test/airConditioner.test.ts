@@ -275,7 +275,7 @@ describe('AirConditionerAccessory', () => {
 
     test('should include switch, mode, work_status, and temp_current', () => {
       const required = airConditionerAccessory.requiredSchema();
-      expect(required).toContainEqual(['switch']);
+      expect(required).toContainEqual(['switch', 'switch_1']);
       expect(required).toContainEqual(['mode']);
     });
   });

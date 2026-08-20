@@ -42,7 +42,7 @@ function configureRotationSpeedInteger(
 
   const onGetHandler = () => {
     const status = accessory.getStatus(schema.code)!;
-    const value = status.value as number / multiple;
+    const value = (status?.value as number ?? 0) / multiple;
     let level = ((value - hapProperty.minValue!) / hapProperty.minStep!);
     if (hapProperty.minValue !== 0) {
       level += 1;
@@ -89,7 +89,7 @@ function configureRotationSpeedEnum(
 
   const onGetHandler = () => {
     const status = accessory.getStatus(schema.code)!;
-    const index = range.indexOf(status.value as string);
+    const index = range.indexOf(status?.value as string);
     const level = index + 1;
     const hapValue = level * rotationSpeedProperty.minStep!;
     return limit(hapValue, rotationSpeedProperty.minValue!, rotationSpeedProperty.maxValue!);
@@ -169,7 +169,7 @@ function configureRotationSpeedOn(
   service.getCharacteristic(accessory.Characteristic.RotationSpeed)
     .onGet(() => {
       const status = accessory.getStatus(schema.code)!;
-      return (status.value as boolean) ? 100 : 0;
+      return (status?.value as boolean) ? 100 : 0;
     })
     .setProps(props);
 }
