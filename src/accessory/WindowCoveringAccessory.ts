@@ -72,6 +72,14 @@ export default class WindowCoveringAccessory extends BaseAccessory {
 
         this.log.warn('Unknown CurrentPosition:', status.value);
         return 50;
+      })
+      .on('change', (context) => {
+        if (context.newValue === 0 || context.newValue === 100) {
+          service.updateCharacteristic(
+            this.Characteristic.PositionState, 
+            this.Characteristic.PositionState.STOPPED
+          );
+        }
       });
   }
 
@@ -87,25 +95,22 @@ export default class WindowCoveringAccessory extends BaseAccessory {
     service.getCharacteristic(this.Characteristic.PositionState)
       .onGet(() => {
         if (!currentSchema || !targetSchema) {
-          return STOPPED; // (A)
+          return STOPPED;
         }
 
         const currentStatus = this.getStatus(currentSchema.code)!;
         const targetStatus = this.getStatus(targetSchema.code)!;
 
-        // Fix applied: Override for physical RF remote bounds check.
-        // If current position reaches hardware limits, force STOPPED state
-        // to prevent UI freezing due to desynced targetStatus.
         if (currentStatus.value === 0 || currentStatus.value === 100) {
           return STOPPED;
         }
 
-        if (targetStatus.value === 100 && currentStatus.value !== 100) { // (B)
+        if (targetStatus.value === 100 && currentStatus.value !== 100) {
           return INCREASING;
-        } else if (targetStatus.value === 0 && currentStatus.value !== 0) { // (C)
+        } else if (targetStatus.value === 0 && currentStatus.value !== 0) {
           return DECREASING;
         } else {
-          return STOPPED; // (D)
+          return STOPPED;
         }
       });
   }
