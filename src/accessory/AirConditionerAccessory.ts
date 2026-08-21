@@ -126,8 +126,18 @@ export default class AirConditionerAccessory extends BaseAccessory {
         }], true);
       });
 
-    const { DEHUMIDIFYING } = this.Characteristic.CurrentHumidifierDehumidifierState;
-    service.setCharacteristic(this.Characteristic.CurrentHumidifierDehumidifierState, DEHUMIDIFYING);
+    const { INACTIVE: DH_INACTIVE, DEHUMIDIFYING } = this.Characteristic.CurrentHumidifierDehumidifierState;
+
+    service.getCharacteristic(this.Characteristic.CurrentHumidifierDehumidifierState)
+      .setProps({ validValues: [DH_INACTIVE, DEHUMIDIFYING] })
+      .onGet(() => {
+        const active = this.getStatus(activeSchema.code);
+        const mode = this.getStatus(modeSchema.code);
+        return (active?.value === true && mode?.value === dehumidifierCode)
+          ? DEHUMIDIFYING
+          : DH_INACTIVE;
+      });
+
 
     const { DEHUMIDIFIER } = this.Characteristic.TargetHumidifierDehumidifierState;
     service.getCharacteristic(this.Characteristic.TargetHumidifierDehumidifierState)
