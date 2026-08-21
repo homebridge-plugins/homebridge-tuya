@@ -53,6 +53,9 @@ describe('ProtocolFactory', () => {
 
 describe('Protocol Base Interface', () => {
   let protocol: ReturnType<typeof ProtocolFactory.createProtocol>;
+  // v3.5 encrypts every frame, so encoding always needs a key: the session key once
+  // the handshake is done, the device key before that.
+  const deviceKey = Buffer.from('0123456789abcdef');
 
   beforeEach(() => {
     protocol = ProtocolFactory.createProtocol('3.5');
@@ -64,7 +67,7 @@ describe('Protocol Base Interface', () => {
       const data = Buffer.from([0xaa, 0xbb, 0xcc]);
       const seqNo = 1;
 
-      const frame = protocol.encodeFrame(cmd, data, seqNo);
+      const frame = protocol.encodeFrame(cmd, data, seqNo, undefined, deviceKey);
 
       expect(frame).toBeInstanceOf(Buffer);
       expect(frame.length).toBeGreaterThan(0);
@@ -87,7 +90,7 @@ describe('Protocol Base Interface', () => {
       const data = Buffer.alloc(0);
       const seqNo = 1;
 
-      const frame = protocol.encodeFrame(cmd, data, seqNo);
+      const frame = protocol.encodeFrame(cmd, data, seqNo, undefined, deviceKey);
 
       expect(frame).toBeInstanceOf(Buffer);
       expect(frame.length).toBeGreaterThan(0);
@@ -101,7 +104,7 @@ describe('Protocol Base Interface', () => {
       const data = Buffer.from([0xaa, 0xbb]);
       const seqNo = 1;
 
-      const frame = protocol.encodeFrame(cmd, data, seqNo);
+      const frame = protocol.encodeFrame(cmd, data, seqNo, undefined, deviceKey);
       const isComplete = protocol.isFrameComplete(frame);
 
       expect(typeof isComplete).toBe('boolean');
@@ -129,7 +132,7 @@ describe('Protocol Base Interface', () => {
       const data = Buffer.from([0xaa, 0xbb]);
       const seqNo = 1;
 
-      const encodedFrame = protocol.encodeFrame(cmd, data, seqNo);
+      const encodedFrame = protocol.encodeFrame(cmd, data, seqNo, undefined, deviceKey);
       const result = protocol.extractFrame(encodedFrame);
 
       if (result) {
@@ -249,12 +252,13 @@ describe('packMessage6699 / unpackMessage6699 round-trips', () => {
   test('GCM frame round-trip preserves seqno, cmd, and payload', () => {
     const plaintext = Buffer.from('{"dps":{"1":true}}');
     const frame = packMessage6699(42, 13, plaintext, key);
-    const msg = unpackMessage6699(frame, key);
+    // This is a client→device frame, which carries no retcode, so unpack must be
+    // told not to strip one.  Frames coming from a device always carry it.
+    const msg = unpackMessage6699(frame, key, true);
     expect(msg).not.toBeNull();
     expect(msg!.seqno).toBe(42);
     expect(msg!.cmd).toBe(13);
     expect(msg!.hmacOk).toBe(true);
-    // Payload starts with '{' (not 0x00 0x00), so retcode stripping does not apply
     expect(msg!.payload).toEqual(plaintext);
   });
 
@@ -270,18 +274,29 @@ describe('packMessage6699 / unpackMessage6699 round-trips', () => {
     const frame = packMessage6699(1, 16, plaintext, key);
     // header=18, iv=12, ciphertext=37, tag=16, suffix=4 → total 87 bytes
     expect(frame.length).toBe(18 + 12 + 37 + 16 + 4);
-    // length field at offset 14 should be 12+37+16+4 = 69
-    expect(frame.readUInt32BE(14)).toBe(12 + 37 + 16 + 4);
+    // length field at offset 14 should be 12+37+16 = 65: it covers IV + ciphertext +
+    // tag and NOT the suffix (TinyTuya message_helper.pack_message)
+    expect(frame.readUInt32BE(14)).toBe(12 + 37 + 16);
   });
 });
 
 describe('ProtocolV35 encode + decode round-trips', () => {
   const key = Buffer.from('0123456789abcdef');
   const proto = new ProtocolV35();
+  // Frames sent by a device carry a 4-byte retcode ahead of the payload, which
+  // decodeFrame strips.  Prepend one when building a frame that stands in for a
+  // device reply, otherwise the first four payload bytes are lost.
+  const RETCODE = Buffer.alloc(4);
+  const asDeviceFrame = (cmd: number, payload: Buffer, seq = 1, versionHeader = false): Buffer => {
+    const body = versionHeader
+      ? Buffer.concat([Buffer.from('3.5' + '\x00'.repeat(12), 'latin1'), payload])
+      : payload;
+    return packMessage6699(seq, cmd, Buffer.concat([RETCODE, body]), key);
+  };
 
   test('data command (cmd 13) with session key: round-trip strips version header', () => {
     const payload = Buffer.from('{"protocol":5,"t":1234,"data":{"dps":{"1":true}}}');
-    const frame = proto.encodeFrame(13, payload, 1, key);
+    const frame = asDeviceFrame(13, payload, 1, true);
     const decoded = proto.decodeFrame(frame, key, key);
     expect(decoded).not.toBeNull();
     expect(decoded!.cmd).toBe(13);
@@ -290,7 +305,7 @@ describe('ProtocolV35 encode + decode round-trips', () => {
 
   test('key exchange cmd 3 (NO_VERSION_HEADER_CMDS): no version header added or stripped', () => {
     const nonce = Buffer.from('0123456789abcdef'); // 16 bytes
-    const frame = proto.encodeFrame(3, nonce, 1, key);
+    const frame = asDeviceFrame(3, nonce);
     const decoded = proto.decodeFrame(frame, key, key);
     expect(decoded).not.toBeNull();
     expect(decoded!.cmd).toBe(3);
@@ -299,8 +314,8 @@ describe('ProtocolV35 encode + decode round-trips', () => {
 
   test('decodeFrame falls back to deviceKey when sessionKey is absent (pre-exchange)', () => {
     const nonce = Buffer.from('0123456789abcdef');
-    // Encode with key (simulating device using deviceKey before exchange)
-    const frame = proto.encodeFrame(3, nonce, 1, key);
+    // Simulates the device replying with the device key, before a session exists
+    const frame = asDeviceFrame(3, nonce, 1);
     // Decode without passing sessionKey - should use deviceKey as fallback
     const decoded = proto.decodeFrame(frame, key); // sessionKey omitted
     expect(decoded).not.toBeNull();

@@ -21,7 +21,7 @@
 import { Protocol } from './Protocol';
 import {
   hmac, encryptGCM,
-  packMessage6699, packMessage55AA, unpackMessage6699,
+  packMessage6699, unpackMessage6699,
   isFrameComplete, extractFrame,
   NO_VERSION_HEADER_CMDS,
 } from './ProtocolUtilities';
@@ -32,8 +32,15 @@ const VERSION_HEADER_35 = Buffer.from('3.5' + '\x00'.repeat(12), 'latin1');
 export class ProtocolV35 implements Protocol {
   encodeFrame(cmd: number, data: Buffer, seqNo: number, sessionKey?: Buffer, _deviceKey?: Buffer): Buffer {
     if (!sessionKey) {
-      // During key exchange (before session key exists), send as 0x55AA plain
-      return packMessage55AA(seqNo, cmd, data);
+      // v3.5 has no plaintext frames: the key-exchange commands are 0x6699/GCM too,
+      // keyed with the device key until the session key exists.  See TinyTuya
+      // XenonDevice._encode_message, which packs every v3.5 message as 0x6699.
+      // A 0x55AA frame here is dropped by the device without any reply, so the
+      // handshake never completes.
+      if (!_deviceKey) {
+        throw new Error('v3.5 key exchange requires the device key');
+      }
+      return packMessage6699(seqNo, cmd, data, _deviceKey);
     }
 
     let plaintext = data;

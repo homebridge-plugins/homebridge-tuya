@@ -18,6 +18,14 @@ export interface LocalDeviceContext {
   name?: string;
   port?: number;
   pingGap?: number;
+  /** Seconds to wait for a heartbeat reply before counting it as missed (default 20) */
+  pingTimeout?: number;
+  /** Missed heartbeats tolerated before the socket is dropped (default 2) */
+  pingRetries?: number;
+  /** Seconds between state refreshes; 0 disables polling (default 60) */
+  pollGap?: number;
+  /** Seconds to wait for the v3.4/v3.5 key-exchange reply (default 15) */
+  handshakeTimeout?: number;
   connectTimeout?: number;
 }
 
@@ -59,6 +67,9 @@ export default class LocalDevice extends EventEmitter {
   private pinger?: ReturnType<typeof setTimeout>;
   private connTimeout?: ReturnType<typeof setTimeout>;
   private errorReconnect?: ReturnType<typeof setTimeout>;
+  private handshakeTimer?: ReturnType<typeof setTimeout>;
+  private poller?: ReturnType<typeof setTimeout>;
+  private missedPings = 0;
   private connectionAttempts = 0;
 
   constructor(
@@ -67,7 +78,7 @@ export default class LocalDevice extends EventEmitter {
     super();
     this.log = new PrefixLogger(logger(), `${(context.name || context.id)}(Local)`, false);
     this.context.port = this.context.port ?? 6668;
-    this.context.pingGap = this.context.pingGap ?? 9;
+    this.context.pingGap = this.context.pingGap ?? 25;
     this.context.connectTimeout = this.context.connectTimeout ?? 30;
     this.protocol = ProtocolFactory.createProtocol(context.version);
   }
@@ -233,6 +244,7 @@ export default class LocalDevice extends EventEmitter {
         this.emit('connect');
         this._schedulePing();
         this.queryState();
+        this._schedulePoll();
       }
     });
 
@@ -242,6 +254,25 @@ export default class LocalDevice extends EventEmitter {
         // Begin 3-way key exchange
         this.tmpLocalKey = crypto.randomBytes(16);
         this._send({ cmd: 3, data: this.tmpLocalKey, encrypted: true });
+
+        // Nothing else watches the handshake: connTimeout was just cleared, and the
+        // heartbeat/poll timers only start once a session key exists.  A device that
+        // accepts the TCP connection but never answers cmd 3 leaves the socket
+        // ESTABLISHED and unusable indefinitely (observed for 10 hours), with every
+        // command timing out and nothing in the log to explain it.
+        const handshakeSeconds = this.context.handshakeTimeout ?? 15;
+        this.handshakeTimer = setTimeout(() => {
+          this.handshakeTimer = undefined;
+          if (this.sessionKey) {
+            return;
+          }
+          this.log.warn(
+            `Key exchange unanswered within ${handshakeSeconds}s for ${this.context.name} `
+            + `(${this.context.ip}) – dropping the socket and reconnecting`,
+          );
+          sock.destroy();
+        }, handshakeSeconds * 1000);
+        this.handshakeTimer.unref?.();
       }
     });
 
@@ -270,6 +301,18 @@ export default class LocalDevice extends EventEmitter {
       this.sessionKey = undefined;
       this.emit('disconnect');
       this.socket = undefined;
+
+      // A close without a preceding 'error' (the device hung up, or we dropped the
+      // socket ourselves) had no reconnect path, leaving the device offline until the
+      // next rediscovery sweep.
+      if (!this.errorReconnect) {
+        const delay = Math.min(30000, 1000 * Math.min(this.connectionAttempts, 10));
+        this.errorReconnect = setTimeout(() => {
+          this.errorReconnect = undefined;
+          this._connect();
+        }, delay);
+        this.errorReconnect.unref?.();
+      }
     });
 
     sock.on('end', () => {
@@ -297,6 +340,12 @@ export default class LocalDevice extends EventEmitter {
   }
 
   private _clearTimers(): void {
+    if (this.handshakeTimer) {
+      clearTimeout(this.handshakeTimer); this.handshakeTimer = undefined;
+    }
+    if (this.poller) {
+      clearTimeout(this.poller); this.poller = undefined;
+    }
     if (this.pinger) {
       clearTimeout(this.pinger); this.pinger = undefined;
     }
@@ -313,8 +362,13 @@ export default class LocalDevice extends EventEmitter {
       clearTimeout(this.pinger);
       this.pinger = undefined;
     }
+    // Called on connect and on every heartbeat reply: the device is alive again.
+    this.missedPings = 0;
+    this._armPing();
+  }
 
-    const primaryDelay = (this.context.pingGap ?? 20) * 1000;
+  private _armPing(): void {
+    const primaryDelay = (this.context.pingGap ?? 25) * 1000;
     this.pinger = setTimeout(() => {
       this._send({ cmd: 9 });
 
@@ -322,14 +376,61 @@ export default class LocalDevice extends EventEmitter {
         clearTimeout(this.pinger);
       }
 
+      const waitSeconds = this.context.pingTimeout ?? 20;
       this.pinger = setTimeout(() => {
-        const msg = `ping timeout – no response within 5s for ${this.context.name} (${this.context.ip})`;
+        // Tolerate late replies.  A busy host or WiFi module can answer many seconds
+        // after the heartbeat, and dropping the socket on the first miss makes matters
+        // worse: the device holds on to the stale connection and runs out of the few
+        // slots it has, after which it stops answering anyone at all.
+        this.missedPings = (this.missedPings ?? 0) + 1;
+        const allowed = this.context.pingRetries ?? 2;
+        if (this.missedPings <= allowed) {
+          this.log.info(
+            `Heartbeat unanswered ${this.missedPings}/${allowed + 1} after ${waitSeconds}s `
+            + `for ${this.context.name} – retrying instead of reconnecting`,
+          );
+          this._armPing();
+          return;
+        }
+        const msg = `ping timeout – no response within ${waitSeconds}s over ${this.missedPings} tries `
+          + `for ${this.context.name} (${this.context.ip})`;
         this._reportError(new Error(msg));
-      }, 5000);
+      }, waitSeconds * 1000);
       this.pinger.unref?.();
     }, primaryDelay);
 
     this.pinger.unref?.();
+  }
+
+  /**
+   * Re-query the device state on a timer.
+   *
+   * Some devices (e.g. the Daikin WiFiKit-II-DK) never push DP updates, so the values
+   * captured by the initial query stay frozen for the lifetime of the connection –
+   * room temperature, on/off and mode included, which also means a change made with
+   * the physical remote is never noticed.  Devices that do push updates simply answer
+   * with the same values, so this is safe for every protocol version.
+   * Set `pollGap` to 0 to disable.
+   */
+  private _schedulePoll(): void {
+    if (this.poller) {
+      clearTimeout(this.poller);
+      this.poller = undefined;
+    }
+
+    const gapSeconds = this.context.pollGap ?? 60;
+    if (!gapSeconds) {
+      return;
+    }
+
+    this.poller = setTimeout(() => {
+      if (this.connected) {
+        this.queryState();
+      }
+      this._schedulePoll();
+    }, gapSeconds * 1000);
+
+    this.poller.unref?.();
   }
 
   // ── Private: frame parsing ────────────────────────────────────────────────
@@ -449,10 +550,17 @@ export default class LocalDevice extends EventEmitter {
       this.sessionKey = ciphertext.subarray(0, 16);
     }
 
+    if (this.handshakeTimer) {
+      clearTimeout(this.handshakeTimer);
+      this.handshakeTimer = undefined;
+    }
+
     this.connected = true;
+    this.log.info(`Local session established with ${this.context.name} (${this.context.ip})`);
     this._schedulePing();
     this.emit('connect');
     this.queryState();
+    this._schedulePoll();
   }
 
   /** @internal Used by gateway to propagate child state updates. */

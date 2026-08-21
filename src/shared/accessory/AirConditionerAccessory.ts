@@ -11,7 +11,7 @@ import { configureTempDisplayUnits } from './characteristic/TemperatureDisplayUn
 
 const SCHEMA_CODE = {
   // AirConditioner
-  ACTIVE: ['switch'],
+  ACTIVE: ['switch', 'switch_1'],
   MODE: ['mode'],
   WORK_STATE: ['work_status', 'mode'],
   CURRENT_TEMP: ['temp_current'],
@@ -206,10 +206,15 @@ export default class AirConditionerAccessory extends BaseAccessory {
     const { INACTIVE, HEATING, COOLING } = this.Characteristic.CurrentHeaterCoolerState;
     this.mainService().getCharacteristic(this.Characteristic.CurrentHeaterCoolerState)
       .onGet(() => {
-        const status = this.getStatus(schema.code)!;
-        if (status.value === 'heating' || status.value === 'hot') {
+        // A schema entry can exist (from config or dpMapping) while the device never
+        // reports that DP; reading `.value` off undefined throws inside the read
+        // handler, and HomeKit then marks the WHOLE accessory "No Response" even
+        // though writes keep working.
+        const status = this.getStatus(schema.code);
+        const workState = status?.value;
+        if (workState === 'heating' || workState === 'hot') {
           return HEATING;
-        } else if (status.value === 'cooling' || status.value === 'cold') {
+        } else if (workState === 'cooling' || workState === 'cold') {
           return COOLING;
         } else {
           return INACTIVE;
