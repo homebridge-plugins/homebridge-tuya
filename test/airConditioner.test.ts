@@ -133,13 +133,20 @@ const createMockPlatform = (): any => {
   };
 };
 
+// Services created with a subtype, keyed as `${serviceUUID}:${subtype}`
+const subtypeServices = new Map<string, any>();
+
 // Create mock accessory
 const createMockAccessory = (): any => ({
   context: { deviceID: 'test-device-001' },
   displayName: 'Test Air Conditioner',
   services: [],
   getService: jest.fn(),
+  // Real PlatformAccessory exposes these too; services with a subtype are looked up
+  // and removed through them.
+  getServiceById: jest.fn(),
   addService: jest.fn(),
+  removeService: jest.fn(),
 });
 
 const createMockCharacteristic = () => {
@@ -234,6 +241,9 @@ describe('AirConditionerAccessory', () => {
       'Battery': mockBatteryService,
     };
 
+    // Tracks services created with a subtype, so getServiceById can resolve them
+    subtypeServices.clear();
+
     // Both getService and addService should return the same mock services
     accessory.getService.mockImplementation((serviceType: any) => {
       const serviceName = typeof serviceType === 'string' ? serviceType : serviceType?.UUID;
@@ -242,7 +252,25 @@ describe('AirConditionerAccessory', () => {
 
     accessory.addService.mockImplementation((serviceType: any, ...args: any[]) => {
       const serviceName = typeof serviceType === 'string' ? serviceType : serviceType?.UUID;
-      return serviceMap[serviceName] || mockAccessoryInformationService; // Default to AccessoryInformation
+      const created = serviceMap[serviceName] || mockAccessoryInformationService;
+      // args = [displayName, subtype]; remember the subtype so getServiceById finds it
+      if (args.length > 1) {
+        subtypeServices.set(`${serviceName}:${args[1]}`, created);
+      }
+      return created;
+    });
+
+    accessory.getServiceById.mockImplementation((serviceType: any, subtype: string) => {
+      const serviceName = typeof serviceType === 'string' ? serviceType : serviceType?.UUID;
+      return subtypeServices.get(`${serviceName}:${subtype}`);
+    });
+
+    accessory.removeService.mockImplementation((service: any) => {
+      for (const [key, value] of subtypeServices.entries()) {
+        if (value === service) {
+          subtypeServices.delete(key);
+        }
+      }
     });
 
     // Mock characteristic getters

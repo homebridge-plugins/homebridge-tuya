@@ -6,7 +6,7 @@ import { configureCurrentTemperature } from './characteristic/CurrentTemperature
 import { configureLockPhysicalControls } from './characteristic/LockPhysicalControls';
 import { configureRelativeHumidityDehumidifierThreshold } from './characteristic/RelativeHumidityDehumidifierThreshold';
 import { configureRotationSpeedLevel } from './characteristic/RotationSpeed';
-// import { configureSwingMode } from './characteristic/SwingMode';
+import { configureSwingMode } from './characteristic/SwingMode';
 import { configureTempDisplayUnits } from './characteristic/TemperatureDisplayUnits';
 
 const SCHEMA_CODE = {
@@ -19,7 +19,14 @@ const SCHEMA_CODE = {
   SPEED_LEVEL: ['fan_speed_enum', 'windspeed'],
   LOCK: ['lock', 'child_lock'],
   TEMP_UNIT_CONVERT: ['temp_unit_convert', 'c_f'],
-  SWING: ['switch_horizontal', 'switch_vertical'],
+  // Vertical first: it is the axis most units expose and the one users reach for.
+  // HeaterCooler carries a single SwingMode characteristic, so the remaining axes are
+  // published as switches (see configureSwingSwitches).
+  SWING: ['switch_vertical', 'switch_horizontal'],
+  SWING_AXES: [
+    { code: 'switch_vertical', name: 'Vertical Swing' },
+    { code: 'switch_horizontal', name: 'Horizontal Swing' },
+  ],
   // Dehumidifier
   CURRENT_HUMIDITY: ['humidity_current'],
   TARGET_HUMIDITY: ['humidity_set'],
@@ -44,6 +51,8 @@ export default class AirConditionerAccessory extends BaseAccessory {
     this.configureAirConditioner();
     this.configureDehumidifier();
     this.configureFan();
+    this.configureSwingSwitches();
+    this.configureFanSpeedTile();
 
     // Add extra sensors for home automation use.
     configureCurrentTemperature(this, undefined, this.getSchema(...SCHEMA_CODE.CURRENT_TEMP));
@@ -91,7 +100,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
     // Optional Characteristics
     configureLockPhysicalControls(this, service, this.getSchema(...SCHEMA_CODE.LOCK));
     configureRotationSpeedLevel(this, service, this.getSchema(...SCHEMA_CODE.SPEED_LEVEL), ['auto']);
-    // configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
+    configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
     this.configureCoolingThreshouldTemp();
     this.configureHeatingThreshouldTemp();
     configureTempDisplayUnits(this, service, this.getSchema(...SCHEMA_CODE.TEMP_UNIT_CONVERT));
@@ -103,6 +112,12 @@ export default class AirConditionerAccessory extends BaseAccessory {
     const property = modeSchema.property as TuyaDeviceSchemaEnumProperty;
     const dehumidifierCode = property.range.find(code => DEHUMIDIFIER_MODE.includes(code.toLowerCase()));
     if (!dehumidifierCode) {
+      // Subtype-less only, for the same reason as the Fanv2 cleanup below.
+      const staleDehumidifier = this.accessory.services
+        .find(s => s.UUID === this.Service.HumidifierDehumidifier.UUID && !s.subtype);
+      if (staleDehumidifier) {
+        this.accessory.removeService(staleDehumidifier);
+      }
       return;
     }
 
@@ -153,6 +168,15 @@ export default class AirConditionerAccessory extends BaseAccessory {
     const property = modeSchema.property as TuyaDeviceSchemaEnumProperty;
     const fanCode = property.range.find(code => FAN_MODE.includes(code.toLowerCase()));
     if (!fanCode) {
+      // Drop a Fanv2 created by an earlier run: it would keep showing a slider bound
+      // to the same fan-speed DP as the air conditioner, and its Active handler sends
+      // a mode change, so moving that slider switches the unit into fan mode.
+      // Match only the subtype-less service this method creates — getService() ignores
+      // subtypes and would otherwise match the fan-speed tile added below.
+      const staleFan = this.accessory.services.find(s => s.UUID === this.Service.Fanv2.UUID && !s.subtype);
+      if (staleFan) {
+        this.accessory.removeService(staleFan);
+      }
       return;
     }
 
@@ -180,6 +204,88 @@ export default class AirConditionerAccessory extends BaseAccessory {
     configureLockPhysicalControls(this, service, this.getSchema(...SCHEMA_CODE.LOCK));
     configureRotationSpeedLevel(this, service, this.getSchema(...SCHEMA_CODE.SPEED_LEVEL), ['auto']);
     // configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
+  }
+
+  /**
+   * Publish each swing axis the device reports as its own Switch.
+   *
+   * SwingMode is set on the HeaterCooler service as well, but the Home app does not
+   * render that characteristic for a heater-cooler, so without these switches the
+   * louvres cannot be controlled from the Home app at all — on the unit this was
+   * developed against, vertical swing was running (DP reported `true`) with no
+   * control for it anywhere in the app.  Switches are rendered, and other clients
+   * (Eve, Controller for HomeKit) keep using SwingMode.
+   *
+   * A switch is removed again if the device stops reporting that axis.
+   */
+  configureSwingSwitches(): void {
+    for (const axis of SCHEMA_CODE.SWING_AXES) {
+      const schema = this.getSchema(axis.code);
+      const subtype = `swing-${axis.code}`;
+      const existing = this.accessory.getServiceById(this.Service.Switch, subtype);
+
+      if (!schema) {
+        if (existing) {
+          this.accessory.removeService(existing);
+        }
+        continue;
+      }
+
+      const service = existing
+        || this.accessory.addService(this.Service.Switch, axis.name, subtype);
+      // Without ConfiguredName the Home app labels every extra tile with the accessory
+      // name, leaving two identical switches with no way to tell them apart.
+      service.setCharacteristic(this.Characteristic.ConfiguredName, axis.name);
+
+      service.getCharacteristic(this.Characteristic.On)
+        .onGet(() => this.getStatus(schema.code)?.value === true)
+        .onSet(async value => {
+          await this.sendCommands([{ code: schema.code, value: value === true }], true);
+        });
+    }
+  }
+
+  /**
+   * Publish the blower speed as a fan tile when the device has no fan mode.
+   *
+   * RotationSpeed is set on the HeaterCooler service, but the Home app does not
+   * render it there either, so on a unit without a fan mode the speed cannot be
+   * changed from the Home app.  Devices that do have a fan mode already get a Fanv2
+   * from configureFan(), so nothing is added for them.
+   *
+   * Active mirrors the power DP: this fan IS the air conditioner's blower, so unlike
+   * configureFan() it must never send a mode change.
+   */
+  configureFanSpeedTile(): void {
+    const modeSchema = this.getSchema(...SCHEMA_CODE.MODE);
+    const modeProperty = modeSchema?.property as TuyaDeviceSchemaEnumProperty | undefined;
+    const hasFanMode = modeProperty?.range.some(code => FAN_MODE.includes(code.toLowerCase()));
+
+    const speedSchema = this.getSchema(...SCHEMA_CODE.SPEED_LEVEL);
+    const activeSchema = this.getSchema(...SCHEMA_CODE.ACTIVE);
+
+    const subtype = 'fan-speed';
+    const existing = this.accessory.getServiceById(this.Service.Fanv2, subtype);
+
+    if (hasFanMode || !speedSchema || !activeSchema) {
+      if (existing) {
+        this.accessory.removeService(existing);
+      }
+      return;
+    }
+
+    const name = 'Fan Speed';
+    const service = existing || this.accessory.addService(this.Service.Fanv2, name, subtype);
+    service.setCharacteristic(this.Characteristic.ConfiguredName, name);
+
+    const { INACTIVE, ACTIVE } = this.Characteristic.Active;
+    service.getCharacteristic(this.Characteristic.Active)
+      .onGet(() => (this.getStatus(activeSchema.code)?.value === true) ? ACTIVE : INACTIVE)
+      .onSet(async value => {
+        await this.sendCommands([{ code: activeSchema.code, value: value === ACTIVE }], true);
+      });
+
+    configureRotationSpeedLevel(this, service, speedSchema, ['auto']);
   }
 
   mainService() {
