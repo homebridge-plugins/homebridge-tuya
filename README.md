@@ -216,3 +216,12 @@ PRs and issues are welcome.
 
 # 
 Thank you for spend time using the project. If it helps you, don't hesitate to give it a star 🌟:-)
+
+## Sponsors
+
+<img class="circle avatar-user" src="https://avatars.githubusercontent.com/u/314622938?s=52&amp;v=4" width="26" height="26" alt="@mlm-it">
+
+This project is supported by generous sponsors on GitHub Sponsors.  
+Thank you for helping me continue improving and maintaining this software!
+
+[![Sponsor me](https://img.shields.io/badge/Sponsor%20me-❤-ff69b4)](https://github.com/sponsors/tassy-h)
