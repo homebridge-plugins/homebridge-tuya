@@ -7,8 +7,9 @@ import AirConditionerAccessory from '../src/shared/accessory/AirConditionerAcces
  *  - one Switch per swing axis the device reports
  *  - a Fanv2 "Fan Speed" tile when the device has no fan mode
  *
- * Both exist because the Home app does not render SwingMode or RotationSpeed on a
- * HeaterCooler service, so those DPs are otherwise unreachable from the Home app.
+ * Both exist because the Home app does not offer SwingMode or RotationSpeed as controls
+ * on a HeaterCooler service (it does on a fan service), leaving those DPs unreachable on
+ * an air conditioner that has no fan mode.
  */
 
 const SWITCH_UUID = 'Switch';
