@@ -88,7 +88,10 @@ function configureRotationSpeedEnum(
   const rotationSpeedProperty = enumToPercentageProperty(cloneProperty);
 
   const onGetHandler = () => {
-    const status = accessory.getStatus(schema.code)!;
+    // A device can omit this DP entirely; indexOf(undefined) yields -1, which limit()
+    // clamps to the minimum, instead of throwing inside the read handler and taking
+    // the whole accessory offline in HomeKit.
+    const status = accessory.getStatus(schema.code);
     const index = range.indexOf(status?.value as string);
     const level = index + 1;
     const hapValue = level * rotationSpeedProperty.minStep!;
@@ -134,8 +137,11 @@ export function configureRotationSpeedLevel(
   accessory.log.debug('Set props for RotationSpeed:', props);
 
   const onGetHandler = () => {
-    const status = accessory.getStatus(schema.code)!;
-    const index = range.indexOf(status.value as string);
+    // A device can omit this DP entirely; indexOf(undefined) yields -1, which limit()
+    // clamps to the minimum, instead of throwing inside the read handler and taking
+    // the whole accessory offline in HomeKit.
+    const status = accessory.getStatus(schema.code);
+    const index = range.indexOf(status?.value as string);
     return limit(index + 1, props.minValue, props.maxValue);
   };
 
