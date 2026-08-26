@@ -4,6 +4,7 @@ import { AdaptiveLightingController, Characteristic, CharacteristicValue, Nullab
 import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty, TuyaDeviceStatus } from '../../cloud/device/TuyaDevice';
 import { TuyaPlatform, TuyaPluginAccessoryContext } from '../../platform';
 import { logger, PrefixLogger } from '../util/Logger';
+import { configureExtraCharactersitcs } from './characteristic/ExtraCharacteristicAdapter';
 import { debounce, deepEqual, limit, sanitizeName } from '../util/util';
 
 const MANUFACTURER = 'Tuya Inc.';
@@ -36,6 +37,7 @@ class BaseAccessory {
   public initialized = false;
 
   public adaptiveLightingController?: AdaptiveLightingController;
+  supportedDPs = new Set();
 
   constructor(
     public readonly platform: TuyaPlatform,
@@ -178,6 +180,7 @@ class BaseAccessory {
       });
 
       if (schema) {
+        this.supportedDPs.add(schema.code);
         return schema;
       }
     }
@@ -275,6 +278,10 @@ class BaseAccessory {
     //
   }
 
+  configureDeviceSpecificFeatures() {
+    //
+  }
+
   async onDeviceInfoUpdate(info) {
     this.updateAllValues();
   }
@@ -318,6 +325,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
       this.log.debug('Override schema %o => %o', oldSchema, schema);
     }
 
+    this.supportedDPs.add(schema.code);
     return schema;
   }
 
@@ -394,5 +402,28 @@ export default class OverridedBaseAccessory extends BaseAccessory {
     }
 
     await super.sendCommands(commands, debounce);
+  }
+
+  override configureDeviceSpecificFeatures() {
+    const config = this.deviceManager.getDeviceConfig(this.device);
+    this.supportedDPs.forEach(item => this.log.debug(`supported dp:${item}`));
+    const includeExtraFeatures = new Array<string>;
+    const isAuto = config && config.addExtraFeaturesAutomatically;
+    // Add a standard DP that needs to be treated as an Extra Feature
+    this.deviceManager.getDeviceConfig(this.device)
+      ?.schema?.filter(item => item.extra).forEach(item => includeExtraFeatures.push(item.code));
+    for (const schema of this.device.schema) {
+      if (isAuto) {
+        configureExtraCharactersitcs(this, schema);
+        includeExtraFeatures.splice(includeExtraFeatures.indexOf(schema.code), 1);
+      } else {
+        if (includeExtraFeatures.includes(schema.code)) {
+          configureExtraCharactersitcs(this, schema);
+          includeExtraFeatures.splice(includeExtraFeatures.indexOf(schema.code), 1);
+        }
+      }
+    }
+
+    includeExtraFeatures.forEach(item => this.log.warn(`Extra DP Code:${item} not found.`));
   }
 }

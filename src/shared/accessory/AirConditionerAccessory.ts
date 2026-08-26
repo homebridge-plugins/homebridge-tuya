@@ -159,7 +159,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
     configureLockPhysicalControls(this, service, this.getSchema(...SCHEMA_CODE.LOCK));
     configureRotationSpeedLevel(this, service, this.getSchema(...SCHEMA_CODE.SPEED_LEVEL), ['auto']);
     configureRelativeHumidityDehumidifierThreshold(this, service, this.getSchema(...SCHEMA_CODE.TARGET_HUMIDITY));
-    // configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
+    configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
   }
 
   configureFan() {
@@ -203,7 +203,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
     // Optional Characteristics
     configureLockPhysicalControls(this, service, this.getSchema(...SCHEMA_CODE.LOCK));
     configureRotationSpeedLevel(this, service, this.getSchema(...SCHEMA_CODE.SPEED_LEVEL), ['auto']);
-    // configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
+    configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
   }
 
   /**

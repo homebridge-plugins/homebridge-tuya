@@ -1,11 +1,10 @@
 import BaseAccessory from '../BaseAccessory';
 import { API, Service } from 'homebridge';
 import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty } from '../../../cloud/device/TuyaDevice';
-import OverridedBaseAccessory from '../BaseAccessory';
 
 export function configureEnergyUsage(
   api: API,
-  accessory: OverridedBaseAccessory,
+  accessory: BaseAccessory,
   service: Service,
   currentSchema?: TuyaDeviceSchema,
   powerSchema?: TuyaDeviceSchema,

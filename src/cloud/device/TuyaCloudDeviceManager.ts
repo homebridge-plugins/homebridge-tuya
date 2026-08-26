@@ -69,7 +69,7 @@ export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
     return this.getDeviceConfig(device)?.garageDoorUseContactSensorForState === true;
   }
 
-  getDeviceConfig(device: TuyaDevice) {
+  override getDeviceConfig(device: TuyaDevice) {
     if (!this.config) {
       return undefined;
     }

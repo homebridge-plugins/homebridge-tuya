@@ -15,6 +15,8 @@ export interface TuyaPlatformDeviceSchemaConfig {
   onGet?: string;
   onSet?: string;
   hidden?: boolean;
+  extra?: boolean;
+  extraRawSwitch?: Array<TuyaPlatformExtraRawSwitchConfig>;
 }
 
 // ── Per-device override block (applies to cloud devices by ID) ────────────────
@@ -25,6 +27,7 @@ export interface TuyaPlatformDeviceConfig {
   schema?: Array<TuyaPlatformDeviceSchemaConfig>;
   unbridged?: boolean;
   adaptiveLighting?: boolean;
+  addExtraFeaturesAutomatically?: boolean;
   /**
    * Optional: Limit this override to a specific source.
    * Since deviceOverrides are in the options (cloud) config, they default to 'cloud' only.
@@ -87,6 +90,13 @@ export type TuyaPlatformCloudConfig =
 export interface CommonConfig {
   debug?: boolean;
   debugLevel?: string;
+}
+
+export interface TuyaPlatformExtraRawSwitchConfig {
+  configuredName: string;
+  notation: string;
+  value: string;
+  byteIndex: number;
 }
 
 export interface RTSPCameraConfig {

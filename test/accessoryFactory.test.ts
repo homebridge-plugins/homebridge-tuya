@@ -101,6 +101,7 @@ describe('AccessoryFactory', () => {
           isVirtualDevice: jest.fn().mockReturnValue(false),
           isIRControlHub: jest.fn().mockReturnValue(false),
         }),
+        getDeviceConfig: jest.fn().mockReturnValue(undefined),
         getDeviceSchemaConfig: jest.fn().mockReturnValue({})
       },
       getDeviceStatusProperty: jest.fn().mockReturnValue(undefined),

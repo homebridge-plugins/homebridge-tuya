@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 import { ExLogger, logger, PrefixLogger } from './util/Logger';
 import TuyaDevice, { TuyaDeviceSchemaMode, TuyaDeviceSchemaType, TuyaDeviceStatus } from '../cloud/device/TuyaDevice';
 import { TuyaOpenAPIResponse } from '../cloud/api/TuyaOpenAPI';
-import { RTSPCameraConfig, TuyaPlatformDeviceSchemaConfig } from '../config';
+import { RTSPCameraConfig, TuyaPlatformDeviceConfig, TuyaPlatformDeviceSchemaConfig } from '../config';
 import { v5 as uuidv5 } from 'uuid';
 
 enum Events {
@@ -92,6 +92,7 @@ export default abstract class TuyaDeviceManager extends EventEmitter {
   abstract createDeviceConfigHash(device: TuyaDevice) : string;
   abstract configDevice(device: TuyaDevice) : void;
   abstract getDevice(deviceID: string): TuyaDevice | undefined;
+  abstract getDeviceConfig(device: TuyaDevice): TuyaPlatformDeviceConfig | undefined;
   abstract getDeviceSchemaConfig(device: TuyaDevice, dpCode: string) : TuyaPlatformDeviceSchemaConfig | undefined;
   abstract sendCommands(deviceID: string, commands: TuyaDeviceStatus[]): Promise<boolean>;
   abstract enableGarageDoorUseContactSensorForState(device: TuyaDevice): boolean;

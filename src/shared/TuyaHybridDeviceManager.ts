@@ -138,6 +138,11 @@ export default class TuyaHybridDeviceManager extends TuyaDeviceManager {
       ?? this.cloudDeviceManager.enableGarageDoorUseContactSensorForState(device);
   }
 
+  override getDeviceConfig(device: TuyaDevice) {
+    return this.localDeviceManager.getDeviceConfig(device)
+      ?? this.cloudDeviceManager.getDeviceConfig(device);
+  }
+
   override async retrieveDeviceRTSP(deviceID: string): Promise<string> {
     return this.localDeviceManager.retrieveDeviceRTSP(deviceID)
       .then((value) => {

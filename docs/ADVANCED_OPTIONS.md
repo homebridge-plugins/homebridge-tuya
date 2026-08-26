@@ -70,6 +70,7 @@ Before using device overrides, you should:
 | `category` | ➖ | string | Override device category (e.g., `"light"`, `"switch"`) or `"hidden"` | auto-detect |
 | `unbridged` | ➖ | boolean | Create as unbridged accessory in HomeKit | `false` |
 | `adaptiveLighting` | ➖ | boolean | Enable Apple Adaptive Lighting (lights only) | `false` |
+| `addExtraFeaturesAutomatically` | ➖ | boolean | Automatically expose supported read/write datapoints that are not used by the standard accessory as extra HomeKit services. | `false` |
 | `garageDoorUseContactSensorForState` | ➖ | boolean | Garage doors: read state from contact sensor | `false` |
 | `configFor` | ➖ | string | Apply to specific mode: `"cloud"`, `"local"`, or `"both"` | `"cloud"` |
 | `schema` | ➖ | array | Array of DP (Data Point) overrides | `[]` |
@@ -242,7 +243,26 @@ Enable Apple's Adaptive Lighting feature for compatible lights.
 
 ---
 
-### 4. Garage Door Contact Sensor
+### 4. Automatically add manufacturer-specific features
+
+Some devices expose manufacturer-specific datapoints that are not included in Tuya's standard device definition. Set `addExtraFeaturesAutomatically` to `true` for the device to expose supported read/write non-standard datapoints in HomeKit.
+
+```json
+{
+  "options": {
+    "deviceOverrides": [{
+      "id": "{device_id}",
+      "addExtraFeaturesAutomatically": true
+    }]
+  }
+}
+```
+
+Boolean datapoints are added as switches, Enum datapoints are added as switches for their available values, and Integer datapoints are added as sliders. The option applies only to the device specified by `id` and leaves the standard accessory controls unchanged. Raw datapoints require an `extraRawSwitch` definition because their individual bit or byte meanings cannot be inferred automatically.
+
+---
+
+### 5. Garage Door Contact Sensor
 
 For garage doors that report incorrect state, use contact sensor instead of switch state.
 
@@ -261,7 +281,7 @@ For garage doors that report incorrect state, use contact sensor instead of swit
 
 ---
 
-### 5. Change Device Category
+### 6. Change Device Category
 
 Override detected category for non-standard devices.
 
@@ -285,7 +305,7 @@ rm -rf ~/.homebridge/persist/AccessoryInfo.*.json
 
 ---
 
-### 6. Show Device as Unbridged
+### 7. Show Device as Unbridged
 
 Create as separate HomeKit accessory instead of under bridge.
 
@@ -304,7 +324,7 @@ Create as separate HomeKit accessory instead of under bridge.
 
 ---
 
-### 7. Convert Enum to Boolean
+### 8. Convert Enum to Boolean
 
 Convert enum values like `"open"`/`"close"` to `true`/`false`.
 
@@ -330,7 +350,7 @@ Convert enum values like `"open"`/`"close"` to `true`/`false`.
 
 ---
 
-### 8. Transform Value Range
+### 9. Transform Value Range
 
 Adjust numeric ranges for temperature, brightness, or other integer values.
 
@@ -364,7 +384,7 @@ Adjust numeric ranges for temperature, brightness, or other integer values.
 
 ---
 
-### 9. Handle Device Offline State
+### 10. Handle Device Offline State
 
 Show device as "Off" when it goes offline.
 
@@ -388,7 +408,7 @@ Show device as "Off" when it goes offline.
 
 ---
 
-### 10. Temperature Unit Conversion
+### 11. Temperature Unit Conversion
 
 Convert between Fahrenheit and Celsius.
 
@@ -417,7 +437,7 @@ Convert between Fahrenheit and Celsius.
 
 ---
 
-### 11. Reverse Curtain Direction
+### 12. Reverse Curtain Direction
 
 Reverse curtain open/close if motor direction is backwards.
 
@@ -448,7 +468,7 @@ Reverse curtain open/close if motor direction is backwards.
 
 ---
 
-### 12. Fix Double-Brightness Issue
+### 13. Fix Double-Brightness Issue
 
 Skip on/off command when brightness slider is touched (prevents sending duplicate commands).
 
@@ -472,7 +492,7 @@ Skip on/off command when brightness slider is touched (prevents sending duplicat
 
 ---
 
-### 13. Handle Half-Degree Temperature
+### 14. Handle Half-Degree Temperature
 
 Device stores double the value to preserve decimal (e.g., `41` = `20.5°C`).
 

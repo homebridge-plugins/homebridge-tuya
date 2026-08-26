@@ -8,21 +8,21 @@ export function configureOn(accessory: BaseAccessory, service?: Service, schema?
   }
 
   if (!service) {
-    service = accessory.accessory.getService(schema.code)
+    service = accessory.accessory.getServiceById(schema.code, schema.code)
       || accessory.accessory.addService(accessory.Service.Switch, schema.code, schema.code);
   }
 
   service.getCharacteristic(accessory.Characteristic.On)
     .onGet(() => {
       accessory.checkOnlineStatus();
-      const status = accessory.getStatus(schema.code);
+      const status = accessory.getStatus(schema.code)!;
       return (status?.value as boolean) ?? false;
     })
     .onSet(async value => {
-      service.getCharacteristic(accessory.Characteristic.On).updateValue(value);
       await accessory.sendCommands([{
         code: schema.code,
         value: value as boolean,
       }], true);
-    });
+    })
+    .updateValue(accessory.getStatus(schema.code)?.value ?? false);
 }

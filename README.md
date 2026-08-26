@@ -45,6 +45,7 @@ This plugin integrates Tuya smart home devices with Apple HomeKit through Homebr
 ✅ **Protocol support** — Tuya local protocol v3.1–v3.5  
 ✅ **Device overrides** — Custom schema mapping for non-standard devices  
 ✅ **Adaptive Lighting** — Supported on compatible light accessories  
+✅ **NonStandard DP support** — Expose non-standard DP as extra HomeKit services.  
 ✅ **Enhanced stability** — Optimized code, reduced API errors  
 
 ---
@@ -446,3 +447,12 @@ MIT License — see [LICENSE](./LICENSE) file for details
 ## Changelog
 
 See [CHANGELOG.md](./CHANGELOG.md) for version history and release notes.
+
+## Sponsors
+
+<img class="circle avatar-user" src="https://avatars.githubusercontent.com/u/314622938?s=52&amp;v=4" width="26" height="26" alt="@mlm-it">
+
+This project is supported by generous sponsors on GitHub Sponsors.  
+Thank you for helping me continue improving and maintaining this software!
+
+[![Sponsor me](https://img.shields.io/badge/Sponsor%20me-❤-ff69b4)](https://github.com/sponsors/tassy-h)

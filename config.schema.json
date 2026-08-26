@@ -262,6 +262,7 @@
                                                         "options.deviceOverrides[].id",
                                                         "options.deviceOverrides[].category",
                                                         "options.deviceOverrides[].unbridged",
+                                                        "options.deviceOverrides[].addExtraFeaturesAutomatically",
                                                         "options.deviceOverrides[].adaptiveLighting",
                                                         "options.deviceOverrides[].configFor",
                                                         {
@@ -276,6 +277,7 @@
                                                                         "options.deviceOverrides[].schema[].code",
                                                                         "options.deviceOverrides[].schema[].newCode",
                                                                         "options.deviceOverrides[].schema[].hidden",
+                                                                        "options.deviceOverrides[].schema[].extra",
                                                                         "options.deviceOverrides[].schema[].type",
                                                                         "options.deviceOverrides[].schema[].onGet",
                                                                         "options.deviceOverrides[].schema[].onSet",
@@ -295,6 +297,26 @@
                                                                                         {
                                                                                             "type": "div",
                                                                                             "items": [ "options.deviceOverrides[].schema[].property.range[]" ]
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "key": "options.deviceOverrides[].schema[].extraRawSwitch",
+                                                                            "type": "array",
+                                                                            "items": [
+                                                                                {
+                                                                                    "type": "fieldset",
+                                                                                    "items": [
+                                                                                        { "key": "options.deviceOverrides[].schema[].extraRawSwitch[].configuredName" },
+                                                                                        {
+                                                                                            "type": "flex",
+                                                                                            "flex-flow": "row wrap",
+                                                                                            "items": [
+                                                                                                { "key": "options.deviceOverrides[].schema[].extraRawSwitch[].byteIndex", "flex-basis": "min-content" },
+                                                                                                { "key": "options.deviceOverrides[].schema[].extraRawSwitch[].value" }
+                                                                                            ]
                                                                                         }
                                                                                     ]
                                                                                 }
@@ -1574,6 +1596,14 @@
                                         "functionBody": "return (model.options?.deviceOverrides);"
                                     }
                                 },
+                                "addExtraFeaturesAutomatically": {
+                                    "title": "Add Extra Features Automatically",
+                                    "description": "Show device‑specific features that aren’t part of the standard spec",
+                                    "type": "boolean",
+                                    "condition": {
+                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                    }
+                                },
                                 "adaptiveLighting": {
                                     "title": "Adaptive Lighting",
                                     "description": "Enable if your device supports intelligently adjusting the brightness and color of your lights",
@@ -1599,7 +1629,7 @@
                                     "description": "For garage door controllers only. Derive CurrentDoorState and TargetDoorState reads from doorcontact_state instead of switch_1.",
                                     "type": "boolean",
                                     "condition": {
-                                        "functionBody": "return (model.options?.deviceOverrides);"
+                                        "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].category === 'ckmkzq');"
                                     }
                                 },
                                 "schema": {
@@ -1710,6 +1740,53 @@
                                                 "placeholder": "value",
                                                 "condition": {
                                                     "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                }
+                                            },
+                                            "extra": {
+                                                "title": "Extra",
+                                                "type": "boolean",
+                                                "description": "Treat as Extra Feature",
+                                                "condition": {
+                                                    "functionBody": "return (model?.options?.deviceOverrides?.[arrayIndices[0]].schema);"
+                                                }
+                                            },
+                                            "extraRawSwitch": {
+                                                "title": "RawDataSwitches",
+                                                "type": "array",
+                                                "description": "Add switches for updating the byte‑code data.",
+                                                "condition": {
+                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Raw' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].extra);"
+                                                },
+                                                "items": {
+                                                    "type": "object",
+                                                    "required": ["configuredName", "notation", "value", "byteIndex"],
+                                                    "properties": {
+                                                        "configuredName": {
+                                                            "title": "Name",
+                                                            "type": "string"
+                                                        },
+                                                        "notation": {
+                                                            "title": "Notation",
+                                                            "type": "string",
+                                                            "default": "base64",
+                                                            "oneOf": [
+                                                                { "title": "Base64", "enum": [ "base64" ] },
+                                                                { "title": "Hexadecimal", "enum": [ "hex" ] }
+                                                            ]
+                                                        },
+                                                        "value": {
+                                                            "title": "Value",
+                                                            "type": "string",
+                                                            "placeholder": "0x01",
+                                                            "pattern": "^0x([0-9a-fA-F]{2})+$"
+                                                        },
+                                                        "byteIndex": {
+                                                            "title": "ByteIndex",
+                                                            "type": "integer",
+                                                            "default": 0,
+                                                            "minimum": 0
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }

@@ -176,7 +176,7 @@ export default class LocalDeviceManager extends TuyaDeviceManager {
     return '';
   }
 
-  getDeviceConfig(device: TuyaDevice) {
+  override getDeviceConfig(device: TuyaDevice) {
     if (!this.config) {
       return undefined;
     }

@@ -244,3 +244,33 @@ export function merge(obj1: any, obj2: any) {
 function isPlainObject(value: any) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
+
+export function updateBase64(base64: string, byteIndex: number, value: number | Buffer | Array<number>): string {
+  const buf = Buffer.from(base64, 'base64');
+  return updateBuffer(buf, byteIndex, value).toString('base64');
+}
+
+export function updateHex(hex: string, byteIndex: number, value: number | Buffer | Array<number>): string {
+  const buf = Buffer.from(hex.replace(/^0x/, ''), 'hex');
+  return updateBuffer(buf, byteIndex, value).toString('hex');
+}
+
+function updateBuffer(buf: Buffer, byteIndex: number, value: number | Buffer | Array<number>): Buffer {
+  let valueBuf: Buffer;
+
+  if (typeof value === 'number') {
+    const byteLength = Math.ceil(Math.log2(value + 1) / 8) || 1;
+    valueBuf = Buffer.alloc(byteLength);
+    valueBuf.writeUIntBE(value, 0, byteLength);
+  } else if (Buffer.isBuffer(value)) {
+    valueBuf = value;
+  } else if (Array.isArray(value)) {
+    valueBuf = Buffer.from(value);
+  } else {
+    throw new Error('value is not number / Buffer / byte array');
+  }
+
+  valueBuf.copy(buf as Uint8Array, byteIndex);
+
+  return buf;
+}

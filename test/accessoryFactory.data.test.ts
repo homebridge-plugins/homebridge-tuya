@@ -94,6 +94,7 @@ describe('AccessoryFactory data sample', () => {
       },
       deviceManager: {
         getDevice: jest.fn(),
+        getDeviceConfig: jest.fn().mockReturnValue(undefined),
         getDeviceSchemaConfig: jest.fn().mockReturnValue({})
       },
     } as any;
@@ -131,6 +132,7 @@ describe('AccessoryFactory data sample', () => {
     mockPlatform.deviceManager = {
       ...mockPlatform.deviceManager,
       getDevice: jest.fn().mockReturnValue(device),
+      getDeviceConfig: jest.fn().mockReturnValue(undefined),
       getDeviceSchemaConfig: jest.fn().mockReturnValue(undefined)
     } as any;
 
@@ -154,6 +156,7 @@ describe('AccessoryFactory data sample', () => {
     mockPlatform.deviceManager = {
       ...mockPlatform.deviceManager,
       getDevice: jest.fn().mockReturnValue(device),
+      getDeviceConfig: jest.fn().mockReturnValue(undefined),
       getDeviceSchemaConfig: jest.fn().mockReturnValue(undefined)
     } as any;
 
