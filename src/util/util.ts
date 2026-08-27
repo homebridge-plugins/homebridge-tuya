@@ -31,17 +31,17 @@ export function toHapProperty(
     switch (key) {
       case 'min': {
         const multiple = Math.pow(10, property ? property['scale'] : 0);
-        hap['minValue'] = Math.max(-273.15, value / multiple);
+        hap['minValue'] = value / multiple;
         break;
       }
       case 'max': {
         const multiple = Math.pow(10, property ? property['scale'] : 0);
-        hap['maxValue'] = Math.min(400, value / multiple);
+        hap['maxValue'] = value / multiple;
         break;
       }
       case 'step': {
         const multiple = Math.pow(10, property ? property['scale'] : 0);
-        hap['minStep'] = Math.max(0.01, value / multiple);
+        hap['minStep'] = value / multiple;
         break;
       }
       case 'range': {
@@ -84,4 +84,33 @@ export function uuidFromSeed(seed: string): string {
     ((parseInt(hash.substring(16, 17), 16) & 0x3) | 0x8).toString(16) + hash.substring(17, 20),
     hash.substring(20, 32),
   ].join('-');
+}
+export function updateBase64(base64: string, byteIndex: number, value: number | Buffer | Array<number>): string {
+  const buf = Buffer.from(base64, 'base64');
+  return updateBuffer(buf, byteIndex, value).toString('base64');
+}
+
+export function updateHex(hex: string, byteIndex: number, value: number | Buffer | Array<number>): string {
+  const buf = Buffer.from(hex.replace(/^0x/, ''), 'hex');
+  return updateBuffer(buf, byteIndex, value).toString('hex');
+}
+
+function updateBuffer(buf: Buffer, byteIndex: number, value: number | Buffer | Array<number>): Buffer {
+  let valueBuf: Buffer;
+
+  if (typeof value === 'number') {
+    const byteLength = Math.ceil(Math.log2(value + 1) / 8) || 1;
+    valueBuf = Buffer.alloc(byteLength);
+    valueBuf.writeUIntBE(value, 0, byteLength);
+  } else if (Buffer.isBuffer(value)) {
+    valueBuf = value;
+  } else if (Array.isArray(value)) {
+    valueBuf = Buffer.from(value);
+  } else {
+    throw new Error('value is not number / Buffer / byte array');
+  }
+
+  valueBuf.copy(buf as Uint8Array, byteIndex);
+
+  return buf;
 }

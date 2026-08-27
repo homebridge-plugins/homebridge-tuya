@@ -8,6 +8,7 @@ import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty, TuyaDeviceSchemaMode
 import { TuyaPlatform } from '../platform';
 import { limit, sanitizeName } from '../util/util';
 import { logger, PrefixLogger } from '../util/Logger';
+import { configureExtraCharactersitcs } from './characteristic/ExtraCharacteristicAdapter';
 
 const MANUFACTURER = 'Tuya Inc.';
 
@@ -41,6 +42,8 @@ class BaseAccessory {
   public intialized = false;
 
   public adaptiveLightingController?;
+
+  supportedDPs = new Set();
 
   constructor(
     public readonly platform: TuyaPlatform,
@@ -177,6 +180,7 @@ class BaseAccessory {
         continue;
       }
 
+      this.supportedDPs.add(schema.code);
       return schema;
     }
     return undefined;
@@ -260,6 +264,10 @@ class BaseAccessory {
     //
   }
 
+  configureDeviceSpecificFeatures() {
+    //
+  }
+
   async onDeviceInfoUpdate(info) {
     this.updateAllValues();
   }
@@ -300,6 +308,7 @@ export default class OverridedBaseAccessory extends BaseAccessory {
       this.log.debug('Override schema %o => %o', oldSchema, schema);
     }
 
+    this.supportedDPs.add(schema.code);
     return schema;
   }
 
@@ -370,4 +379,27 @@ export default class OverridedBaseAccessory extends BaseAccessory {
 
     await super.sendCommands(commands, debounce);
   }
+
+  configureDeviceSpecificFeatures() {
+    const config = this.platform.getDeviceConfig(this.device);
+    this.supportedDPs.forEach(item => this.log.info(`supported dp:${item}`));
+    const includeExtraFeatures = new Array<string>;
+    const isAuto = config && config.addExtraFeaturesAutomatically;
+    // Add a standard DP that needs to be treated as an Extra Feature
+    this.platform.getDeviceConfig(this.device)?.schema?.filter(item => item.extra).forEach(item => includeExtraFeatures.push(item.code));
+    for (const schema of this.device.schema) {
+      if (isAuto) {
+        configureExtraCharactersitcs(this, schema);
+        includeExtraFeatures.splice(includeExtraFeatures.indexOf(schema.code), 1);
+      } else {
+        if (includeExtraFeatures.includes(schema.code)) {
+          configureExtraCharactersitcs(this, schema);
+          includeExtraFeatures.splice(includeExtraFeatures.indexOf(schema.code), 1);
+        }
+      }
+    }
+
+    includeExtraFeatures.forEach(item => this.log.warn(`Extra DP Code:${item} not found.`));
+  }
 }
+

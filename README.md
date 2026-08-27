@@ -108,6 +108,23 @@ Before you can configure, you must go to the [Tuya IoT Platform](https://iot.tuy
 #### Advanced options
 See [ADVANCED_OPTIONS.md](./ADVANCED_OPTIONS.md)
 
+If your device has manufacturer-specific features that are not part of Tuya's standard device definition, enable `addExtraFeaturesAutomatically` in that device's `options.deviceOverrides` entry. The plugin will expose supported read/write non-standard datapoints in HomeKit as extra services: Boolean datapoints become switches, Enum datapoints become switches for their available values, and Integer datapoints become sliders.
+
+For example:
+
+```json
+{
+  "options": {
+    "deviceOverrides": [{
+      "id": "{device_id}",
+      "addExtraFeaturesAutomatically": true
+    }]
+  }
+}
+```
+
+This option applies only to the specified device and does not replace the standard accessory controls. For unsupported datapoint types, or when you need to control exactly which datapoints are exposed, use the `extra` and `extraRawSwitch` properties in the device schema. See [ADVANCED_OPTIONS.md](./ADVANCED_OPTIONS.md) for details.
+
 Garage door controllers that keep `switch_1=true` can opt in to contact-sensor-only state reads with `garageDoorUseContactSensorForState` in `options.deviceOverrides`. This keeps commands on `switch_1`, but reads HomeKit state from `doorcontact_state`.
 
 
@@ -216,3 +233,12 @@ PRs and issues are welcome.
 
 # 
 Thank you for spend time using the project. If it helps you, don't hesitate to give it a star 🌟:-)
+
+## Sponsors
+
+<img class="circle avatar-user" src="https://avatars.githubusercontent.com/u/314622938?s=52&amp;v=4" width="26" height="26" alt="@mlm-it">
+
+This project is supported by generous sponsors on GitHub Sponsors.  
+Thank you for helping me continue improving and maintaining this software!
+
+[![Sponsor me](https://img.shields.io/badge/Sponsor%20me-❤-ff69b4)](https://github.com/sponsors/tassy-h)

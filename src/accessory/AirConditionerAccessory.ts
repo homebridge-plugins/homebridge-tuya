@@ -6,7 +6,7 @@ import { configureCurrentTemperature } from './characteristic/CurrentTemperature
 import { configureLockPhysicalControls } from './characteristic/LockPhysicalControls';
 import { configureRelativeHumidityDehumidifierThreshold } from './characteristic/RelativeHumidityDehumidifierThreshold';
 import { configureRotationSpeedLevel } from './characteristic/RotationSpeed';
-// import { configureSwingMode } from './characteristic/SwingMode';
+import { configureSwingMode } from './characteristic/SwingMode';
 import { configureTempDisplayUnits } from './characteristic/TemperatureDisplayUnits';
 
 const SCHEMA_CODE = {
@@ -91,7 +91,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
     // Optional Characteristics
     configureLockPhysicalControls(this, service, this.getSchema(...SCHEMA_CODE.LOCK));
     configureRotationSpeedLevel(this, service, this.getSchema(...SCHEMA_CODE.SPEED_LEVEL), ['auto']);
-    // configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
+    configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
     this.configureCoolingThreshouldTemp();
     this.configureHeatingThreshouldTemp();
     configureTempDisplayUnits(this, service, this.getSchema(...SCHEMA_CODE.TEMP_UNIT_CONVERT));
@@ -126,8 +126,18 @@ export default class AirConditionerAccessory extends BaseAccessory {
         }], true);
       });
 
-    const { DEHUMIDIFYING } = this.Characteristic.CurrentHumidifierDehumidifierState;
-    service.setCharacteristic(this.Characteristic.CurrentHumidifierDehumidifierState, DEHUMIDIFYING);
+    const { INACTIVE: DH_INACTIVE, DEHUMIDIFYING } = this.Characteristic.CurrentHumidifierDehumidifierState;
+
+    service.getCharacteristic(this.Characteristic.CurrentHumidifierDehumidifierState)
+      .setProps({ validValues: [DH_INACTIVE, DEHUMIDIFYING] })
+      .onGet(() => {
+        const active = this.getStatus(activeSchema.code);
+        const mode = this.getStatus(modeSchema.code);
+        return (active?.value === true && mode?.value === dehumidifierCode)
+          ? DEHUMIDIFYING
+          : DH_INACTIVE;
+      });
+
 
     const { DEHUMIDIFIER } = this.Characteristic.TargetHumidifierDehumidifierState;
     service.getCharacteristic(this.Characteristic.TargetHumidifierDehumidifierState)
@@ -144,7 +154,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
     configureLockPhysicalControls(this, service, this.getSchema(...SCHEMA_CODE.LOCK));
     configureRotationSpeedLevel(this, service, this.getSchema(...SCHEMA_CODE.SPEED_LEVEL), ['auto']);
     configureRelativeHumidityDehumidifierThreshold(this, service, this.getSchema(...SCHEMA_CODE.TARGET_HUMIDITY));
-    // configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
+    configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
   }
 
   configureFan() {
@@ -179,7 +189,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
     // Optional Characteristics
     configureLockPhysicalControls(this, service, this.getSchema(...SCHEMA_CODE.LOCK));
     configureRotationSpeedLevel(this, service, this.getSchema(...SCHEMA_CODE.SPEED_LEVEL), ['auto']);
-    // configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
+    configureSwingMode(this, service, this.getSchema(...SCHEMA_CODE.SWING));
   }
 
   mainService() {

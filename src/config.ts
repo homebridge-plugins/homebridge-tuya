@@ -9,6 +9,8 @@ export interface TuyaPlatformDeviceSchemaConfig {
   onGet?: string;
   onSet?: string;
   hidden?: boolean;
+  extra?: boolean;
+  extraRawSwitch?: Array<TuyaPlatformExtraRawSwitchConfig>;
 }
 
 export interface TuyaPlatformDeviceConfig {
@@ -17,6 +19,7 @@ export interface TuyaPlatformDeviceConfig {
   schema?: Array<TuyaPlatformDeviceSchemaConfig>;
   unbridged?: boolean;
   adaptiveLighting?: boolean;
+  addExtraFeaturesAutomatically?: boolean;
   garageDoorUseContactSensorForState?: boolean;
 }
 
@@ -105,3 +108,10 @@ export const homeOptionsSchema = {
     debugLevel: { 'type': 'string' },
   },
 };
+
+export interface TuyaPlatformExtraRawSwitchConfig {
+  configuredName: string;
+  notation: string;
+  value: string;
+  byteIndex: number;
+}
