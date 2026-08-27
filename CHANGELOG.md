@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.6.0] - (2026.8.27)
+
+### Added
+ - add "Extra" in device configuration.
+This setting forces some of the device‑specific (non‑standard) features to be displayed in the UI.
+
+### Fixed
+ - Fixed an issue where the DEHUMIDIFIER state was not displayed correctly in the Apple Home app.
+ - Fixed an issue where the air conditioner’s swing mode stopped working due to other changes
+
 ## [2.5.4] - (2026.8.19)
 
 ### Fixed
