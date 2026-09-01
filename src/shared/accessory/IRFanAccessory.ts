@@ -1,6 +1,4 @@
-import { PlatformAccessory } from 'homebridge';
 import { TuyaDeviceSchemaType, TuyaDeviceStatus } from '../../cloud/device/TuyaDevice';
-import { TuyaPlatform, TuyaPluginAccessoryContext } from '../../platform';
 import FanAccessory from './FanAccessory';
 import { IRAdapter, IRKeyItemMap } from './IRAdapter';
 
@@ -18,6 +16,30 @@ const KEY_ITEM_MAPS: IRKeyItemMap[] = [
     dp_code: 'fan_speed',
     type: TuyaDeviceSchemaType.Integer,
     defaultValue: 50,
+    property: {
+      min: 0,
+      max: 100,
+      step: 50,
+      scale: 0,
+    },
+  },
+  {
+    key_name: 'fan_speed_up',
+    dp_code: 'fan_speed',
+    type: TuyaDeviceSchemaType.Enum,
+    defaultValue: 'default_position',
+    property: {
+      range: ['speed_down', 'default_position', 'speed_up'],
+    },
+  },
+  {
+    key_name: 'fan_speed_down',
+    dp_code: 'fan_speed',
+    type: TuyaDeviceSchemaType.Enum,
+    defaultValue: 'default_position',
+    property: {
+      range: ['speed_down', 'default_position', 'speed_up'],
+    },
   },
   {
     key_name: 'swing_mode',
@@ -28,6 +50,7 @@ const KEY_ITEM_MAPS: IRKeyItemMap[] = [
       min: 0,
       max: 1,
       step: 1,
+      scale: 0,
     },
   },
 ];
@@ -39,31 +62,20 @@ const LEARNING_KEY_NAMES = {
 export default class IRFanAccessory extends IRAdapter(FanAccessory) {
   private powerMap = KEY_ITEM_MAPS.find(i => i.key_name === 'power')!;
 
-  constructor(
-    public override readonly platform: TuyaPlatform,
-    public override readonly accessory: PlatformAccessory<TuyaPluginAccessoryContext>,
-  ) {
-    super(platform, accessory);
-    const fanSpeedMap = KEY_ITEM_MAPS.find(i => i.key_name === 'fan_speed');
-    const fanSpeed = this.resolveKeyListItem(['fan_speed']);
-    // custom key_name for fan_speed_up and fan_speed_down.
-    // IR Learning may not control the fan speed directly, but can control the fan speed up and down.
-    const fanSpeedUp = this.resolveKeyListItem([LEARNING_KEY_NAMES.FAN_SPEED_UP]);
-    const fanSpeedDown = this.resolveKeyListItem([LEARNING_KEY_NAMES.FAN_SPEED_DOWN]);
-    if (!fanSpeed && fanSpeedMap) {
-      fanSpeedMap.key_name = fanSpeedUp?.key_name || fanSpeedDown?.key_name || fanSpeedMap.key_name;
-    }
-  }
-
   override async sendCommands(commands: TuyaDeviceStatus[], debounce?: boolean): Promise<boolean> {
     this.powerMap.defaultValue = true;
     const codes = commands.map(command => command.code);
     const keyItemMap = this.getKeyItemMaps().find(i => codes.includes(i.key_name) || codes.includes(i.dp_code));
 
     if ([LEARNING_KEY_NAMES.FAN_SPEED_UP, LEARNING_KEY_NAMES.FAN_SPEED_DOWN].includes(keyItemMap?.key_name || '')) {
-      const value = commands.find(command => keyItemMap?.key_name === command.code)?.value as number ?? 50;
-      const defaultValue = keyItemMap?.defaultValue as number ?? 50;
-      this.powerMap.defaultValue = value !== 0;
+      const range = keyItemMap?.property?.['range'] ?? ['speed_down', 'default_position', 'speed_up'];
+      const value = commands.find(command => keyItemMap?.key_name === command.code)?.value ?? Math.floor(range.length/2);
+      // Rotation Speed for Enum adds status 'off' at index 0.
+      const defaultValue = (range.indexOf(keyItemMap?.defaultValue) ?? Math.floor(range.length/2) + 1);
+      this.powerMap.defaultValue = 0 !== value;
+      // revert to default
+      this.device.status.filter(_status => codes.includes(_status.code))
+        .forEach(_status => _status.value = range.indexOf(keyItemMap?.defaultValue));
       if (value < defaultValue) {
         const speedDownKey = this.resolveKeyListItem([LEARNING_KEY_NAMES.FAN_SPEED_DOWN]);
         if (speedDownKey) {

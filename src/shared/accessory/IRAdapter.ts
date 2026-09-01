@@ -68,17 +68,19 @@ export function IRAdapter<TBase extends Constructor<BaseAccessory>>(Base: TBase)
     }
 
     resolveKeyListItem(codes: string[]) : TuyaIRRemoteKeyListItem | undefined {
-      const keyItemMap = this.getKeyItemMaps().find(i => codes.includes(i.dp_code));
+      const keyItemMaps = this.getKeyItemMaps().filter(i => codes.includes(i.dp_code) || codes.includes(i.key_name));
       let remoteKeyItem: TuyaIRRemoteKeyListItem | undefined = undefined;
-      if (keyItemMap) {
-        // eslint-disable-next-line max-len
-        remoteKeyItem = this.device.remote_keys?.key_list.find(key => key.key_name === keyItemMap.key_name || key.key_name === keyItemMap.dp_code);
-      } else {
-        remoteKeyItem = this.device.remote_keys?.key_list.find(key => codes.includes(key.key_name));
-      }
-      if (remoteKeyItem) {
-        if (!this.associatedIRRemoteKey.includes(remoteKeyItem)) {
-          this.associatedIRRemoteKey.push(remoteKeyItem);
+      for (let keyItemMap of keyItemMaps) {
+        if (keyItemMap) {
+          // eslint-disable-next-line max-len
+          remoteKeyItem = this.device.remote_keys?.key_list.find(key => key.key_name === keyItemMap.key_name || key.key_name === keyItemMap.dp_code) ?? remoteKeyItem;
+        } else {
+          remoteKeyItem = this.device.remote_keys?.key_list.find(key => codes.includes(key.key_name)) ?? remoteKeyItem;
+        }
+        if (remoteKeyItem) {
+          if (!this.associatedIRRemoteKey.includes(remoteKeyItem)) {
+            this.associatedIRRemoteKey.push(remoteKeyItem);
+          }
         }
       }
       return remoteKeyItem;
@@ -113,7 +115,7 @@ export function IRAdapter<TBase extends Constructor<BaseAccessory>>(Base: TBase)
 
 
     resolveSchemaTypeDefaultValue(code: string) : any {
-      const keyItemMap = this.getKeyItemMaps().find(i => i.dp_code === code);
+      const keyItemMap = this.getKeyItemMaps().find(i => i.dp_code === code || i.key_name === code);
       if (keyItemMap) {
         return keyItemMap.defaultValue;
       } else {
