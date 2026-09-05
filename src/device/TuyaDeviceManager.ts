@@ -30,8 +30,8 @@ export default class TuyaDeviceManager extends EventEmitter {
   static readonly Events = Events;
 
   public mq: TuyaOpenMQ;
-  public ownerIDs: string[] = [];
-  public devices: TuyaDevice[] = [];
+  public ownerIDs: string[];
+  public devices: TuyaDevice[];
   public log: ExLogger;
 
   constructor(
@@ -40,6 +40,8 @@ export default class TuyaDeviceManager extends EventEmitter {
   ) {
     super();
 
+    this.ownerIDs = [];
+    this.devices = [];
     this.log = new PrefixLogger(logger(), TuyaDeviceManager.name, debug);
 
     this.mq = new TuyaOpenMQ(api);

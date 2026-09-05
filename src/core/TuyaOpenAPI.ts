@@ -84,12 +84,12 @@ export default class TuyaOpenAPI {
 
   static readonly Endpoints = Endpoints;
 
-  public assetIDArr: Array<string> = [];
-  public deviceArr: Array<object> = [];
+  public assetIDArr: Array<string>;
+  public deviceArr: Array<object>;
 
-  public tokenInfo = { access_token: '', refresh_token: '', uid: '', expire: 0 };
-  public loginInfo: { countryCode: number; username: string; password: string; appSchema: string } | null = null;
-  public tokenRecoveryCount = 0;
+  public tokenInfo: { access_token: string; refresh_token: string; uid: string; expire: number };
+  public loginInfo: { countryCode: number; username: string; password: string; appSchema: string } | null;
+  public tokenRecoveryCount: number;
   private log: ExLogger;
 
   constructor(
@@ -100,6 +100,11 @@ export default class TuyaOpenAPI {
     public debug = false,
     public forceIPv4 = false,
   ) {
+    this.assetIDArr = [];
+    this.deviceArr = [];
+    this.tokenInfo = { access_token: '', refresh_token: '', uid: '', expire: 0 };
+    this.loginInfo = null;
+    this.tokenRecoveryCount = 0;
     this.log = new PrefixLogger(logger(), TuyaOpenAPI.name, debug);
   }
 

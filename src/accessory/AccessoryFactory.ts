@@ -50,6 +50,8 @@ import WetBulbGlobeTemperatureAccessory from './WetBulbGlobeTemperatureAccessory
 import IRControlHubSubAccessory from './IRControlHubSubAccessory';
 import LocationWeatherAccessory from './LocationWeatherAccessory';
 import TowelRackAccessory from './TowerRackAccessory';
+import SaunaAccessory from './SaunaAccessory';
+import CatToiletAccessory from './CatToiletAccessory';
 
 
 export default class AccessoryFactory {
@@ -217,6 +219,9 @@ function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformA
     case 'kt':
     case 'ktkzq':
       return new AirConditionerAccessory(platform, accessory);
+    case 'qtwk': // unofficial category.
+      // https://github.com/homebridge-plugins/homebridge-tuya/commit/35fcdd10b27e64430d40a77c39518e7c2ea94865
+      return new SaunaAccessory(platform, accessory);
 
     // Small Home Appliances
     case 'qn':
@@ -254,8 +259,10 @@ function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformA
       return new FanAccessory(platform, accessory);
     case 'yyj':
       return new ExtractionHoodAccessory(platform, accessory);
+    case 'msp':
+      return new CatToiletAccessory(platform, accessory);
 
-    // Security & Video Surveillance
+      // Security & Video Surveillance
     case 'sp':
       return new CameraAccessory(platform, accessory);
     case 'ywbj':

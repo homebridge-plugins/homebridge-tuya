@@ -54,8 +54,21 @@ export default class FanAccessory extends BaseAccessory {
 
     this.configureRotationDirection();
 
-    // Light
-    if (this.getSchema(...SCHEMA_CODE.LIGHT_ON)) {
+    // Dual-light: two independent light channels (warm + white)
+    const warmOn = this.getSchema('light');
+    const warmBright = this.getSchema('bright_value');
+    const coldOn = this.getSchema('switch_led');
+    const coldBright = this.getSchema('bright_value_1');
+
+    if (warmOn && warmBright && coldOn && coldBright) {
+      const warmService = this.accessory.getService('Warm Light')
+        || this.accessory.addService(this.Service.Lightbulb, 'Warm Light', 'warm_light');
+      configureLight(this, warmService, warmOn, warmBright);
+
+      const whiteService = this.accessory.getService('White Light')
+        || this.accessory.addService(this.Service.Lightbulb, 'White Light', 'white_light');
+      configureLight(this, whiteService, coldOn, coldBright);
+    } else if (this.getSchema(...SCHEMA_CODE.LIGHT_ON)) {
       if (this.lightServiceType() === this.Service.Lightbulb) {
         configureLight(
           this,

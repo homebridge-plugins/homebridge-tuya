@@ -5,6 +5,8 @@ import { debounce } from 'debounce';
 import isEqual from 'lodash.isequal';
 
 import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty, TuyaDeviceSchemaMode, TuyaDeviceStatus } from '../device/TuyaDevice';
+import type TuyaDevice from '../device/TuyaDevice';
+import type TuyaDeviceManager from '../device/TuyaDeviceManager';
 import { TuyaPlatform } from '../platform';
 import { limit, sanitizeName } from '../util/util';
 import { logger, PrefixLogger } from '../util/Logger';
@@ -26,29 +28,45 @@ const SCHEMA_CODE = {
  *   https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
  */
 class BaseAccessory {
-  public readonly Service: typeof Service = this.platform.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.platform.api.hap.Characteristic;
+  public readonly Service: typeof Service;
+  public readonly Characteristic: typeof Characteristic;
 
-  public deviceManager = this.platform.deviceManager!;
-  public device = this.deviceManager.getDevice(this.accessory.context.deviceID)!;
-  public log = new PrefixLogger(
-    logger(),
-    this.device.name.length > 0 ? this.device.name : this.device.id,
-    this.platform.options.debug && ((this.platform.options.debugLevel ?? '').length > 0
-      ? this.platform.options.debugLevel?.includes(this.device.id)
-      : true),
-  );
+  public deviceManager: TuyaDeviceManager;
+  public device: TuyaDevice;
+  public log: PrefixLogger;
 
-  public intialized = false;
+  public intialized: boolean;
 
   public adaptiveLightingController?;
 
-  supportedDPs = new Set();
+  supportedDPs: Set<string>;
 
   constructor(
     public readonly platform: TuyaPlatform,
     public readonly accessory: PlatformAccessory,
   ) {
+    this.Service = this.platform.api.hap.Service;
+    this.Characteristic = this.platform.api.hap.Characteristic;
+    this.deviceManager = this.platform.deviceManager!;
+    this.device = this.deviceManager.getDevice(this.accessory.context.deviceID)!;
+    this.log = new PrefixLogger(
+      logger(),
+      this.device.name.length > 0 ? this.device.name : this.device.id,
+      this.platform.options.debug && ((this.platform.options.debugLevel ?? '').length > 0
+        ? this.platform.options.debugLevel?.includes(this.device.id)
+        : true),
+    );
+    this.intialized = false;
+    this.supportedDPs = new Set();
+    this.sendQueue = new Map();
+    this.debounceSendCommands = debounce(async () => {
+      const commands = [...this.sendQueue.values()];
+      if (commands.length === 0) {
+        return;
+      }
+      await this.deviceManager.sendCommands(this.device.id, commands);
+      this.sendQueue.clear();
+    }, 100);
     this.addAccessoryInfoService();
     this.addBatteryService();
   }
@@ -190,15 +208,8 @@ class BaseAccessory {
     return this.device.status.find(status => status.code === code);
   }
 
-  private sendQueue = new Map<string, TuyaDeviceStatus>();
-  private debounceSendCommands = debounce(async () => {
-    const commands = [...this.sendQueue.values()];
-    if (commands.length === 0) {
-      return;
-    }
-    await this.deviceManager.sendCommands(this.device.id, commands);
-    this.sendQueue.clear();
-  }, 100);
+  private sendQueue: Map<string, TuyaDeviceStatus>;
+  private debounceSendCommands: ReturnType<typeof debounce>;
 
   async sendCommands(commands: TuyaDeviceStatus[], debounce = false) {
     if (commands.length === 0) {
@@ -281,7 +292,16 @@ class BaseAccessory {
 // Overriding getSchema, getStatus, sendCommands
 export default class OverridedBaseAccessory extends BaseAccessory {
 
-  private eval = (script: string, device, value) => eval(script);
+  private eval: (
+    script: string,
+    device: TuyaDevice,
+    value: string | number | boolean,
+  ) => string | number | boolean;
+
+  constructor(platform: TuyaPlatform, accessory: PlatformAccessory) {
+    super(platform, accessory);
+    this.eval = (script: string, device, value) => eval(script);
+  }
 
   private getOverridedSchema(code: string) {
     const schemaConfig = this.platform.getDeviceSchemaConfig(this.device, code);

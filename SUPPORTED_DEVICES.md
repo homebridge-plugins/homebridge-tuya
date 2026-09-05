@@ -53,6 +53,7 @@ Most category code is pinyin abbreviation of Chinese name.
 | Air Conditioner | 空调 | kt | Heater Cooler<br> Humidifier Dehumidifier<br> Fanv2<br> Temperature Sensor<br> Humidity Sensor | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorykt?id=Kaiuz0z71ov2n) |
 | Air Conditioner Controller | 空调控制器 | ktkzq | Heater Cooler<br> Humidifier Dehumidifier<br> Fanv2<br> Temperature Sensor<br> Humidity Sensor | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categoryktkzq?id=Kaiuz11eqy892) |
 | Boiler | 壁挂炉 | bgl | | | [Documentation](https://developer.tuya.com/en/docs/iot/boilerbgl?id=Kaiuz13shgrhp) |
+| Sauna | 桑拿 | qtwk | Lightbulb<br>Thermostat | ✅ | unofficial category |
 
 
 ## Small Home Appliances
@@ -87,7 +88,7 @@ Most category code is pinyin abbreviation of Chinese name.
 | Cat Toilet                 | 猫砂盆 | msp           | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorymsp?id=Kakg2t7714ky7)     |
 | Towel Rack                 | 毛巾架 | mjj           | Thermostat | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorymjj?id=Kakkmlm9k4cir)     |
 | Smart Indoor Garden        | 植物生长机 | sz            | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorysz?id=Kaiuz4e6h7up0)      |
-
+| Cat Toilet                 | 猫砂盆 | msp           | Switch, Lightbulb, OccupancySensor, FilterMaintenance | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorymsp?id=Kakg2t7714ky7)     |
 
 ## Kitchen Appliances
 

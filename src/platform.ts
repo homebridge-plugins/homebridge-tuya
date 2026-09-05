@@ -23,16 +23,16 @@ import { initLogger } from './util/Logger';
  * parse the user config and discover/register accessories with Homebridge.
  */
 export class TuyaPlatform implements DynamicPlatformPlugin {
-  public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+  public readonly Service: typeof Service;
+  public readonly Characteristic: typeof Characteristic;
 
-  public options = (this.config as TuyaPlatformConfig).options;
+  public options: TuyaPlatformConfig['options'];
 
   // this is used to track restored cached accessories
-  public cachedAccessories: PlatformAccessory[] = [];
+  public cachedAccessories: PlatformAccessory[];
 
   public deviceManager?: TuyaDeviceManager;
-  public accessoryHandlers: BaseAccessory[] = [];
+  public accessoryHandlers: BaseAccessory[];
 
   validate() {
     let result;
@@ -113,6 +113,11 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    this.Service = this.api.hap.Service;
+    this.Characteristic = this.api.hap.Characteristic;
+    this.options = (this.config as TuyaPlatformConfig).options;
+    this.cachedAccessories = [];
+    this.accessoryHandlers = [];
     initLogger(log);
 
     if (!this.validate()) {

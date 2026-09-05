@@ -101,14 +101,16 @@ const resolutions: Resolution[] = [
 export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStreamingDelegate {
   public controller!: CameraController;
 
-  private pendingSessions: { [index: string]: SessionInfo } = {};
-  private ongoingSessions: { [index: string]: ActiveSession } = {};
+  private pendingSessions: { [index: string]: SessionInfo };
+  private ongoingSessions: { [index: string]: ActiveSession };
 
   private readonly camera: CameraAccessory;
   private readonly hap: HAP;
   private log: PrefixLogger;
 
   private constructor(camera: CameraAccessory) {
+    this.pendingSessions = {};
+    this.ongoingSessions = {};
     this.camera = camera;
     this.hap = camera.platform.api.hap;
     this.log = new PrefixLogger(logger(), `TuyaStreamingDelegate(${camera.accessory.displayName})`);
