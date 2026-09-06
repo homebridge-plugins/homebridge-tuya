@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.7.0] - (2026.9.6)
+
+Merged the upstream commit.
+
+### Added
+ - Add Cat Toilet (msp) accessory support (0x5e#551)
+    Add CatToiletAccessory for Tuya 'msp' category devices (smart cat toilets).<br>
+    Exposes:
+      1. Power, auto clean, manual clean, deodorization, UV switches
+      1. Mood light as Lightbulb service
+      1. OccupancySensor during active cleaning/UV/deodorization
+      1. FilterMaintenance when garbage box is full
+      1. StatusFault for motor/program/sensor faults<br>
+      All services are optional - gracefully skips unsupported DPs.
+ - Add 'qtwk' support for Sauna (0x5e#535)
+    - Added support for Sauna
+      Sauna accessory code qt (generic unknown) added using uplift of thermostat (wk) hence the combined undocumented code of qtwk.
+    - Update TuyaOpenMQ.ts
+
+### Fixed
+ - Fix light brightness not applied during HomeKit automations (0x5e#553)
+  When HomeKit automations control multiple light services simultaneously
+  (e.g. dual-light fans), commands for different services get interleaved
+  through the shared debounce queue. This causes the ON and brightness
+  commands for the same channel to land in separate API batches, resulting
+  in the device turning on at stale brightness.<br>
+  Introduce configureLightOn() that bundles the cached brightness value
+  with the ON command, ensuring the device always receives the correct
+  brightness regardless of debounce timing.
+
+### Changed
+ - Implemented support for two lights in fan accessory
+
 ## [2.6.0] - (2026.8.27)
 
 ### Added
