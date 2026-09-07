@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { EOL } from 'os';
 import util from 'util';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -27,7 +26,9 @@ export class PrefixLogger implements ExLogger {
     public log: Logger,
     public prefix: string = '',
     public debugMode = false,
-    private mask = !debugMode,
+    // Masking must NOT be tied to debugMode: debug is exactly when payloads
+    // (login bodies, access tokens, smart lock ticket keys) reach the log.
+    private mask = true,
   ) {
     this.debugMode = this.debugMode || process.argv.includes('-D') || process.argv.includes('--debug');
   }
@@ -74,16 +75,16 @@ export class PrefixLogger implements ExLogger {
     if (!this.mask || typeof str !== 'string') {
       return str;
     }
-    const regex_single = /'(password|token|access_?token|accessKey|tuyaKey|api_?key|secret)'\s*:\s*'[^']*'/gi;
-    const regex_double = /"(password|token|access_?token|accessKey|tuyaKey|api_?key|secret)"\s*:\s*"[^"]*"/gi;
-    const spilts = str.split(/\r\n|\n|\r/);
-    if (!spilts.some(s => regex_single.test(s)) && !spilts.some(s => regex_double.test(s))) {
-      return str;
-    }
-    const results = spilts
-      .map(a => a.replace(regex_single, '\'$1\': \'********\''))
-      .map(a => a.replace(regex_double, '"$1": "********"'));
-    return results.join(EOL);
+    // NOTE: a /g regex carries `lastIndex` across calls, so the previous
+    // `.some(s => re.test(s))` pre-check alternated true/false and let secrets
+    // through. `String.replace` resets `lastIndex` itself, so just replace.
+    const KEYS = 'password|token|access_?token|refresh_?token|accessKey|access_?key'
+      + '|tuyaKey|api_?key|secret|ticket_key|ticket_id|sign';
+    const regex_single = new RegExp(`'(${KEYS})'\\s*:\\s*'[^']*'`, 'gi');
+    const regex_double = new RegExp(`"(${KEYS})"\\s*:\\s*"[^"]*"`, 'gi');
+    return str
+      .replace(regex_single, '\'$1\': \'********\'')
+      .replace(regex_double, '"$1": "********"');
   }
 
   private maskingValue(obj: any) {
@@ -91,7 +92,7 @@ export class PrefixLogger implements ExLogger {
       return obj;
     }
     const cloneObj = cloneDeep(obj);
-    const regex = /(password|token|access_?token|accessKey|tuyakey|api_?key|secret)/i;
+    const regex = /(password|token|access_?token|refresh_?token|accessKey|access_?key|tuyakey|api_?key|secret|ticket_key|ticket_id|sign)/i;
     for (const key in cloneObj) {
       const value = cloneObj[key];
       if (typeof value === 'function') {
