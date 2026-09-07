@@ -1,8 +1,9 @@
 # Changelog
 
-## [2.7.0] - (2026.9.6)
+## [2.7.0] - (2026.9.7)
 
 Merged the upstream commit.
+PR #54 (Thanks, @mpbgodinho)
 
 ### Added
  - Add Cat Toilet (msp) accessory support (0x5e#551)
@@ -29,6 +30,11 @@ Merged the upstream commit.
   Introduce configureLightOn() that bundles the cached brightness value
   with the ON command, ensuring the device always receives the correct
   brightness regardless of debounce timing.
+ - Fixes remote unlocking for Tuya Smart Locks (ms, jtmspro), including Bluetooth locks behind a gateway.
+  Failed unlocks now report the reason instead of silently succeeding. The Home app shows a failure rather than a lock that appears to open but does not.
+  A lock that is between gateway connection windows (Tuya error 2312) is retried for 90 seconds instead of failing on the first attempt.
+  HomeKit only shows the lock as unlocked once the device reports it, not when the HTTP call returns.
+ - Security: account passwords, access tokens and smart lock ticket keys are no longer written to homebridge.log when debug is enabled. Anyone who has run this plugin with debug: true and an api debugLevel should rotate their Tuya password and delete old logs.
 
 ### Changed
  - Implemented support for two lights in fan accessory
