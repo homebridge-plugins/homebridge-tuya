@@ -11,7 +11,7 @@ import TuyaDevice, {
   TuyaIRRemoteKeyListItem,
 } from './TuyaDevice';
 import { RTSPCameraConfig } from '../config';
-import { uuidFromSeed } from '../util/util';
+import { maskSecret, uuidFromSeed } from '../util/util';
 
 enum Events {
   DEVICE_ADD = 'DEVICE_ADD',
@@ -378,21 +378,59 @@ export default class TuyaDeviceManager extends EventEmitter {
   }
 
 
+  /**
+   * Smart Lock "Get Temporary Key".
+   * Applies to Wi-Fi, Zigbee, Bluetooth and hotel Zigbee locks.
+   * https://developer.tuya.com/en/docs/cloud/doorlock-api-remoteopen?id=Kbe2nm6j9hcsj
+   *
+   * The response carries a `ticket_key` (a 256-bit encryption key). It must
+   * never be written to the log.
+   */
   async getLockTemporaryKey(deviceID: string) {
     // const res = await this.api.post(`/v1.0/smart-lock/devices/${deviceID}/door-lock/password-ticket`);
+    this.log.debug('Requesting smart lock password ticket. devID = %s', deviceID);
     const res = await this.api.post(`/v1.0/smart-lock/devices/${deviceID}/password-ticket`);
     if (res.success === false) {
       this.log.warn('Get Temporary Pass failed. devID = %s, code = %s, msg = %s', deviceID, res.code, res.msg);
+    } else {
+      this.log.debug('Got smart lock password ticket. devID = %s, ticket_id = %s, expire_time = %s',
+        deviceID, maskSecret(res.result?.ticket_id), res.result?.expire_time);
     }
     return res;
   }
 
+  /**
+   * Smart Lock "Remote Locking and Unlocking Without Password".
+   * Applies to Wi-Fi, Zigbee, Bluetooth and hotel Zigbee locks.
+   * `open = true` unlocks, `open = false` locks.
+   * https://developer.tuya.com/en/docs/cloud/8b36eabd4d?id=Kayexavknr6dt
+   */
   async sendLockCommands(deviceID: string, ticketID: string, open: boolean) {
+    this.log.debug('Sending smart lock door operation. devID = %s, ticket_id = %s, open = %s',
+      deviceID, maskSecret(ticketID), open);
     const res = await this.api.post(`/v1.0/smart-lock/devices/${deviceID}/password-free/door-operate`, {
       device_id: deviceID,
       ticket_id: ticketID,
       open,
     });
+    if (res.success === false) {
+      this.log.warn('Send lock command failed. devID = %s, code = %s, msg = %s', deviceID, res.code, res.msg);
+    } else {
+      this.log.debug('Smart lock door operation accepted by Tuya Cloud. devID = %s, result = %o', deviceID, res.result);
+    }
+    return res;
+  }
+
+  /**
+   * Lists the remote unlocking methods a lock actually exposes.
+   * Applies to Zigbee and Bluetooth locks; used for diagnostics when a door
+   * operation is rejected.
+   */
+  async getLockRemoteUnlockMethods(deviceID: string) {
+    const res = await this.api.get(`/v1.0/devices/${deviceID}/door-lock/remote-unlocks`);
+    if (res.success === false) {
+      this.log.warn('Get remote unlock methods failed. devID = %s, code = %s, msg = %s', deviceID, res.code, res.msg);
+    }
     return res;
   }
 
