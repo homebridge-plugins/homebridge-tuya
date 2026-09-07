@@ -114,3 +114,52 @@ function updateBuffer(buf: Buffer, byteIndex: number, value: number | Buffer | A
 
   return buf;
 }
+/**
+ * Keys whose values must never reach the log, no matter which log level is
+ * active. Note that `PrefixLogger` disables its own masking in debug mode
+ * (`mask = !debugMode`), so redaction has to happen at the call site.
+ */
+const SENSITIVE_KEY_PATTERN = /(password|secret|access_?key|access_?token|refresh_?token|ticket_key|api_?key|tuya_?key)/i;
+
+/**
+ * Mask an identifier that is not secret enough to print, but useful enough to
+ * correlate log lines (e.g. a smart lock `ticket_id`).
+ */
+export function maskSecret(value?: string | number | null, visible = 4): string {
+  if (value === undefined || value === null) {
+    return '<none>';
+  }
+  const str = `${value}`;
+  if (str.length === 0) {
+    return '<empty>';
+  }
+  if (str.length <= visible) {
+    return '***';
+  }
+  return `***${str.slice(-visible)}`;
+}
+
+/**
+ * Deep-copy a JSON-ish value, replacing the values of sensitive keys with
+ * `***`. Used before dumping API payloads to the log.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function redactSensitive<T>(value: T, depth = 0): T {
+  if (depth > 10 || value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => redactSensitive(item, depth + 1)) as unknown as T;
+  }
+
+  const result = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (SENSITIVE_KEY_PATTERN.test(key)) {
+      result[key] = '***';
+    } else {
+      result[key] = redactSensitive(item, depth + 1);
+    }
+  }
+  return result as T;
+}

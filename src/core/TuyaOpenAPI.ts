@@ -12,6 +12,7 @@ import dns from 'dns';
 import { version } from '../../package.json';
 
 import { ExLogger, logger, PrefixLogger } from '../util/Logger';
+import { redactSensitive } from '../util/util';
 
 enum Endpoints {
   AMERICA = 'https://openapi.tuyaus.com',
@@ -334,17 +335,31 @@ export default class TuyaOpenAPI {
         requestOptions['agent'] = ipv4Agent;
       }
       const req = https.request(requestOptions, res => {
-        if (res.statusCode !== 200) {
-          this.log.warn('Status: %d %s', res.statusCode, res.statusMessage);
-          return;
-        }
         res.setEncoding('utf8');
         let rawData = '';
         res.on('data', (chunk) => {
           rawData += chunk;
         });
         res.on('end', () => {
-          resolve(JSON.parse(rawData));
+          // Never leave the promise unsettled: a non-200 used to hang the
+          // caller forever, which made API failures completely invisible.
+          if (res.statusCode !== 200) {
+            this.log.warn('Status: %d %s, path = %s, body = %s',
+              res.statusCode, res.statusMessage, path, rawData.slice(0, 512));
+          }
+
+          try {
+            resolve(JSON.parse(rawData));
+          } catch (error) {
+            resolve({
+              success: false,
+              result: rawData.slice(0, 512),
+              code: res.statusCode ?? -1,
+              msg: res.statusMessage ?? 'Invalid response body',
+              t: Date.now(),
+              tid: '',
+            });
+          }
         });
       });
 
@@ -359,7 +374,7 @@ export default class TuyaOpenAPI {
       req.end();
     }), undefined, {retriesMax: 10, interval: 100, exponential: true, factor: 2, jitter: 100});
 
-    this.log.debug('Response:\npath = %s\ndata = %s', path, JSON.stringify(res, null, 2));
+    this.log.debug('Response:\npath = %s\ndata = %s', path, JSON.stringify(redactSensitive(res), null, 2));
     if (res && res.success !== true && API_ERROR_MESSAGES[res.code]) {
       this.log.error(API_ERROR_MESSAGES[res.code]);
     }
