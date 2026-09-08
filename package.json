@@ -1,26 +1,29 @@
 {
-  "name": "@0x5e/homebridge-tuya-platform",
-  "displayName": "Tuya",
-  "version": "1.7.0-beta.58",
-  "description": "Fork version of official Tuya Homebridge plugin. Brings a bunch of bug fix and new device support.",
+  "name": "@homebridge-plugins/homebridge-tuya",
+  "displayName": "Homebridge Tuya",
+  "version": "2.7.0",
+  "description": "Forked from 0x5e/homebridge-tuya-platform, with a focus on fixing bugs and adding new device support.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/0x5e/homebridge-tuya-platform"
+    "url": "https://github.com/homebridge-plugins/homebridge-tuya"
   },
-  "homepage": "https://github.com/0x5e/homebridge-tuya-platform#readme",
+  "homepage": "https://github.com/homebridge-plugins/homebridge-tuya#readme",
   "bugs": {
-    "url": "https://github.com/0x5e/homebridge-tuya-platform/issues"
+    "url": "https://github.com/homebridge-plugins/homebridge-tuya/issues"
   },
   "funding": [
     {
-      "type": "paypal",
-      "url": "https://paypal.me/0x5e"
+      "type": "github",
+      "url": "https://github.com/sponsors/tassy-h"
     }
   ],
   "engines": {
-    "node": "^22.12.0 || ^24.0.0",
-    "homebridge": "^1.6.0 || ^2.0.0"
+    "homebridge": "^1.8.0 || ^2.0.0",
+    "node": "^20 || ^22 || ^24 || ^25"
+  },
+  "peerDependencies": {
+    "homebridge": "^1.8.0 || ^2.0.0"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -44,6 +47,7 @@
     "debounce": "^1.2.1",
     "jsonschema": "^1.4.1",
     "kelvin-to-rgb": "^1.0.2",
+    "lodash": "^4.18.1",
     "lodash.isequal": "^4.5.0",
     "mqtt": "^4.2.6",
     "uuid": "^9.0.0"
@@ -53,18 +57,23 @@
     "@types/crypto-js": "^4.1.1",
     "@types/debounce": "^1.2.1",
     "@types/jest": "^29.1.2",
+    "@types/lodash": "^4.17.24",
     "@types/lodash.isequal": "^4.5.6",
-    "@types/node": "^22.19.19",
+    "@types/node": "^22.0.0",
     "@types/uuid": "^8.3.4",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
-    "eslint": "^8.0.1",
-    "homebridge": "^2.0.2",
+    "eslint": "8.57.1",
+    "homebridge": "^2.0.0",
     "jest": "^29.1.2",
-    "nodemon": "^2.0.13",
-    "rimraf": "^3.0.2",
-    "ts-jest": "^29.4.9",
+    "nodemon": "^3.1.10",
+    "rimraf": "^5.0.0",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.3.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.0.0"
+  },
+  "homebridge": {
+    "plugin_type": "platform",
+    "platform": "TuyaPlatform"
   }
 }

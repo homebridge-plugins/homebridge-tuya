@@ -1,22 +1,23 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2022", // Node.js 18+
     "module": "commonjs",
-    "moduleResolution": "node",
     "lib": [
-      "ES2022"
+      "es2022",
+      "DOM"
     ],
-    "declaration": true,
-    "declarationMap": true,
+    "useDefineForClassFields": false,
+    "declaration": false,
+    "declarationMap": false,
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "noImplicitAny": false,
     "resolveJsonModule": true,
-    "allowJs": true
+    "allowJs": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/"

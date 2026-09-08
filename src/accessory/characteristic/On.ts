@@ -8,7 +8,7 @@ export function configureOn(accessory: BaseAccessory, service?: Service, schema?
   }
 
   if (!service) {
-    service = accessory.accessory.getService(schema.code)
+    service = accessory.accessory.getServiceById(schema.code, schema.code)
       || accessory.accessory.addService(accessory.Service.Switch, schema.code, schema.code);
   }
 

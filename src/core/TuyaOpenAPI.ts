@@ -5,12 +5,14 @@ import https from 'https';
 import Crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import retry from 'async-await-retry';
+import dns from 'dns';
 
 // eslint-disable-next-line
 // @ts-ignore
 import { version } from '../../package.json';
 
-import Logger, { PrefixLogger } from '../util/Logger';
+import { ExLogger, logger, PrefixLogger } from '../util/Logger';
+import { redactSensitive } from '../util/util';
 
 enum Endpoints {
   AMERICA = 'https://openapi.tuyaus.com',
@@ -69,26 +71,42 @@ type TuyaOpenAPIResponseError = {
   tid: string;
 };
 
+const ipv4Agent = new https.Agent({
+  family: 4,
+  lookup: (hostname, options, callback) => {
+    // Node v24 の multi-family 接続を避け、IPv4 のみ解決
+    return dns.lookup(hostname, { family: 4 }, callback);
+  },
+});
+
 export type TuyaOpenAPIResponse = TuyaOpenAPIResponseSuccess | TuyaOpenAPIResponseError;
 
 export default class TuyaOpenAPI {
 
   static readonly Endpoints = Endpoints;
 
-  public assetIDArr: Array<string> = [];
-  public deviceArr: Array<object> = [];
+  public assetIDArr: Array<string>;
+  public deviceArr: Array<object>;
 
-  public tokenInfo = { access_token: '', refresh_token: '', uid: '', expire: 0 };
+  public tokenInfo: { access_token: string; refresh_token: string; uid: string; expire: number };
+  public loginInfo: { countryCode: number; username: string; password: string; appSchema: string } | null;
+  public tokenRecoveryCount: number;
+  private log: ExLogger;
 
   constructor(
     public endpoint: Endpoints | string,
     public accessId: string,
     public accessKey: string,
-    public log: Logger = console,
     public lang = 'en',
     public debug = false,
+    public forceIPv4 = false,
   ) {
-    this.log = new PrefixLogger(log, TuyaOpenAPI.name, debug);
+    this.assetIDArr = [];
+    this.deviceArr = [];
+    this.tokenInfo = { access_token: '', refresh_token: '', uid: '', expire: 0 };
+    this.loginInfo = null;
+    this.tokenRecoveryCount = 0;
+    this.log = new PrefixLogger(logger(), TuyaOpenAPI.name, debug);
   }
 
   static getDefaultEndpoint(countryCode: number) {
@@ -130,12 +148,32 @@ export default class TuyaOpenAPI {
     }
 
     this.log.debug('Refreshing access_token');
+    const refreshStart = Date.now();
     const res = await this.get(`/v1.0/token/${this.tokenInfo.refresh_token}`);
+    const refreshElapsed = Date.now() - refreshStart;
     if (res.success === false) {
-      this.log.error('Refresh access_token failed. code = %s, msg = %s', res.code, res.msg);
+      this.log.warn('Token refresh failed after %d ms (code=%s, msg=%s)', refreshElapsed, res.code, res.msg);
+      if (res.code === 1010 && this.loginInfo) {
+        this.log.warn('Refresh token rejected by Tuya (1010). Performing full Smart Home login.');
+        const reloginStart = Date.now();
+        const relogin = await this.homeLogin(
+          this.loginInfo.countryCode,
+          this.loginInfo.username,
+          this.loginInfo.password,
+          this.loginInfo.appSchema,
+        );
+        const reloginElapsed = Date.now() - reloginStart;
+        if (relogin.success) {
+          this.tokenRecoveryCount++;
+          this.log.warn('Recovered from expired token by re-authenticating (recovery #%d) in %d ms.', this.tokenRecoveryCount, reloginElapsed);
+          return;
+        }
+        this.log.error('Smart Home re-login failed after %d ms (code=%s, msg=%s)', reloginElapsed, relogin.code, relogin.msg);
+      }
       return;
     }
 
+    this.log.info('Access token refreshed successfully in %d ms.', refreshElapsed);
     const { access_token, refresh_token, uid, expire_time } = res.result;
     this.tokenInfo = {
       access_token: access_token,
@@ -175,6 +213,7 @@ export default class TuyaOpenAPI {
    * @returns
    */
   async homeLogin(countryCode: number, username: string, password: string, appSchema: string) {
+    this.loginInfo = { countryCode, username, password, appSchema };
 
     if (this._isSaltedPassword(password)) {
       this.log.info('Login with md5 salted password.');
@@ -286,24 +325,41 @@ export default class TuyaOpenAPI {
     }
 
     const res: TuyaOpenAPIResponse = await retry(async () => new Promise((resolve, reject) => {
-
-      const req = https.request({
+      const requestOptions = {
         host: new URL(this.endpoint).host,
         method,
         headers,
         path,
-      }, res => {
-        if (res.statusCode !== 200) {
-          this.log.warn('Status: %d %s', res.statusCode, res.statusMessage);
-          return;
-        }
+      };
+      if (this.forceIPv4) {
+        requestOptions['agent'] = ipv4Agent;
+      }
+      const req = https.request(requestOptions, res => {
         res.setEncoding('utf8');
         let rawData = '';
         res.on('data', (chunk) => {
           rawData += chunk;
         });
         res.on('end', () => {
-          resolve(JSON.parse(rawData));
+          // Never leave the promise unsettled: a non-200 used to hang the
+          // caller forever, which made API failures completely invisible.
+          if (res.statusCode !== 200) {
+            this.log.warn('Status: %d %s, path = %s, body = %s',
+              res.statusCode, res.statusMessage, path, rawData.slice(0, 512));
+          }
+
+          try {
+            resolve(JSON.parse(rawData));
+          } catch (error) {
+            resolve({
+              success: false,
+              result: rawData.slice(0, 512),
+              code: res.statusCode ?? -1,
+              msg: res.statusMessage ?? 'Invalid response body',
+              t: Date.now(),
+              tid: '',
+            });
+          }
         });
       });
 
@@ -318,7 +374,7 @@ export default class TuyaOpenAPI {
       req.end();
     }), undefined, {retriesMax: 10, interval: 100, exponential: true, factor: 2, jitter: 100});
 
-    this.log.debug('Response:\npath = %s\ndata = %s', path, JSON.stringify(res, null, 2));
+    this.log.debug('Response:\npath = %s\ndata = %s', path, JSON.stringify(redactSensitive(res), null, 2));
     if (res && res.success !== true && API_ERROR_MESSAGES[res.code]) {
       this.log.error(API_ERROR_MESSAGES[res.code]);
     }

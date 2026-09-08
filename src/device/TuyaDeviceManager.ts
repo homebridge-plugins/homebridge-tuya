@@ -1,13 +1,17 @@
 import EventEmitter from 'events';
 import TuyaOpenAPI from '../core/TuyaOpenAPI';
 import TuyaOpenMQ from '../core/TuyaOpenMQ';
-import Logger, { PrefixLogger } from '../util/Logger';
+import { ExLogger, logger, PrefixLogger } from '../util/Logger';
 import TuyaDevice, {
   TuyaDeviceSchema,
   TuyaDeviceSchemaMode,
   TuyaDeviceSchemaProperty,
+  TuyaDeviceSchemaType,
   TuyaDeviceStatus,
+  TuyaIRRemoteKeyListItem,
 } from './TuyaDevice';
+import { RTSPCameraConfig } from '../config';
+import { maskSecret, uuidFromSeed } from '../util/util';
 
 enum Events {
   DEVICE_ADD = 'DEVICE_ADD',
@@ -26,9 +30,9 @@ export default class TuyaDeviceManager extends EventEmitter {
   static readonly Events = Events;
 
   public mq: TuyaOpenMQ;
-  public ownerIDs: string[] = [];
-  public devices: TuyaDevice[] = [];
-  public log: Logger;
+  public ownerIDs: string[];
+  public devices: TuyaDevice[];
+  public log: ExLogger;
 
   constructor(
     public api: TuyaOpenAPI,
@@ -36,11 +40,59 @@ export default class TuyaDeviceManager extends EventEmitter {
   ) {
     super();
 
-    const log = (this.api.log as PrefixLogger).log;
-    this.log = new PrefixLogger(log, TuyaDeviceManager.name, debug);
+    this.ownerIDs = [];
+    this.devices = [];
+    this.log = new PrefixLogger(logger(), TuyaDeviceManager.name, debug);
 
-    this.mq = new TuyaOpenMQ(api, log);
+    this.mq = new TuyaOpenMQ(api);
     this.mq.addMessageListener(this.onMQTTMessage.bind(this));
+  }
+
+  createVirtualDevice(baseDevice: TuyaDevice, uuid: string): TuyaDevice {
+    const cloneDevice = new TuyaDevice(baseDevice);
+    const uniqueId = uuid || Date.now().toString(36) + Math.random().toString(36).substring(2);
+    cloneDevice.id = `${uniqueId}`;
+    cloneDevice.uuid = `${uniqueId}`;
+    cloneDevice.name = 'Virtual Device';
+    cloneDevice.product_id = `${uniqueId}`;
+    cloneDevice.product_name = 'virtual product';
+    cloneDevice.sub = true;
+    cloneDevice.ip = '';
+    cloneDevice.parent_id = baseDevice.id;
+    cloneDevice.remote_keys = undefined;
+    return cloneDevice;
+  }
+
+  createRTSPCameraDevice(cameraConfig: RTSPCameraConfig): TuyaDevice {
+    const device = new TuyaDevice({
+      id: cameraConfig.deviceId ?? uuidFromSeed(cameraConfig.rtspUrl),
+      uuid: cameraConfig.deviceId ?? uuidFromSeed(cameraConfig.rtspUrl),
+      name: cameraConfig.deviceName ?? 'RTSP Camera',
+      online: true,
+      owner_id: '',
+      product_id: 'rstp-camera-product',
+      product_name: 'RTSP Camera',
+      icon: '',
+      category: 'sp',
+      schema: [
+        {
+          code: 'motion_switch', // camera accessory requires a motion sensor service, so we add a dummy schema for it
+          mode: TuyaDeviceSchemaMode.READ_WRITE,
+          type: TuyaDeviceSchemaType.Boolean,
+          property: {},
+        },
+      ],
+      status: [],
+      ip: '',
+      lat: '',
+      lon: '',
+      time_zone: '',
+      create_time: 0,
+      active_time: 0,
+      update_time: 0,
+    });
+    this.devices.push(device);
+    return device;
   }
 
   getDevice(deviceID: string) {
@@ -139,17 +191,109 @@ export default class TuyaDeviceManager extends EventEmitter {
     return res;
   }
 
-  async updateInfraredRemotes(allDevices: TuyaDevice[]) {
+  resolveInfraredRemotes(parentDevice: TuyaDevice, allDevices: TuyaDevice[]) {
+    const isInfraredRemoteDevice = (parent:TuyaDevice, target:TuyaDevice) => {
+      if (!target.sub || !target.category.startsWith('infrared_')) {
+        return false;
+      }
+      if (parent.lat === target.lat && parent.lon === target.lon) {
+        return true;
+      }
+      if (parent.update_time === target.update_time) {
+        return true;
+      }
+      return false;
+    };
+    const infraredRemotes = allDevices.filter(device => {
+      return isInfraredRemoteDevice(parentDevice, device);
+    }).map(device => {
+      return {
+        'category_id': 999,
+        'remote_id': device.id,
+        'resolved': true,
+      };
+    });
+    return infraredRemotes;
+  }
 
+  fixInfraredDevice(subDevice: TuyaDevice) {
+    subDevice.remote_keys!.org_category_id = subDevice.remote_keys!.category_id;
+    subDevice.remote_keys!.category_id = this.resolveHAPCategoryID(subDevice);
+  }
+
+  resolveHAPCategoryID(subDevice: TuyaDevice) {
+    this.log.debug(`resolve HAP category ID. subDevice category:${subDevice.category}, categoryID:${subDevice.remote_keys?.category_id}`);
+    let category_id;
+    switch(subDevice.product_id) {
+      case 'prsgoryjfdtb42r4':
+        category_id = 8; // Fan
+        break;
+      case 'k6ozylayfgnskuq6':
+        category_id = 999; // DIY
+        break;
+      default:
+        category_id = subDevice.remote_keys?.category_id || 999; // DIY;
+    }
+    this.log.debug(`resolved HAP category ID:${category_id}`);
+    return category_id;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dump(obj:any) {
+    for (const key in obj) {
+      try {
+        if ((typeof obj[key]) === 'function') {
+          this.log.warn(`\t function ${key}:${obj[key].name}`);
+        } else {
+          this.log.warn(`\t ${key}:${obj[key]}`);
+        }
+      } catch (e) {
+        this.dump(e);
+      }
+      if ((typeof obj[key]) !== 'string') {
+        for (const key2 in obj[key]) {
+          try {
+            if ((typeof obj[key][key2]) === 'function') {
+              this.log.warn(`\t function ${key2}:${obj[key][key2].name}`);
+            } else {
+              this.log.warn(`\t ${key2}:${obj[key][key2]}`);
+            }
+          } catch (e) {
+            this.dump(e);
+          }
+        }
+      }
+    }
+  }
+
+  async updateInfraredRemotes(allDevices: TuyaDevice[]) {
     const irDevices = allDevices.filter(device => device.isIRControlHub());
     for (const irDevice of irDevices) {
       const res = await this.getInfraredRemotes(irDevice.id);
+
       if (!res.success) {
-        this.log.warn('Get infrared remotes failed. deviceId = %d, code = %s, msg = %s', irDevice.id, res.code, res.msg);
+        this.log.warn('Get infrared remotes failed. deviceId = %s, code = %s, msg = %s', irDevice.id, res.code, res.msg);
         continue;
       }
+      let resResult = res.result;
+      for (const resolvedRemoteDevice of this.resolveInfraredRemotes(irDevice, allDevices)) {
+        resResult.forEach(remoteDevice => {
+          if (remoteDevice.remote_id === resolvedRemoteDevice.remote_id) {
+            remoteDevice.org_category_id = remoteDevice.category_id;
+            remoteDevice.category_id = resolvedRemoteDevice.category_id;
+            remoteDevice.resolved = true;
+          }
+        });
+      }
+      if (resResult.length === 0) {
+        // for legacy devices
+        this.log.warn('no result for Get infrared remotes.');
+        this.log.info('resolving infrared remotes from device list...');
+        resResult = this.resolveInfraredRemotes(irDevice, allDevices);
+        this.log.success(`${resResult.length} infrared remote device found.`);
+      }
 
-      for (const { category_id, remote_id } of res.result) {
+      for (const { category_id, remote_id, resolved } of resResult) {
         const subDevice = allDevices.find(device => device.id === remote_id);
         if (!subDevice) {
           continue;
@@ -158,32 +302,53 @@ export default class TuyaDeviceManager extends EventEmitter {
         subDevice.schema = [];
         const res = await this.getInfraredKeys(irDevice.id, subDevice.id);
         if (!res.success) {
-          this.log.warn('Get infrared remote keys failed. deviceId = %d, code = %s, msg = %s', subDevice.id, res.code, res.msg);
+          this.log.warn('Get infrared remote keys failed. deviceId = %s, code = %s, msg = %s', subDevice.id, res.code, res.msg);
           continue;
         }
-        subDevice.remote_keys = res.result;
+        subDevice.remote_keys = res.result || {};
+        this.log.debug(`infrared keys lengh:${subDevice.remote_keys?.key_list?.length}`);
+
+        if (resolved) {
+          this.fixInfraredDevice(subDevice);
+        }
 
         if (subDevice.category === 'infrared_ac') { // AC Device
           const res = await this.getInfraredACStatus(irDevice.id, subDevice.id);
           if (!res.success) {
-            this.log.warn('Get infrared ac status failed. deviceId = %d, code = %s, msg = %s', subDevice.id, res.code, res.msg);
+            this.log.warn('Get infrared ac status failed. deviceId = %s, code = %s, msg = %s', subDevice.id, res.code, res.msg);
             continue;
           }
           subDevice.status = Object.entries(res.result).map(([key, value]) => ({code: key, value} as TuyaDeviceStatus));
         } else if (category_id === 999) { // DIY Device
           const res = await this.getInfraredDIYKeys(irDevice.id, subDevice.id);
           if (!res.success) {
-            this.log.warn('Get infrared diy keys failed. deviceId = %d, code = %s, msg = %s', subDevice.id, res.code, res.msg);
+            this.log.warn('Get infrared diy keys failed. deviceId = %s, code = %s, msg = %s', subDevice.id, res.code, res.msg);
             continue;
           }
           const key_list = subDevice.remote_keys?.key_list || [];
+          this.log.debug(`key list length:${key_list.length}`);
+          const ignoreList:TuyaIRRemoteKeyListItem[] = [];
           for (const key of key_list) {
+            if (key.standard_key) {
+              if (resolved) {
+                ignoreList.push(key);
+              }
+              continue;
+            }
             const item = (res.result as []).find(item => item['id'] === key.key_id && item['key'] === key.key);
             if (!item) {
+              if (resolved) {
+                ignoreList.push(key);
+              }
               continue;
             }
             this.log.debug('learning_code:', item['code']);
             key.learning_code = item['code'];
+          }
+          if (subDevice.remote_keys && ignoreList.length !== 0) {
+            this.log.debug('remove standard instructions. not need for DIY Device');
+            subDevice.remote_keys.key_list = subDevice.remote_keys?.key_list.filter(item => !ignoreList.includes(item));
+            this.log.debug(`new key list length:${subDevice.remote_keys?.key_list.length}`);
           }
         }
       }
@@ -208,25 +373,64 @@ export default class TuyaDeviceManager extends EventEmitter {
 
   async sendInfraredDIYCommands(infraredID: string, remoteID: string, code: string) {
     const res = await this.api.post(`/v2.0/infrareds/${infraredID}/remotes/${remoteID}/learning-codes`, { code });
+    // const res = await this.api.post(`/v1.0/infrareds/${infraredID}/remotes/${remoteID}/learning-codes`, { code });
     return res;
   }
 
 
+  /**
+   * Smart Lock "Get Temporary Key".
+   * Applies to Wi-Fi, Zigbee, Bluetooth and hotel Zigbee locks.
+   * https://developer.tuya.com/en/docs/cloud/doorlock-api-remoteopen?id=Kbe2nm6j9hcsj
+   *
+   * The response carries a `ticket_key` (a 256-bit encryption key). It must
+   * never be written to the log.
+   */
   async getLockTemporaryKey(deviceID: string) {
     // const res = await this.api.post(`/v1.0/smart-lock/devices/${deviceID}/door-lock/password-ticket`);
+    this.log.debug('Requesting smart lock password ticket. devID = %s', deviceID);
     const res = await this.api.post(`/v1.0/smart-lock/devices/${deviceID}/password-ticket`);
     if (res.success === false) {
       this.log.warn('Get Temporary Pass failed. devID = %s, code = %s, msg = %s', deviceID, res.code, res.msg);
+    } else {
+      this.log.debug('Got smart lock password ticket. devID = %s, ticket_id = %s, expire_time = %s',
+        deviceID, maskSecret(res.result?.ticket_id), res.result?.expire_time);
     }
     return res;
   }
 
+  /**
+   * Smart Lock "Remote Locking and Unlocking Without Password".
+   * Applies to Wi-Fi, Zigbee, Bluetooth and hotel Zigbee locks.
+   * `open = true` unlocks, `open = false` locks.
+   * https://developer.tuya.com/en/docs/cloud/8b36eabd4d?id=Kayexavknr6dt
+   */
   async sendLockCommands(deviceID: string, ticketID: string, open: boolean) {
+    this.log.debug('Sending smart lock door operation. devID = %s, ticket_id = %s, open = %s',
+      deviceID, maskSecret(ticketID), open);
     const res = await this.api.post(`/v1.0/smart-lock/devices/${deviceID}/password-free/door-operate`, {
       device_id: deviceID,
       ticket_id: ticketID,
       open,
     });
+    if (res.success === false) {
+      this.log.warn('Send lock command failed. devID = %s, code = %s, msg = %s', deviceID, res.code, res.msg);
+    } else {
+      this.log.debug('Smart lock door operation accepted by Tuya Cloud. devID = %s, result = %o', deviceID, res.result);
+    }
+    return res;
+  }
+
+  /**
+   * Lists the remote unlocking methods a lock actually exposes.
+   * Applies to Zigbee and Bluetooth locks; used for diagnostics when a door
+   * operation is rejected.
+   */
+  async getLockRemoteUnlockMethods(deviceID: string) {
+    const res = await this.api.get(`/v1.0/devices/${deviceID}/door-lock/remote-unlocks`);
+    if (res.success === false) {
+      this.log.warn('Get remote unlock methods failed. devID = %s, code = %s, msg = %s', deviceID, res.code, res.msg);
+    }
     return res;
   }
 
@@ -234,6 +438,32 @@ export default class TuyaDeviceManager extends EventEmitter {
   async sendCommands(deviceID: string, commands: TuyaDeviceStatus[]) {
     const res = await this.api.post(`/v1.0/devices/${deviceID}/commands`, { commands });
     return res.result;
+  }
+
+  async getCurrentWeather(lat: string, lon: string) {
+    const res = await this.api.get(`/v2.0/iot-03/weather/current?lat=${lat}&lon=${lon}`);
+    return res.result;
+  }
+
+  async getCurrentWeatherByOpenMeteo(lat: string, lon: string) {
+    /** <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> */
+    // eslint-disable-next-line max-len
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m`, { cache: 'no-cache' });
+    return await res.json();
+  }
+
+  async retrieveDeviceRTSP(device: TuyaDevice): Promise<string> {
+    if (device['camera'] && device['camera'].rtspUrl) {
+      const cameraConfig = device['camera'] as RTSPCameraConfig;
+      const rtspUrl = cameraConfig.rtspUrl;
+      if (rtspUrl.includes('@') || !cameraConfig.username) {
+        return rtspUrl;
+      } else {
+        return `rtsp://${cameraConfig.username}:${cameraConfig.password}@${rtspUrl.substring('rtsp://'.length)}`;
+      }
+    }
+    const data = await this.api.post(`/v1.0/devices/${device.id}/stream/actions/allocate`, { type: 'rtsp' });
+    return data.result.url;
   }
 
 

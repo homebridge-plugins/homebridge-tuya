@@ -164,6 +164,8 @@ export default class ThermostatAccessory extends BaseAccessory {
 
   }
 
+  // FIXME: For some reason, a limit is being imposed on the target temperature.
+  // Request to those who have the actual product: Please investigate whether ./characteristic/TargetTemperature can be used.
   configureTargetTemp() {
     const schema = this.getSchema(...SCHEMA_CODE.TARGET_TEMP);
     if (!schema) {

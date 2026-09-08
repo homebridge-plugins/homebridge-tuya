@@ -9,6 +9,8 @@ export interface TuyaPlatformDeviceSchemaConfig {
   onGet?: string;
   onSet?: string;
   hidden?: boolean;
+  extra?: boolean;
+  extraRawSwitch?: Array<TuyaPlatformExtraRawSwitchConfig>;
 }
 
 export interface TuyaPlatformDeviceConfig {
@@ -17,6 +19,17 @@ export interface TuyaPlatformDeviceConfig {
   schema?: Array<TuyaPlatformDeviceSchemaConfig>;
   unbridged?: boolean;
   adaptiveLighting?: boolean;
+  addExtraFeaturesAutomatically?: boolean;
+  garageDoorUseContactSensorForState?: boolean;
+}
+
+export interface TuyaPlatformServiceInformationConfig {
+  device_id: string;
+  index: number;
+  manifacturer?: string;
+  model?: string;
+  firmwareRevision?: string;
+  configuredName?: string;
 }
 
 export interface TuyaPlatformCustomConfigOptions {
@@ -27,8 +40,12 @@ export interface TuyaPlatformCustomConfigOptions {
   username: string;
   password: string;
   deviceOverrides?: Array<TuyaPlatformDeviceConfig>;
+  serviceInformationOverrides?: Array<TuyaPlatformServiceInformationConfig>;
+  generateWeatherAccessory: boolean;
+  weatherAPI: string;
   debug?: boolean;
   debugLevel?: string;
+  forceIPv4: boolean;
 }
 
 export interface TuyaPlatformHomeConfigOptions {
@@ -42,14 +59,27 @@ export interface TuyaPlatformHomeConfigOptions {
   appSchema: string;
   homeWhitelist?: Array<number>;
   deviceOverrides?: Array<TuyaPlatformDeviceConfig>;
+  serviceInformationOverrides?: Array<TuyaPlatformServiceInformationConfig>;
+  generateWeatherAccessory: boolean;
+  weatherAPI: string;
   debug?: boolean;
   debugLevel?: string;
+  forceIPv4: boolean;
+}
+
+export interface RTSPCameraConfig {
+  deviceId: string;
+  deviceName?: string;
+  rtspUrl: string;
+  username?: string;
+  password?: string;
 }
 
 export type TuyaPlatformConfigOptions = TuyaPlatformCustomConfigOptions | TuyaPlatformHomeConfigOptions;
 
 export interface TuyaPlatformConfig extends PlatformConfig {
   options: TuyaPlatformConfigOptions;
+  cameras?: Array<RTSPCameraConfig>;
 }
 
 export const customOptionsSchema = {
@@ -78,3 +108,10 @@ export const homeOptionsSchema = {
     debugLevel: { 'type': 'string' },
   },
 };
+
+export interface TuyaPlatformExtraRawSwitchConfig {
+  configuredName: string;
+  notation: string;
+  value: string;
+  byteIndex: number;
+}

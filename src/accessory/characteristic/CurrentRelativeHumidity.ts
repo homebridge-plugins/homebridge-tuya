@@ -1,6 +1,6 @@
 import { Service } from 'homebridge';
 import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty } from '../../device/TuyaDevice';
-import { limit } from '../../util/util';
+import { limit, toHapProperty } from '../../util/util';
 import BaseAccessory from '../BaseAccessory';
 
 export function configureCurrentRelativeHumidity(accessory: BaseAccessory, service?: Service, schema?: TuyaDeviceSchema) {
@@ -13,12 +13,14 @@ export function configureCurrentRelativeHumidity(accessory: BaseAccessory, servi
       || accessory.accessory.addService(accessory.Service.HumiditySensor);
   }
 
-  const property = schema.property as TuyaDeviceSchemaIntegerProperty;
-  const multiple = Math.pow(10, property ? property.scale : 0);
+  const property = schema.property as TuyaDeviceSchemaIntegerProperty || {};
+  const props = toHapProperty(property);
+  const multiple = Math.pow(10, property['scale'] || 0);
   service.getCharacteristic(accessory.Characteristic.CurrentRelativeHumidity)
     .onGet(() => {
       const status = accessory.getStatus(schema.code)!;
-      return limit(status.value as number / multiple, 0, 100);
-    });
+      return limit(status.value as number / multiple, props['minValue'], props['maxValue']);
+    })
+    .setProps(props);
 
 }

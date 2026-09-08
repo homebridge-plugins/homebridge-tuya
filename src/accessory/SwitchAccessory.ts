@@ -5,6 +5,7 @@ import { configureOn } from './characteristic/On';
 import { configureEnergyUsage } from './characteristic/EnergyUsage';
 import { configureCurrentTemperature } from './characteristic/CurrentTemperature';
 import { configureCurrentRelativeHumidity } from './characteristic/CurrentRelativeHumidity';
+import { sanitizeName } from '../util/util';
 
 const SCHEMA_CODE = {
   ON: ['switch', 'switch_1'], // switch_2, switch_3, switch_4, ..., switch_usb1, switch_usb2, switch_usb3, ..., switch_backlight
@@ -53,11 +54,13 @@ export default class SwitchAccessory extends BaseAccessory {
   }
 
   configureSwitch(schema: TuyaDeviceSchema, name: string) {
+    // Since switches exceptionally accept a name as a parameter, the value needs to be sanitized.
+    const sanitizedName = sanitizeName(name) ?? name;
 
     const service = this.accessory.getService(schema.code)
-      || this.accessory.addService(this.mainService(), name, schema.code);
+      || this.accessory.addService(this.mainService(), sanitizedName, schema.code);
 
-    configureName(this, service, name);
+    configureName(this, service, sanitizedName);
     configureOn(this, service, schema);
 
     if (schema.code === this.getSchema(...SCHEMA_CODE.ON)?.code) {
@@ -79,7 +82,7 @@ export default class SwitchAccessory extends BaseAccessory {
       return;
     }
 
-    const service = this.accessory.getService(schema.code)
+    const service = this.accessory.getServiceById(schema.code, schema.code)
       || this.accessory.addService(this.Service.Switch, schema.code, schema.code);
 
     configureName(this, service, schema.code);

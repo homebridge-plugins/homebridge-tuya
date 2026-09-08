@@ -1,5 +1,158 @@
 # Changelog
 
+## [2.7.0] - (2026.9.7)
+
+Merged the upstream commit.
+PR #54 (Thanks, @mpbgodinho)
+
+### Added
+ - Add Cat Toilet (msp) accessory support (0x5e#551)
+    Add CatToiletAccessory for Tuya 'msp' category devices (smart cat toilets).<br>
+    Exposes:
+      1. Power, auto clean, manual clean, deodorization, UV switches
+      1. Mood light as Lightbulb service
+      1. OccupancySensor during active cleaning/UV/deodorization
+      1. FilterMaintenance when garbage box is full
+      1. StatusFault for motor/program/sensor faults<br>
+      All services are optional - gracefully skips unsupported DPs.
+ - Add 'qtwk' support for Sauna (0x5e#535)
+    - Added support for Sauna
+      Sauna accessory code qt (generic unknown) added using uplift of thermostat (wk) hence the combined undocumented code of qtwk.
+    - Update TuyaOpenMQ.ts
+
+### Fixed
+ - Fix light brightness not applied during HomeKit automations (0x5e#553)
+  When HomeKit automations control multiple light services simultaneously
+  (e.g. dual-light fans), commands for different services get interleaved
+  through the shared debounce queue. This causes the ON and brightness
+  commands for the same channel to land in separate API batches, resulting
+  in the device turning on at stale brightness.<br>
+  Introduce configureLightOn() that bundles the cached brightness value
+  with the ON command, ensuring the device always receives the correct
+  brightness regardless of debounce timing.
+ - Fixes remote unlocking for Tuya Smart Locks (ms, jtmspro), including Bluetooth locks behind a gateway.
+  Failed unlocks now report the reason instead of silently succeeding. The Home app shows a failure rather than a lock that appears to open but does not.
+  A lock that is between gateway connection windows (Tuya error 2312) is retried for 90 seconds instead of failing on the first attempt.
+  HomeKit only shows the lock as unlocked once the device reports it, not when the HTTP call returns.
+ - Security: account passwords, access tokens and smart lock ticket keys are no longer written to homebridge.log when debug is enabled. Anyone who has run this plugin with debug: true and an api debugLevel should rotate their Tuya password and delete old logs.
+
+### Changed
+ - Implemented support for two lights in fan accessory
+
+## [2.6.0] - (2026.8.27)
+
+### Added
+ - add "Extra" in device configuration.
+This setting forces some of the device‑specific (non‑standard) features to be displayed in the UI.
+
+### Fixed
+ - Fixed an issue where the DEHUMIDIFIER state was not displayed correctly in the Apple Home app.
+ - Fixed an issue where the air conditioner’s swing mode stopped working due to other changes
+
+## [2.5.4] - (2026.8.19)
+
+### Fixed
+ - WindowCovering: Fixed an issue where the accessory would get stuck in the "Opening" or "Closing" state when operated externally via physical RF remotes due to delayed target state updates from the Tuya cloud.
+ - Support for devices whose minimum RotationSpeed is not 0.
+Fixed an issue where devices that do not manage rotation speed as a percentage failed to operate correctly.
+
+## [2.5.2] - (2026.8.3)
+
+### Fixed
+ - Fix for the issue where edits to the settings JSON file were being lost.
+ Manual changes made directly to the settings JSON file were being lost when saving from the UI, and this problem has now been corrected.
+ - Fix Plugin restarts when Smart Home token expiration error occur
+ Automatically recover from Smart Home token expiration (1010) by re-authenticating
+
+## [2.5.1] - (2026.7.22)
+
+### Fixed
+ - Resolved security issues detected by npm audit by applying automated fixes with npm audit fix.
+   - node_modules/brace-expansion v1.1.15 -> v1.1.16
+   - node_modules/js-yaml v4.2.0 -> 4.3.0
+   - node_modules/rimraf/node_modules/brace-expansion v5.0.6 -> 5.0.7
+   - node_modules/tar v7.5.16 -> 7.5.21
+
+
+## [2.5.0] - (2026.7.12)
+
+### Added
+ - RTSP cameras can now be added through the plugin’s “Advanced Settings” section.
+ 
+## [2.4.0] - (2026.7.4)
+
+### Fixed
+ - fixed the WBGT calculation
+ 
+### Changed
+ - Added additional supported product types for AirConditionerAccessory
+ 
+
+## [2.3.0] - (2026.6.12)
+
+### Added
+ - Added an option to force communication over IPv4.
+ - Added contact sensor state option for garage doors
+
+### Changed
+ - Updated the behavior so that sensitive data is not logged unless debugMode is enabled.
+
+
+## [2.2.3] - (2026.5.8)
+
+### Changed
+ - Updated so that switch names are not sanitized when the plugin restarts.
+This prevents the plugin from unnecessarily updating the name set by the user in the Home app.
+Since information from the Home app is not sent to the plugin, I recommend changing device names through the plugin settings to avoid unintended name updates.
+ - Fixed an issue where switch names were not being sanitized for devices that contain multiple switches.
+This will suppress the Homebridge warning logs.
+
+## [2.2.2] - (2026.4.8)
+
+### Fixed
+ - Fix an issue where the Configured Name was sometimes not applied
+
+## [2.2.1] - (2026.3.9)
+
+### Fixed
+ - Homebridge V2: supported.
+ - Accessory names containing invalid characters are now automatically sanitized to be HomeKit-compliant. This prevents the "invalid  'ConfiguredName'" warning and reduces the risk of accessories failing to be added or becoming unresponsive in the Home app.
+ - Logging added to show when names are corrected.
+
+## [2.2.0] - (2026.2.23)
+
+### Fixed
+ - Fixed the HeaterAccessory to follow the device’s schema information.
+If you want to revert to the previous behavior, set the category code to qn_old. 
+
+### Changed
+ - Updated the handling of DP Codes so they are now processed in a case‑insensitive manner.
+ - Updated the plugin settings window to mask the password field.
+
+## [2.1.0] - (2026.1.5)
+
+### Added
+ - Support Towel Rack(mjj)
+The implementation is almost identical to a thermostat.
+The difference is that there is no limit on the set temperature.
+The lower limit, upper limit, and step of the set temperature may sometimes differ from expectations. Since this is an issue with the product you are using, please override it to any desired value in Advanced Options.
+
+## [2.0.3] - (2025.9.6)
+
+First release after forking.
+Homebridge verified.
+
+### Added
+ - Added an illuminance sensor to the IRControlHub.
+ - Added an accessory that displays weather temperature and humidity.
+ - config.schema.json to allow customizing the Service information for each accessory.
+
+### Fixed
+ - Fixed an issue where learned infrared codes in the IRControlHub would not work in some cases. This likely improves compatibility with older devices.
+### Changed
+ - Updated the IRControlHub to calculate WBGT based on its temperature and humidity readings and expose it as an accessory.
+ - Updated the Outlet accessory so that its “in use” status can be checked in the Home app.
+
 ## [1.7.0] - (unreleased)
 
 ### Added
@@ -122,6 +275,6 @@ This version has been completely rewritten in TypeScript, brings a lot of bug fi
 
 
 ### Removed
-- Remove `debug` option. Silence logs for users. For debugging, please refer to [troubleshooting](https://github.com/0x5e/homebridge-tuya-platform#troubleshooting).
+- Remove `debug` option. Silence logs for users. For debugging, please refer to [troubleshooting](https://github.com/homebridge-plugins/homebridge-tuya#troubleshooting).
 - Remove `lang` option.
 - Remove `username` and `password` options for `Custom` project. User will be created and authorized automatically. (#11)

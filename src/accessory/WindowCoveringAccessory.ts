@@ -72,6 +72,14 @@ export default class WindowCoveringAccessory extends BaseAccessory {
 
         this.log.warn('Unknown CurrentPosition:', status.value);
         return 50;
+      })
+      .on('change', (context) => {
+        if (context.newValue === 0 || context.newValue === 100) {
+          service.updateCharacteristic(
+            this.Characteristic.PositionState,
+            this.Characteristic.PositionState.STOPPED,
+          );
+        }
       });
   }
 
@@ -92,6 +100,11 @@ export default class WindowCoveringAccessory extends BaseAccessory {
 
         const currentStatus = this.getStatus(currentSchema.code)!;
         const targetStatus = this.getStatus(targetSchema.code)!;
+
+        if (currentStatus.value === 0 || currentStatus.value === 100) {
+          return STOPPED;
+        }
+
         if (targetStatus.value === 100 && currentStatus.value !== 100) {
           return INCREASING;
         } else if (targetStatus.value === 0 && currentStatus.value !== 0) {

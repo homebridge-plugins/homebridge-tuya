@@ -1,5 +1,6 @@
 import { TuyaDeviceStatus } from '../device/TuyaDevice';
 import { TuyaStreamingDelegate } from '../util/TuyaStreamDelegate';
+import { uuidFromSeed } from '../util/util';
 import BaseAccessory from './BaseAccessory';
 import { configureLight } from './characteristic/Light';
 import { configureOn } from './characteristic/On';
@@ -59,7 +60,7 @@ export default class CameraAccessory extends BaseAccessory {
     configureProgrammableSwitchEvent(this, this.getDoorbellService(), schema);
   }
 
-  configureCamera() {
+  async configureCamera() {
     if (this.stream !== undefined) {
       return;
     }
@@ -68,7 +69,16 @@ export default class CameraAccessory extends BaseAccessory {
       return;
     }
 
-    this.stream = new TuyaStreamingDelegate(this);
+    // TODO: TuyaStreamingDelegateへcamera情報をエレガントに渡す方法を検討する
+    this.platform.config.cameras?.forEach(camera => {
+      const cameraId = camera.deviceId ?? uuidFromSeed(camera.rtspUrl);
+      if (cameraId === this.device.id) {
+        this.log.info('Using RTSP URL from config for camera:', camera.rtspUrl);
+        this.device['camera'] = camera;
+      }
+    });
+
+    this.stream = await TuyaStreamingDelegate.create(this);
     this.accessory.configureController(this.stream.controller);
   }
 

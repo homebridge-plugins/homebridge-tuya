@@ -30,8 +30,12 @@ describe('configureLight - ON handler bundles brightness', () => {
 
     mockService = {
       getCharacteristic: jest.fn((charType: any) => {
-        if (charType === 'MockOn') return onChar;
-        if (charType === 'MockBrightness') return brightChar;
+        if (charType === 'MockOn') {
+          return onChar;
+        }
+        if (charType === 'MockBrightness') {
+          return brightChar;
+        }
         return makeCharChain('other');
       }),
     };
@@ -48,10 +52,18 @@ describe('configureLight - ON handler bundles brightness', () => {
       platform: { getDeviceConfig: jest.fn(() => undefined) },
       checkOnlineStatus: jest.fn(),
       getStatus: jest.fn((code: string) => {
-        if (code === 'light') return { code: 'light', value: true };
-        if (code === 'bright_value') return { code: 'bright_value', value: 420 };
-        if (code === 'switch_led') return { code: 'switch_led', value: false };
-        if (code === 'bright_value_1') return { code: 'bright_value_1', value: 100 };
+        if (code === 'light') {
+          return { code: 'light', value: true };
+        }
+        if (code === 'bright_value') {
+          return { code: 'bright_value', value: 420 };
+        }
+        if (code === 'switch_led') {
+          return { code: 'switch_led', value: false };
+        }
+        if (code === 'bright_value_1') {
+          return { code: 'bright_value_1', value: 100 };
+        }
         return undefined;
       }),
       sendCommands: jest.fn(),

@@ -1,4 +1,6 @@
 import debounce from 'debounce';
+import type { PlatformAccessory } from 'homebridge';
+import type { TuyaPlatform } from '../platform';
 import BaseAccessory from './BaseAccessory';
 
 const POWER_OFF = 0;
@@ -16,6 +18,13 @@ const FAN_SPEED_LOW = 1;
 const FAN_SPEED_HIGH = 3;
 
 export default class IRAirConditionerAccessory extends BaseAccessory {
+
+  private debounceSendACCommands: ReturnType<typeof debounce>;
+
+  constructor(platform: TuyaPlatform, accessory: PlatformAccessory) {
+    super(platform, accessory);
+    this.debounceSendACCommands = debounce(this.sendACCommands, 100);
+  }
 
   configureServices() {
     this.configureAirConditioner();
@@ -311,8 +320,6 @@ export default class IRAirConditionerAccessory extends BaseAccessory {
       })
       .setProps({ minValue: 0, maxValue: 3, minStep: 1, unit: 'speed' });
   }
-
-  debounceSendACCommands = debounce(this.sendACCommands, 100);
 
   async sendACCommands() {
     const { parent_id, id } = this.device;

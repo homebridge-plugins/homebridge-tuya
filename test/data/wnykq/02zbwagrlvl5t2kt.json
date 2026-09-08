@@ -1,0 +1,192 @@
+{
+    "category": "wnykq",
+    "name": "IRControlHubAccessory",
+    "product_id": "02zbwagrlvl5t2kt",
+    "product_name": "PlusStyleMultiRemoteController",
+    "status": [
+      {
+        "code": "Sensor_Status",
+        "value": 0
+      },
+      {
+        "code": "bright_value",
+        "value": 3
+      },
+      {
+        "code": "humidity_calibration",
+        "value": 0
+      },
+      {
+        "code": "humidity_value",
+        "value": 546
+      },
+      {
+        "code": "ir_control",
+        "value": "success"
+      },
+      {
+        "code": "ir_study",
+        "value": "ACMQBQwFBAQEBQQEBAUEBAQFBAQEBQQEBAUEBA0EBAQNBA0EBQQEBA0EDQQEBAUEBAQNBA0EBQQEBAUEDQQMBQQEBAUEBAQFDAQNBAUEBAQFBAQE"
+      },
+      {
+        "code": "irtimeout",
+        "value": 0
+      },
+      {
+        "code": "poweron",
+        "value": false
+      },
+      {
+        "code": "temp_calibration",
+        "value": 0
+      },
+      {
+        "code": "temp_value",
+        "value": 171
+      }
+    ],
+    "schema": [
+      {
+        "code": "Sensor_Status",
+        "mode": "ro",
+        "type": "Integer",
+        "property": {
+          "unit": "",
+          "min": 0,
+          "max": 4,
+          "scale": 0,
+          "step": 1
+        }
+      },
+      {
+        "code": "bright_value",
+        "mode": "ro",
+        "type": "Integer",
+        "property": {
+          "unit": "lx",
+          "min": 0,
+          "max": 1000,
+          "scale": 0,
+          "step": 1
+        }
+      },
+      {
+        "code": "humidity_calibration",
+        "mode": "rw",
+        "type": "Integer",
+        "property": {
+          "unit": "%",
+          "min": -1000,
+          "max": 1000,
+          "scale": 1,
+          "step": 10
+        }
+      },
+      {
+        "code": "humidity_value",
+        "mode": "ro",
+        "type": "Integer",
+        "property": {
+          "unit": "%",
+          "min": 0,
+          "max": 1000,
+          "scale": 1,
+          "step": 1
+        }
+      },
+      {
+        "code": "ir_control",
+        "mode": "rw",
+        "type": "Enum",
+        "property": {
+          "range": [
+            "study",
+            "stop",
+            "success",
+            "fail"
+          ]
+        }
+      },
+      {
+        "code": "ir_study",
+        "mode": "ro",
+        "type": "Raw",
+        "property": {
+          "maxlen": 128
+        }
+      },
+      {
+        "code": "irtimeout",
+        "mode": "ro",
+        "type": "Bitmap",
+        "property": {
+          "label": [
+            "1"
+          ],
+          "maxlen": 1
+        }
+      },
+      {
+        "code": "key_data",
+        "mode": "wo",
+        "type": "Raw",
+        "property": {
+          "maxlen": 128
+        }
+      },
+      {
+        "code": "key_data1",
+        "mode": "wo",
+        "type": "Raw",
+        "property": {
+          "maxlen": 128
+        }
+      },
+      {
+        "code": "key_data2",
+        "mode": "wo",
+        "type": "Raw",
+        "property": {
+          "maxlen": 128
+        }
+      },
+      {
+        "code": "key_data3",
+        "mode": "wo",
+        "type": "Raw",
+        "property": {
+          "maxlen": 128
+        }
+      },
+      {
+        "code": "poweron",
+        "mode": "rw",
+        "type": "Boolean",
+        "property": {}
+      },
+      {
+        "code": "temp_calibration",
+        "mode": "rw",
+        "type": "Integer",
+        "property": {
+          "unit": "°",
+          "min": -1000,
+          "max": 1000,
+          "scale": 1,
+          "step": 1
+        }
+      },
+      {
+        "code": "temp_value",
+        "mode": "ro",
+        "type": "Integer",
+        "property": {
+          "unit": "℃",
+          "min": -200,
+          "max": 500,
+          "scale": 1,
+          "step": 1
+        }
+      }
+    ]
+  }

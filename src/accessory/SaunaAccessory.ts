@@ -18,7 +18,6 @@ const SCHEMA_CODE = {
 
 export default class SaunaAccessory extends BaseAccessory {
 
-
   requiredSchema() {
     return [SCHEMA_CODE.CURRENT_TEMP, SCHEMA_CODE.TARGET_TEMP];
   }
@@ -30,8 +29,6 @@ export default class SaunaAccessory extends BaseAccessory {
     this.configureTargetTemp();
     configureTempDisplayUnits(this, this.mainService(), this.getSchema(...SCHEMA_CODE.TEMP_UNIT_CONVERT));
     this.configureLight();
-
-
   }
 
   mainService() {
@@ -40,11 +37,15 @@ export default class SaunaAccessory extends BaseAccessory {
   }
 
   configureCurrentState() {
-
     const { OFF, HEAT } = this.Characteristic.CurrentHeatingCoolingState;
+    const schema = this.getSchema(...SCHEMA_CODE.ON);
+    if (!schema) {
+      this.log.warn('Current HeatingCooling state not supported.');
+      return;
+    }
     this.mainService().getCharacteristic(this.Characteristic.CurrentHeatingCoolingState)
       .onGet(() => {
-        const on = this.getStatus('powerswitch');
+        const on = this.getStatus(schema?.code);
         if (on && on.value === false) {
           return OFF;
         } else {
@@ -57,10 +58,15 @@ export default class SaunaAccessory extends BaseAccessory {
 
   configureTargetState() {
     const { OFF, HEAT } = this.Characteristic.TargetHeatingCoolingState;
+    const schema = this.getSchema(...SCHEMA_CODE.ON);
+    if (!schema) {
+      this.log.warn('Target HeatingCooling state not supported.');
+      return;
+    }
 
     this.mainService().getCharacteristic(this.Characteristic.TargetHeatingCoolingState)
       .onGet(() => {
-        const on = this.getStatus('powerswitch');
+        const on = this.getStatus(schema?.code);
         if (on && on.value === false) {
           return OFF;
         } else {
@@ -73,12 +79,12 @@ export default class SaunaAccessory extends BaseAccessory {
 
         if (value === OFF) {
           commands.push({
-            code: 'powerswitch',
+            code: schema?.code,
             value: false,
           });
         } else if (value === HEAT) {
           commands.push({
-            code: 'powerswitch',
+            code: schema?.code,
             value: true,
           });
         }
@@ -136,8 +142,8 @@ export default class SaunaAccessory extends BaseAccessory {
 
   configureLight() {
 
-    const lightswitchSchema = this.getSchema('lightswitch');
-    const ledswitchSchema = this.getSchema('ledswitch');
+    const lightswitchSchema = this.getSchema(...SCHEMA_CODE.LIGHT);
+    const ledswitchSchema = this.getSchema(...SCHEMA_CODE.LED);
 
     const light1Service = this.accessory.getService('Sauna Main Light') ||
         this.accessory.addService(this.Service.Lightbulb, 'Sauna Main Light', 'lightswitch');
@@ -153,6 +159,5 @@ export default class SaunaAccessory extends BaseAccessory {
       configureLight(this, light2Service, ledswitchSchema);
     }
   }
-
 
 }

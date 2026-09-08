@@ -3,6 +3,7 @@ import TuyaDevice from '../device/TuyaDevice';
 import { TuyaPlatform } from '../platform';
 
 import BaseAccessory from './BaseAccessory';
+import { sanitizeName } from '../util/util';
 import LightAccessory from './LightAccessory';
 import DimmerAccessory from './DimmerAccessory';
 import OutletAccessory from './OutletAccessory';
@@ -16,6 +17,7 @@ import WindowCoveringAccessory from './WindowCoveringAccessory';
 import LockAccessory from './LockAccessory';
 import ThermostatAccessory from './ThermostatAccessory';
 import HeaterAccessory from './HeaterAccessory';
+import HeaterAccessory_old from './HeaterAccessory_old';
 import ValveAccessory from './ValveAccessory';
 import ContactSensorAccessory from './ContactSensorAccessory';
 import LeakSensorAccessory from './LeakSensorAccessory';
@@ -43,9 +45,13 @@ import VibrationSensorAccessory from './VibrationSensorAccessory';
 import WeatherStationAccessory from './WeatherStationAccessory';
 import DoorbellAccessory from './DoorbellAccessory';
 import PetFeederAccessory from './PetFeederAccessory';
-import CatToiletAccessory from './CatToiletAccessory';
 import WhiteNoiseLightAccessory from './WhiteNoiseLightAccessory';
+import WetBulbGlobeTemperatureAccessory from './WetBulbGlobeTemperatureAccessory';
+import IRControlHubSubAccessory from './IRControlHubSubAccessory';
+import LocationWeatherAccessory from './LocationWeatherAccessory';
+import TowelRackAccessory from './TowerRackAccessory';
 import SaunaAccessory from './SaunaAccessory';
+import CatToiletAccessory from './CatToiletAccessory';
 
 
 export default class AccessoryFactory {
@@ -55,185 +61,25 @@ export default class AccessoryFactory {
     device: TuyaDevice,
   ): BaseAccessory {
 
-    let handler : BaseAccessory | undefined;
-    switch (device.category) {
+    let handler: BaseAccessory | undefined;
 
-      // Lighting
-      case 'dj':
-      case 'dsd':
-      case 'xdd':
-      case 'fwd':
-      case 'dc':
-      case 'dd':
-      case 'gyd':
-      case 'tyndj':
-      case 'sxd':
-        handler = new LightAccessory(platform, accessory);
-        break;
-      case 'tgq':
-      case 'tgkg':
-        handler = new DimmerAccessory(platform, accessory);
-        break;
+    handler = resolveAccessoryByProductID(platform, accessory, device.product_id)
+      || resolveAccessoryByCategory(platform, accessory, device.category);
 
-      // Electrical Products
-      case 'dlq':
-      case 'kg':
-      case 'tdq':
-      case 'qjdcz':
-      case 'szjqr':
-        handler = new SwitchAccessory(platform, accessory);
-        break;
-      case 'cz':
-      case 'pc':
-      case 'wkcz':
-        handler = new OutletAccessory(platform, accessory);
-        break;
-      case 'wxkg':
-        handler = new WirelessSwitchAccessory(platform, accessory);
-        break;
-      case 'cjkg':
-        handler = new SceneSwitchAccessory(platform, accessory);
-        break;
-      case 'bzyd':
-        handler = new WhiteNoiseLightAccessory(platform, accessory);
-        break;
-
-      // Large Home Appliances
-      case 'kt':
-      case 'ktkzq':
-        handler = new AirConditionerAccessory(platform, accessory);
-        break;
-      case 'qtwk':
-        handler = new SaunaAccessory(platform, accessory);
-        break;
-
-      // Small Home Appliances
-      case 'qn':
-        handler = new HeaterAccessory(platform, accessory);
-        break;
-      case 'kj':
-        handler = new AirPurifierAccessory(platform, accessory);
-        break;
-      case 'xxj':
-        handler = new DiffuserAccessory(platform, accessory);
-        break;
-      case 'ckmkzq':
-        handler = new GarageDoorAccessory(platform, accessory);
-        break;
-      case 'cl':
-      case 'clkg':
-        handler = new WindowCoveringAccessory(platform, accessory);
-        break;
-      case 'cwwsq':
-        handler = new PetFeederAccessory(platform, accessory);
-        break;
-      case 'msp':
-        handler = new CatToiletAccessory(platform, accessory);
-        break;
-      case 'mc':
-        handler = new WindowAccessory(platform, accessory);
-        break;
-      case 'wk':
-      case 'wkf':
-        handler = new ThermostatAccessory(platform, accessory);
-        break;
-      case 'ggq':
-      case 'sfkzq':
-        handler = new ValveAccessory(platform, accessory);
-        break;
-      case 'jsq':
-        handler = new HumidifierAccessory(platform, accessory);
-        break;
-      case 'cs':
-        handler = new DehumidifierAccessory(platform, accessory);
-        break;
-      case 'fs':
-      case 'fsd':
-      case 'fskg':
-        handler = new FanAccessory(platform, accessory);
-        break;
-      case 'yyj':
-        handler = new ExtractionHoodAccessory(platform, accessory);
-        break;
-
-      // Security & Video Surveillance
-      case 'sp':
-        handler = new CameraAccessory(platform, accessory);
-        break;
-      case 'ywbj':
-        handler = new SmokeSensorAccessory(platform, accessory);
-        break;
-      case 'mcs':
-        handler = new ContactSensorAccessory(platform, accessory);
-        break;
-      case 'zd':
-        handler = new VibrationSensorAccessory(platform, accessory);
-        break;
-      case 'rqbj':
-      case 'jwbj':
-      case 'sj':
-        handler = new LeakSensorAccessory(platform, accessory);
-        break;
-      case 'cobj':
-      case 'cocgq':
-        handler = new CarbonMonoxideSensorAccessory(platform, accessory);
-        break;
-      case 'co2bj':
-      case 'co2cgq':
-        handler = new CarbonDioxideSensorAccessory(platform, accessory);
-        break;
-      case 'wsdcg':
-        handler = new TemperatureHumiditySensorAccessory(platform, accessory);
-        break;
-      case 'ldcg':
-        handler = new LightSensorAccessory(platform, accessory);
-        break;
-      case 'pir':
-        handler = new MotionSensorAccessory(platform, accessory);
-        break;
-      case 'pm25':
-      case 'pm2.5':
-      case 'pm25cgq':
-      case 'hjjcy':
-        handler = new AirQualitySensorAccessory(platform, accessory);
-        break;
-      case 'hps':
-        handler = new HumanPresenceSensorAccessory(platform, accessory);
-        break;
-      case 'ms':
-      case 'jtmspro':
-        handler = new LockAccessory(platform, accessory);
-        break;
-      case 'mal':
-        handler = new SecuritySystemAccessory(platform, accessory);
-        break;
-      case 'wxml':
-        handler = new DoorbellAccessory(platform, accessory);
-        break;
-      case 'qxj':
-        handler = new WeatherStationAccessory(platform, accessory);
-        break;
-
-      // Other
-      case 'scene':
-        handler = new SceneAccessory(platform, accessory);
-        break;
-    }
-
-    // IR Control Hub
-    if (device.isIRControlHub()) {
-      handler = new IRControlHubAccessory(platform, accessory);
-    }
-
-    // IR Remote Control
-    if (device.isIRRemoteControl()) {
-      switch (device.remote_keys?.category_id) {
-        case 5: // AC
-          handler = new IRAirConditionerAccessory(platform, accessory);
-          break;
-        default:
-          handler = new IRGenericAccessory(platform, accessory);
-          break;
+    // basically use should set the handler at the switch-case
+    if (!handler) {
+      // IR Remote Control
+      if (device.isIRRemoteControl()) {
+        switch (device.remote_keys?.category_id) {
+          case 5: // AC
+            platform.log.warn('case IRAirConditionerAccessory');
+            handler = new IRAirConditionerAccessory(platform, accessory);
+            break;
+          default:
+            platform.log.warn('case IRGenericAccessory');
+            handler = new IRGenericAccessory(platform, accessory);
+            break;
+        }
       }
     }
 
@@ -248,9 +94,244 @@ export default class AccessoryFactory {
 
     handler.configureServices();
     handler.configureStatusActive();
+    handler.configureDeviceSpecificFeatures();
     handler.updateAllValues();
     handler.intialized = true;
 
     return handler;
   }
+
+  static configAccessory(platform: TuyaPlatform, accessory: PlatformAccessory) {
+    const configs = platform.options.serviceInformationOverrides;
+
+    // Always sanitize existing Name/ConfiguredName loaded from persist
+    try {
+      const info = accessory.getService(platform.Service.AccessoryInformation);
+      if (info) {
+        const currentConfigured = info.getCharacteristic(platform.Characteristic.ConfiguredName).value as unknown as string;
+        const currentName = info.getCharacteristic(platform.Characteristic.Name).value as unknown as string;
+        const safeConfigured = sanitizeName(currentConfigured) ?? undefined;
+        const safeName = sanitizeName(currentName) ?? undefined;
+        if (safeName && safeName !== currentName) {
+          info.getCharacteristic(platform.Characteristic.Name).updateValue(safeName);
+          platform.log.info(`Sanitized Name: ${currentName} -> ${safeName}`);
+        }
+        if (safeConfigured && safeConfigured !== currentConfigured) {
+          info.getCharacteristic(platform.Characteristic.ConfiguredName).updateValue(safeConfigured);
+          platform.log.info(`Sanitized ConfiguredName: ${currentConfigured} -> ${safeConfigured}`);
+        }
+      }
+    } catch (e) {
+      platform.log.debug('Failed to sanitize accessory name:', e);
+    }
+
+    if (!configs) {
+      return;
+    }
+
+    const sn = accessory.getService(platform.Service.AccessoryInformation)?.getCharacteristic(platform.Characteristic.SerialNumber).value;
+
+    configs.filter(config => config.device_id === sn).forEach(config => {
+      try {
+        const service = accessory.services[config.index];
+        if (config.manifacturer) {
+          const before = service.getCharacteristic(platform.Characteristic.Manufacturer).value;
+          service.getCharacteristic(platform.Characteristic.Manufacturer).updateValue(config.manifacturer);
+          platform.log.info(`manifacturer updated. ${before} -> ${config.manifacturer}`);
+        }
+        if (config.model) {
+          const before = service.getCharacteristic(platform.Characteristic.Model).value;
+          service.getCharacteristic(platform.Characteristic.Model).updateValue(config.model);
+          platform.log.info(`model updated. ${before} -> ${config.model}`);
+        }
+        if (config.firmwareRevision) {
+          const before = service.getCharacteristic(platform.Characteristic.FirmwareRevision).value;
+          service.getCharacteristic(platform.Characteristic.FirmwareRevision).updateValue(config.firmwareRevision);
+          platform.log.info(`firmwareRevision updated. ${before} -> ${config.firmwareRevision}`);
+        }
+        if (config.configuredName) {
+          const safe = sanitizeName(config.configuredName)
+            ?? config.configuredName
+              .replace(/[^A-Za-z0-9 '\s]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+          const before = service.getCharacteristic(platform.Characteristic.ConfiguredName).value;
+          service.getCharacteristic(platform.Characteristic.Name).updateValue(safe);
+          service.getCharacteristic(platform.Characteristic.ConfiguredName).updateValue(safe);
+          platform.log.info(`configuredName updated. ${before} -> ${safe}`);
+        }
+      } catch (e) {
+        platform.log.error(`index out of bound.:${config.index}`);
+      }
+    });
+  }
 }
+
+function resolveAccessoryByProductID(platform: TuyaPlatform, accessory: PlatformAccessory, product_id: string): BaseAccessory | undefined {
+  switch (product_id) {
+    case 'scene': // see TuyaHomeDeviceManager#getSceneList
+      return new SceneAccessory(platform, accessory);
+    case 'virtual-product-id-wbgt':
+      return new WetBulbGlobeTemperatureAccessory(platform, accessory);
+    case 'virtual-product-id-weather':
+      return new LocationWeatherAccessory(platform, accessory);
+    default:
+      return undefined;
+  }
+}
+
+function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformAccessory, category: string): BaseAccessory | undefined {
+  switch (category) {
+    // Lighting
+    case 'dj':
+    case 'dsd':
+    case 'xdd':
+    case 'fwd':
+    case 'dc':
+    case 'dd':
+    case 'gyd':
+    case 'tyndj':
+    case 'sxd':
+      return new LightAccessory(platform, accessory);
+    case 'tgq':
+    case 'tgkg':
+      return new DimmerAccessory(platform, accessory);
+
+    // Electrical Products
+    case 'dlq':
+    case 'kg':
+    case 'tdq':
+    case 'qjdcz':
+    case 'szjqr':
+      return new SwitchAccessory(platform, accessory);
+    case 'cz':
+    case 'pc':
+    case 'wkcz':
+      return new OutletAccessory(platform, accessory);
+    case 'wxkg':
+      return new WirelessSwitchAccessory(platform, accessory);
+    case 'cjkg':
+      return new SceneSwitchAccessory(platform, accessory);
+    case 'bzyd':
+      return new WhiteNoiseLightAccessory(platform, accessory);
+
+    // Large Home Appliances
+    case 'kt':
+    case 'ktkzq':
+      return new AirConditionerAccessory(platform, accessory);
+    case 'qtwk': // unofficial category.
+      // https://github.com/homebridge-plugins/homebridge-tuya/commit/35fcdd10b27e64430d40a77c39518e7c2ea94865
+      return new SaunaAccessory(platform, accessory);
+
+    // Small Home Appliances
+    case 'qn':
+      return new HeaterAccessory(platform, accessory);
+    case 'qn_old':
+      return new HeaterAccessory_old(platform, accessory);
+    case 'kj':
+      return new AirPurifierAccessory(platform, accessory);
+    case 'xxj':
+      return new DiffuserAccessory(platform, accessory);
+    case 'ckmkzq':
+      return new GarageDoorAccessory(platform, accessory);
+    case 'cl':
+    case 'clkg':
+      return new WindowCoveringAccessory(platform, accessory);
+    case 'cwwsq':
+      return new PetFeederAccessory(platform, accessory);
+    case 'mc':
+      return new WindowAccessory(platform, accessory);
+    case 'wk':
+    case 'wkf':
+      return new ThermostatAccessory(platform, accessory);
+    case 'mjj':
+      return new TowelRackAccessory(platform, accessory);
+    case 'ggq':
+    case 'sfkzq':
+      return new ValveAccessory(platform, accessory);
+    case 'jsq':
+      return new HumidifierAccessory(platform, accessory);
+    case 'cs':
+      return new DehumidifierAccessory(platform, accessory);
+    case 'fs':
+    case 'fsd':
+    case 'fskg':
+      return new FanAccessory(platform, accessory);
+    case 'yyj':
+      return new ExtractionHoodAccessory(platform, accessory);
+    case 'msp':
+      return new CatToiletAccessory(platform, accessory);
+
+      // Security & Video Surveillance
+    case 'sp':
+      return new CameraAccessory(platform, accessory);
+    case 'ywbj':
+      return new SmokeSensorAccessory(platform, accessory);
+    case 'mcs':
+      return new ContactSensorAccessory(platform, accessory);
+    case 'zd':
+      return new VibrationSensorAccessory(platform, accessory);
+    case 'rqbj':
+    case 'jwbj':
+    case 'sj':
+      return new LeakSensorAccessory(platform, accessory);
+    case 'cobj':
+    case 'cocgq':
+      return new CarbonMonoxideSensorAccessory(platform, accessory);
+    case 'co2bj':
+    case 'co2cgq':
+      return new CarbonDioxideSensorAccessory(platform, accessory);
+    case 'wsdcg':
+      return new TemperatureHumiditySensorAccessory(platform, accessory);
+    case 'ldcg':
+      return new LightSensorAccessory(platform, accessory);
+    case 'pir':
+      return new MotionSensorAccessory(platform, accessory);
+    case 'pm25':
+    case 'pm2.5':
+    case 'pm25cgq':
+    case 'hjjcy':
+      return new AirQualitySensorAccessory(platform, accessory);
+    case 'hps':
+      return new HumanPresenceSensorAccessory(platform, accessory);
+    case 'ms':
+    case 'jtmspro':
+      return new LockAccessory(platform, accessory);
+    case 'mal':
+      return new SecuritySystemAccessory(platform, accessory);
+    case 'wxml':
+      return new DoorbellAccessory(platform, accessory);
+    case 'qxj':
+      return new WeatherStationAccessory(platform, accessory);
+
+    // IR Control
+    case 'wnykq':
+    case 'hwktwkq':
+    case 'wsdykq':
+      return new IRControlHubAccessory(platform, accessory);
+
+    case 'qt':
+      platform.log.debug('early product. add switch-case at function resolveAccessoryByProductID()');
+      // eslint-disable-next-line max-len
+      platform.log.warn('use plugin options and config category to another. https://github.com/homebridge-plugins/homebridge-tuya/blob/develop_1.7.0/ADVANCED_OPTIONS.md https://github.com/homebridge-plugins/homebridge-tuya/blob/develop_1.7.0/SUPPORTED_DEVICES.md');
+      return undefined;
+
+    case 'infrared_tv':
+    case 'infrared_stb':
+    case 'infrared_box':
+    case 'infrared_ac':
+    case 'infrared_fan':
+    case 'infrared_light':
+    case 'infrared_amplifier':
+    case 'infrared_projector':
+    case 'infrared_waterheater':
+    case 'infrared_airpurifier':
+    case 'infrared_humidifier':
+      // Since it's a DIY, it might be better to handle it with resolveAccessoryByProductID.
+      return new IRControlHubSubAccessory(platform, accessory);
+
+    default:
+      return undefined;
+  }
+}
+

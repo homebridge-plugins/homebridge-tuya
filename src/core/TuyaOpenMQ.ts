@@ -4,7 +4,8 @@ import Crypto from 'crypto';
 import CryptoJS from 'crypto-js';
 
 import TuyaOpenAPI from './TuyaOpenAPI';
-import Logger, { PrefixLogger } from '../util/Logger';
+import { ExLogger, logger, PrefixLogger } from '../util/Logger';
+import dns from 'dns';
 
 const GCM_TAG_LENGTH = 16;
 
@@ -28,18 +29,23 @@ export default class TuyaOpenMQ {
 
   public client?: mqtt.MqttClient;
   public config?: TuyaMQTTConfig;
-  public version = '1.0';
-  public messageListeners = new Set<TuyaMQTTCallback>();
-  public linkId = uuid_v4();
+  public version: string;
+  public messageListeners: Set<TuyaMQTTCallback>;
+  public linkId: string;
 
   public timer?: NodeJS.Timeout;
+  private log: ExLogger;
 
   constructor(
     public api: TuyaOpenAPI,
-    public log: Logger = console,
     public debug = false,
+    public forceIPv4 = api.forceIPv4,
   ) {
-    this.log = new PrefixLogger(log, TuyaOpenMQ.name, debug);
+    this.version = '1.0';
+    this.messageListeners = new Set();
+    this.linkId = uuid_v4();
+    this.consumedQueue = [];
+    this.log = new PrefixLogger(logger(), TuyaOpenMQ.name, debug);
   }
 
   start() {
@@ -67,11 +73,19 @@ export default class TuyaOpenMQ {
 
     const { url, client_id, username, password, expire_time, source_topic } = res.result;
     this.log.debug('Connecting to:', url);
-    const client = mqtt.connect(url, {
+    const clientOptions:mqtt.IClientOptions = {
       clientId: client_id,
       username: username,
       password: password,
-    });
+    };
+    if (this.forceIPv4) {
+      clientOptions['family'] = 4;
+      clientOptions['lookup'] = (hostname, options, callback) => {
+        // Node v24 の multi-family 接続を避け、IPv4 のみ解決
+        return dns.lookup(hostname, { family: 4 }, callback);
+      };
+    }
+    const client = mqtt.connect(url, clientOptions);
 
     client.on('connect', this._onConnect.bind(this));
     client.on('error', this._onError.bind(this));
@@ -128,7 +142,7 @@ export default class TuyaOpenMQ {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private consumedQueue: any[] = [];
+  private consumedQueue: any[];
   _fixWrongOrderMessage(protocol: number, message, t: number) {
     if (protocol !== 4) {
       return;

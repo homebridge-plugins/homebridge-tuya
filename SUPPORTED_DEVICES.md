@@ -53,7 +53,7 @@ Most category code is pinyin abbreviation of Chinese name.
 | Air Conditioner | 空调 | kt | Heater Cooler<br> Humidifier Dehumidifier<br> Fanv2<br> Temperature Sensor<br> Humidity Sensor | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorykt?id=Kaiuz0z71ov2n) |
 | Air Conditioner Controller | 空调控制器 | ktkzq | Heater Cooler<br> Humidifier Dehumidifier<br> Fanv2<br> Temperature Sensor<br> Humidity Sensor | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categoryktkzq?id=Kaiuz11eqy892) |
 | Boiler | 壁挂炉 | bgl | | | [Documentation](https://developer.tuya.com/en/docs/iot/boilerbgl?id=Kaiuz13shgrhp) |
-| Sauna | 华氏度摄氏度两用(30-90) | qtwk | Lightbulb<br>Thermostat | ✅ | Documentation |
+| Sauna | 桑拿 | qtwk | Lightbulb<br>Thermostat | ✅ | unofficial category |
 
 
 ## Small Home Appliances
@@ -61,7 +61,7 @@ Most category code is pinyin abbreviation of Chinese name.
 | Name                       | Name (zh) | Code          | Homebridge Service | Supported | Links                                                                                    |
 |----------------------------| ---- |---------------| ---- | ---- |------------------------------------------------------------------------------------------|
 | Robot Vacuum               | 扫地机 | sd            | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorysd?id=Kaiuz16b2s6yd)      |
-| Heater                     | 取暖器 | qn            | Heater Cooler | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm)      |
+| Heater                     | 取暖器 | qn<br>qn_old            | Heater Cooler | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm)      |
 | Air Purifier               | 空气净化器 | kj            | Air Purifier | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorykj?id=Kaiuz1atqo5l7)      |
 | Drying Rack                | 晾衣架 | lyj           | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorylyj?id=Kaiuz1cy926vh)     |
 | Diffuser                   | 香薰机 | xxj           | Air Purifier<br> Lightbulb | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categoryxxj?id=Kaiuz1f9mo6bl)     |
@@ -85,10 +85,10 @@ Most category code is pinyin abbreviation of Chinese name.
 | Sofa                       | 沙发 | sf            | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorysf?id=Kaiuz2fp9uqtt)      |
 | Electric Fireplace         | 电壁炉 | dbl           | | | [Documentation](https://developer.tuya.com/en/docs/iot/electric-fireplace?id=Kaiuz2hz4iyp6) |
 | Smart Milk Kettle          | 智能调奶器 | tnq           | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorytnq?id=Kakf01agbfkfa)     |
-| Cat Toilet                 | 猫砂盆 | msp           | Switch, Lightbulb, OccupancySensor, FilterMaintenance | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorymsp?id=Kakg2t7714ky7)     |
-| Towel Rack                 | 毛巾架 | mjj           | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorymjj?id=Kakkmlm9k4cir)     |
+| Cat Toilet                 | 猫砂盆 | msp           | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorymsp?id=Kakg2t7714ky7)     |
+| Towel Rack                 | 毛巾架 | mjj           | Thermostat | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorymjj?id=Kakkmlm9k4cir)     |
 | Smart Indoor Garden        | 植物生长机 | sz            | | | [Documentation](https://developer.tuya.com/en/docs/iot/categorysz?id=Kaiuz4e6h7up0)      |
-
+| Cat Toilet                 | 猫砂盆 | msp           | Switch, Lightbulb, OccupancySensor, FilterMaintenance | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorymsp?id=Kakg2t7714ky7)     |
 
 ## Kitchen Appliances
 

@@ -5,9 +5,12 @@ import { debounce } from 'debounce';
 import isEqual from 'lodash.isequal';
 
 import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty, TuyaDeviceSchemaMode, TuyaDeviceStatus } from '../device/TuyaDevice';
+import type TuyaDevice from '../device/TuyaDevice';
+import type TuyaDeviceManager from '../device/TuyaDeviceManager';
 import { TuyaPlatform } from '../platform';
-import { limit } from '../util/util';
-import { PrefixLogger } from '../util/Logger';
+import { limit, sanitizeName } from '../util/util';
+import { logger, PrefixLogger } from '../util/Logger';
+import { configureExtraCharactersitcs } from './characteristic/ExtraCharacteristicAdapter';
 
 const MANUFACTURER = 'Tuya Inc.';
 
@@ -28,13 +31,15 @@ class BaseAccessory {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
 
-  public deviceManager;
-  public device;
-  public log;
+  public deviceManager: TuyaDeviceManager;
+  public device: TuyaDevice;
+  public log: PrefixLogger;
 
-  public intialized = false;
+  public intialized: boolean;
 
   public adaptiveLightingController?;
+
+  supportedDPs: Set<string>;
 
   constructor(
     public readonly platform: TuyaPlatform,
@@ -45,13 +50,23 @@ class BaseAccessory {
     this.deviceManager = this.platform.deviceManager!;
     this.device = this.deviceManager.getDevice(this.accessory.context.deviceID)!;
     this.log = new PrefixLogger(
-      this.platform.log,
+      logger(),
       this.device.name.length > 0 ? this.device.name : this.device.id,
       this.platform.options.debug && ((this.platform.options.debugLevel ?? '').length > 0
         ? this.platform.options.debugLevel?.includes(this.device.id)
         : true),
     );
-
+    this.intialized = false;
+    this.supportedDPs = new Set();
+    this.sendQueue = new Map();
+    this.debounceSendCommands = debounce(async () => {
+      const commands = [...this.sendQueue.values()];
+      if (commands.length === 0) {
+        return;
+      }
+      await this.deviceManager.sendCommands(this.device.id, commands);
+      this.sendQueue.clear();
+    }, 100);
     this.addAccessoryInfoService();
     this.addBatteryService();
   }
@@ -60,11 +75,12 @@ class BaseAccessory {
     const service = this.accessory.getService(this.Service.AccessoryInformation)
       || this.accessory.addService(this.Service.AccessoryInformation);
 
+    const safeName = sanitizeName(this.device.name) ?? (this.device.id || 'Tuya Device');
     service
       .setCharacteristic(this.Characteristic.Manufacturer, MANUFACTURER)
-      .setCharacteristic(this.Characteristic.Model, this.device.product_id)
-      .setCharacteristic(this.Characteristic.Name, this.device.name)
-      .setCharacteristic(this.Characteristic.ConfiguredName, this.device.name)
+      .setCharacteristic(this.Characteristic.Model, this.device.model || this.device.product_name || this.device.product_id)
+      .setCharacteristic(this.Characteristic.Name, safeName)
+      .setCharacteristic(this.Characteristic.ConfiguredName, safeName)
       .setCharacteristic(this.Characteristic.SerialNumber, this.device.uuid)
     ;
   }
@@ -166,7 +182,11 @@ class BaseAccessory {
 
   getSchema(...codes: string[]) {
     for (const code of codes) {
-      const schema = this.device.schema.find(schema => schema.code === code);
+      const schema = this.device.schema.find(schema => {
+        // ignore case
+        return schema.code.toLowerCase() === code.toLowerCase();
+      });
+
       if (!schema) {
         continue;
       }
@@ -174,9 +194,11 @@ class BaseAccessory {
       // Readable schema must have a status
       if ([TuyaDeviceSchemaMode.READ_WRITE, TuyaDeviceSchemaMode.READ_ONLY].includes(schema.mode)
         && !this.getStatus(schema.code)) {
+        this.log.warn('no status');
         continue;
       }
 
+      this.supportedDPs.add(schema.code);
       return schema;
     }
     return undefined;
@@ -186,15 +208,8 @@ class BaseAccessory {
     return this.device.status.find(status => status.code === code);
   }
 
-  private sendQueue = new Map<string, TuyaDeviceStatus>();
-  private debounceSendCommands = debounce(async () => {
-    const commands = [...this.sendQueue.values()];
-    if (commands.length === 0) {
-      return;
-    }
-    await this.deviceManager.sendCommands(this.device.id, commands);
-    this.sendQueue.clear();
-  }, 100);
+  private sendQueue: Map<string, TuyaDeviceStatus>;
+  private debounceSendCommands: ReturnType<typeof debounce>;
 
   async sendCommands(commands: TuyaDeviceStatus[], debounce = false) {
     if (commands.length === 0) {
@@ -240,8 +255,8 @@ class BaseAccessory {
       }
       this.log.warn('Product Category: %s', this.device.category);
       this.log.warn('Missing one of the required schema: %s', codes);
-      this.log.warn('Please switch device control mode to "DP Insctrution", and set `deviceOverrides` manually.');
-      this.log.warn('Detail information: https://github.com/0x5e/homebridge-tuya-platform#faq');
+      this.log.warn('Please switch device control mode to "DP Instruction", and set `deviceOverrides` manually.');
+      this.log.warn('Detail information: https://github.com/homebridge-plugins/homebridge-tuya#faq');
       result = false;
     }
 
@@ -260,6 +275,10 @@ class BaseAccessory {
     //
   }
 
+  configureDeviceSpecificFeatures() {
+    //
+  }
+
   async onDeviceInfoUpdate(info) {
     this.updateAllValues();
   }
@@ -273,15 +292,26 @@ class BaseAccessory {
 // Overriding getSchema, getStatus, sendCommands
 export default class OverridedBaseAccessory extends BaseAccessory {
 
-  private eval = (script: string, device, value) => eval(script);
+  private eval: (
+    script: string,
+    device: TuyaDevice,
+    value: string | number | boolean,
+  ) => string | number | boolean;
+
+  constructor(platform: TuyaPlatform, accessory: PlatformAccessory) {
+    super(platform, accessory);
+    this.eval = (script: string, device, value) => eval(script);
+  }
 
   private getOverridedSchema(code: string) {
     const schemaConfig = this.platform.getDeviceSchemaConfig(this.device, code);
     if (!schemaConfig) {
       return undefined;
     }
-
-    const oldSchema = this.device.schema.find(schema => schema.code === schemaConfig.code);
+    const oldSchema = this.device.schema.find(schema => {
+      // ignore case
+      return schema.code.toLowerCase() === schemaConfig.code.toLowerCase();
+    });
     if (!oldSchema) {
       return undefined;
     }
@@ -298,11 +328,13 @@ export default class OverridedBaseAccessory extends BaseAccessory {
       this.log.debug('Override schema %o => %o', oldSchema, schema);
     }
 
+    this.supportedDPs.add(schema.code);
     return schema;
   }
 
   getSchema(...codes: string[]) {
     for (const code of codes) {
+
       const schema = this.getOverridedSchema(code) || super.getSchema(code);
       if (!schema) {
         continue;
@@ -367,4 +399,27 @@ export default class OverridedBaseAccessory extends BaseAccessory {
 
     await super.sendCommands(commands, debounce);
   }
+
+  configureDeviceSpecificFeatures() {
+    const config = this.platform.getDeviceConfig(this.device);
+    this.supportedDPs.forEach(item => this.log.info(`supported dp:${item}`));
+    const includeExtraFeatures = new Array<string>;
+    const isAuto = config && config.addExtraFeaturesAutomatically;
+    // Add a standard DP that needs to be treated as an Extra Feature
+    this.platform.getDeviceConfig(this.device)?.schema?.filter(item => item.extra).forEach(item => includeExtraFeatures.push(item.code));
+    for (const schema of this.device.schema) {
+      if (isAuto) {
+        configureExtraCharactersitcs(this, schema);
+        includeExtraFeatures.splice(includeExtraFeatures.indexOf(schema.code), 1);
+      } else {
+        if (includeExtraFeatures.includes(schema.code)) {
+          configureExtraCharactersitcs(this, schema);
+          includeExtraFeatures.splice(includeExtraFeatures.indexOf(schema.code), 1);
+        }
+      }
+    }
+
+    includeExtraFeatures.forEach(item => this.log.warn(`Extra DP Code:${item} not found.`));
+  }
 }
+
