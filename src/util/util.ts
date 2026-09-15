@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { TuyaDeviceSchemaProperty } from '../device/TuyaDevice';
+import { Units } from 'homebridge';
 
 export function remap(
   value: number,
@@ -46,6 +47,31 @@ export function toHapProperty(
       }
       case 'range': {
         hap['validValues'] = [...value];
+        break;
+      }
+      case 'unit': {
+        switch (value) {
+          case '%': {
+            hap['unit'] = Units.PERCENTAGE;
+            break;
+          }
+          case 's': {
+            hap['unit'] = Units.SECONDS;
+            break;
+          }
+          case 'lx': {
+            hap['unit'] = Units.LUX;
+            break;
+          }
+          case '℃': {
+            hap['unit'] = Units.CELSIUS;
+            break;
+          }
+          default: {
+            hap['unit'] = value;
+            break;
+          }
+        }
         break;
       }
       default: {
