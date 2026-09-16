@@ -17,6 +17,7 @@ describe('Light Characteristic', () => {
         getService: jest.fn(),
         addService: jest.fn(),
         removeService: jest.fn(),
+        getStatus: jest.fn(),
         log: mockLogger,
         deviceManager: {
             getDevice: jest.fn(),
@@ -39,6 +40,7 @@ describe('Light Characteristic', () => {
             onGet: jest.fn().mockReturnThis(),
             onSet: jest.fn().mockReturnThis(),
             setProps: jest.fn(),
+            updateValue: jest.fn(),
         }),
     } as unknown as any;
 

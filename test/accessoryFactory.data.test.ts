@@ -106,6 +106,7 @@ describe('AccessoryFactory data sample', () => {
         onGet: jest.fn().mockReturnThis(),
         onSet: jest.fn().mockReturnThis(),
         setProps: jest.fn().mockReturnThis(),
+        updateValue: jest.fn().mockReturnThis(),
       }),
     } as any;
 
