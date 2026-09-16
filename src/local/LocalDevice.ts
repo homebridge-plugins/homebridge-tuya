@@ -42,8 +42,8 @@ export interface LocalDeviceContext {
  */
 export default class LocalDevice extends EventEmitter {
   public log: Logger;
-  public connected = false;
-  public state: Record<string, unknown> = {};
+  public connected: boolean;
+  public state: Record<string, unknown>;
 
   // ── Zigbee gateway / child support ─────────────────────────────────────────
   /** Reference to the parent gateway LocalDevice. Set when this represents a Zigbee sub-device. */
@@ -54,13 +54,13 @@ export default class LocalDevice extends EventEmitter {
    * Map of Zigbee CID → child LocalDevice for parent gateways.
    * Populated by LocalDeviceManager when children are registered.
    */
-  public readonly children: Map<string, LocalDevice> = new Map();
+  public readonly children: Map<string, LocalDevice>;
   // ───────────────────────────────────────────────────────────────────────────
 
   private protocol: Protocol;
   private socket?: net.Socket;
-  private cachedBuffer = Buffer.allocUnsafe(0);
-  private sendCounter = 0;
+  private cachedBuffer: Buffer;
+  private sendCounter: number;
   private sessionKey?: Buffer;
   private tmpLocalKey?: Buffer;
   private tmpRemoteKey?: Buffer;
@@ -69,13 +69,21 @@ export default class LocalDevice extends EventEmitter {
   private errorReconnect?: ReturnType<typeof setTimeout>;
   private handshakeTimer?: ReturnType<typeof setTimeout>;
   private poller?: ReturnType<typeof setTimeout>;
-  private missedPings = 0;
-  private connectionAttempts = 0;
+  private missedPings: number;
+  private connectionAttempts: number;
 
   constructor(
     private context: LocalDeviceContext,
   ) {
     super();
+    this.connected = false;
+    this.state = {};
+    this.children = new Map();
+    this.cachedBuffer = Buffer.allocUnsafe(0);
+    this.sendCounter = 0;
+    this.cmdFlag = -1;
+    this.missedPings = 0;
+    this.connectionAttempts = 0;
     this.log = new PrefixLogger(logger(), `${(context.name || context.id)}(Local)`, false);
     this.context.port = this.context.port ?? 6668;
     this.context.pingGap = this.context.pingGap ?? 25;
@@ -578,7 +586,7 @@ export default class LocalDevice extends EventEmitter {
   }
 
   // ── Private: send ─────────────────────────────────────────────────────────
-  private cmdFlag:number = -1;
+  private cmdFlag: number;
   private _send(o: { cmd: number; data?: unknown; encrypted?: boolean }): void {
     if (!this.socket) {
       return;

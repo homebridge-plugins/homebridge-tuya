@@ -42,7 +42,11 @@ jest.mock('jsonschema', () => {
   return {
     Validator: (
       class MockValidator {
-        validate = jest.fn().mockReturnValue({ errors: errorStack });
+        validate: ReturnType<typeof jest.fn>;
+
+        constructor() {
+          this.validate = jest.fn().mockReturnValue({ errors: errorStack });
+        }
       }
     )
   };
@@ -56,7 +60,11 @@ jest.mock('fs', () => ({
 // Mock Cloud components
 jest.mock('../src/cloud/api/TuyaOpenAPI', () => {
   return class MockTuyaOpenAPI {
-    log = console;
+    log: Console;
+
+    constructor() {
+      this.log = console;
+    }
 
     static getDefaultEndpoint() {
       return 'mock-endpoint';
@@ -70,48 +78,83 @@ jest.mock('../src/cloud/api/TuyaOpenMQ', () => {
 
 jest.mock('../src/cloud/device/TuyaCloudDeviceManager', () => {
   return class MockTuyaDeviceManager {
-    pullDevices = jest.fn().mockReturnValue([]);
-    updateInfraredRemotes = jest.fn();
-    on = jest.fn();
-    devices = [];
+    pullDevices: ReturnType<typeof jest.fn>;
+    updateInfraredRemotes: ReturnType<typeof jest.fn>;
+    on: ReturnType<typeof jest.fn>;
+    devices: unknown[];
+
+    constructor() {
+      this.pullDevices = jest.fn().mockReturnValue([]);
+      this.updateInfraredRemotes = jest.fn();
+      this.on = jest.fn();
+      this.devices = [];
+    }
   };
 });
 
 jest.mock('../src/cloud/device/TuyaCustomDeviceManager', () => {
   return class MockTuyaCustomDeviceManager {
-    pullDevices = jest.fn().mockReturnValue([]);
-    updateInfraredRemotes = jest.fn();
-    on = jest.fn();
-    devices = [];
+    pullDevices: ReturnType<typeof jest.fn>;
+    updateInfraredRemotes: ReturnType<typeof jest.fn>;
+    on: ReturnType<typeof jest.fn>;
+    devices: unknown[];
+
+    constructor() {
+      this.pullDevices = jest.fn().mockReturnValue([]);
+      this.updateInfraredRemotes = jest.fn();
+      this.on = jest.fn();
+      this.devices = [];
+    }
   };
 });
 
 jest.mock('../src/cloud/device/TuyaHomeDeviceManager', () => {
   return class MockTuyaHomeDeviceManager {
-    pullDevices = jest.fn().mockReturnValue([]);
-    updateInfraredRemotes = jest.fn();
-    on = jest.fn();
-    devices = [];
+    pullDevices: ReturnType<typeof jest.fn>;
+    updateInfraredRemotes: ReturnType<typeof jest.fn>;
+    on: ReturnType<typeof jest.fn>;
+    devices: unknown[];
+
+    constructor() {
+      this.pullDevices = jest.fn().mockReturnValue([]);
+      this.updateInfraredRemotes = jest.fn();
+      this.on = jest.fn();
+      this.devices = [];
+    }
   };
 });
 
 // Mock Local components
 jest.mock('../src/local/LocalDeviceManager', () => {
   return class MockLocalDeviceManager {
-    pullDevices = jest.fn().mockReturnValue([]);
-    updateInfraredRemotes = jest.fn();
-    on = jest.fn();
-    devices = [];
+    pullDevices: ReturnType<typeof jest.fn>;
+    updateInfraredRemotes: ReturnType<typeof jest.fn>;
+    on: ReturnType<typeof jest.fn>;
+    devices: unknown[];
+
+    constructor() {
+      this.pullDevices = jest.fn().mockReturnValue([]);
+      this.updateInfraredRemotes = jest.fn();
+      this.on = jest.fn();
+      this.devices = [];
+    }
     static isTargetDevice:any = jest.fn(s => true);
   };
 });
 
 jest.mock('../src/shared/TuyaHybridDeviceManager', () => {
   return class MockTuyaHybridDeviceManager {
-    pullDevices = jest.fn().mockReturnValue([]);
-    updateInfraredRemotes = jest.fn();
-    on = jest.fn();
-    devices = [];
+    pullDevices: ReturnType<typeof jest.fn>;
+    updateInfraredRemotes: ReturnType<typeof jest.fn>;
+    on: ReturnType<typeof jest.fn>;
+    devices: unknown[];
+
+    constructor() {
+      this.pullDevices = jest.fn().mockReturnValue([]);
+      this.updateInfraredRemotes = jest.fn();
+      this.on = jest.fn();
+      this.devices = [];
+    }
   };
 });
 

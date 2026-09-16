@@ -18,8 +18,13 @@ const mockLog: ExLogger = {
 // Mock TuyaOpenMQ
 jest.mock('../src/cloud/api/TuyaOpenMQ', () => {
   return class MockTuyaOpenMQ {
-    version = '1.0';
-    listeners: Map<string, Function[]> = new Map();
+    version: string;
+    listeners: Map<string, Function[]>;
+
+    constructor() {
+      this.version = '1.0';
+      this.listeners = new Map();
+    }
 
     addMessageListener(listener: Function) {
       if (!this.listeners.has('message')) {

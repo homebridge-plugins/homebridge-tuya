@@ -17,7 +17,11 @@ const mockLog: ExLogger = {
 // Mock TuyaOpenMQ
 jest.mock('../src/cloud/api/TuyaOpenMQ', () => {
   return class MockTuyaOpenMQ {
-    version = '1.0';
+    version: string;
+
+    constructor() {
+      this.version = '1.0';
+    }
     addMessageListener() {}
     start() {}
     stop() {}

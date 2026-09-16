@@ -28,9 +28,9 @@ export default class TuyaOpenMQ {
 
   public client?: mqtt.MqttClient;
   public config?: TuyaMQTTConfig;
-  public version = '1.0';
-  public messageListeners = new Set<TuyaMQTTCallback>();
-  public linkId = generateUUID();
+  public version: string;
+  public messageListeners: Set<TuyaMQTTCallback>;
+  public linkId: string;
 
   public timer?: NodeJS.Timeout;
   public log: ExLogger;
@@ -40,6 +40,10 @@ export default class TuyaOpenMQ {
     public debug = false,
     public forceIPv4 = api.forceIPv4,
   ) {
+    this.version = '1.0';
+    this.messageListeners = new Set<TuyaMQTTCallback>();
+    this.linkId = generateUUID();
+    this.consumedQueue = [];
     this.log = new PrefixLogger(logger(), TuyaOpenMQ.name, debug);
   }
 
@@ -156,7 +160,7 @@ export default class TuyaOpenMQ {
     }
   }
 
-  private consumedQueue: any[] = [];
+  private consumedQueue: any[];
   _fixWrongOrderMessage(protocol: number, message, t: number) {
     if (protocol !== 4) {
       return;

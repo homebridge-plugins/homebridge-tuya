@@ -15,41 +15,72 @@ const mockLog: Logger = {
 
 jest.mock('../src/cloud/api/TuyaOpenAPI', () => {
   return class MockTuyaOpenAPI {
-    log = console;
+    log: Console;
+
+    constructor() {
+      this.log = console;
+    }
     static getDefaultEndpoint = jest.fn().mockReturnValue([1]);
   };
 });
 
 jest.mock('../src/cloud/device/TuyaCustomDeviceManager', () => {
   return class MockTuyaCustomDeviceManager {
-    pullDevices = jest.fn().mockReturnValue([]);
-    updateInfraredRemotes = jest.fn();
-    getDeviceSchemaConfig = jest.fn();
-    devices = [];
-    api = mockAPI;
-    on = jest.fn();
+    pullDevices: ReturnType<typeof jest.fn>;
+    updateInfraredRemotes: ReturnType<typeof jest.fn>;
+    getDeviceSchemaConfig: ReturnType<typeof jest.fn>;
+    devices: unknown[];
+    api: typeof mockAPI;
+    on: ReturnType<typeof jest.fn>;
+
+    constructor() {
+      this.pullDevices = jest.fn().mockReturnValue([]);
+      this.updateInfraredRemotes = jest.fn();
+      this.getDeviceSchemaConfig = jest.fn();
+      this.devices = [];
+      this.api = mockAPI;
+      this.on = jest.fn();
+    }
   };
 });
 
 jest.mock('../src/cloud/device/TuyaHomeDeviceManager', () => {
   return class MockTuyaHomeDeviceManager {
-    pullDevices = jest.fn().mockReturnValue([]);
-    updateInfraredRemotes = jest.fn();
-    getDeviceSchemaConfig = jest.fn();
-    devices = [];
-    api = mockAPI;
-    on = jest.fn();
+    pullDevices: ReturnType<typeof jest.fn>;
+    updateInfraredRemotes: ReturnType<typeof jest.fn>;
+    getDeviceSchemaConfig: ReturnType<typeof jest.fn>;
+    devices: unknown[];
+    api: typeof mockAPI;
+    on: ReturnType<typeof jest.fn>;
+
+    constructor() {
+      this.pullDevices = jest.fn().mockReturnValue([]);
+      this.updateInfraredRemotes = jest.fn();
+      this.getDeviceSchemaConfig = jest.fn();
+      this.devices = [];
+      this.api = mockAPI;
+      this.on = jest.fn();
+    }
   };
 });
 
 jest.mock('../src/local/LocalDeviceManager', () => {
   return class MockLocalDeviceManager {
-    pullDevices = jest.fn().mockReturnValue([]);
-    updateInfraredRemotes = jest.fn();
-    getDeviceSchemaConfig = jest.fn();
-    devices = [];
-    api = mockAPI;
-    on = jest.fn();
+    pullDevices: ReturnType<typeof jest.fn>;
+    updateInfraredRemotes: ReturnType<typeof jest.fn>;
+    getDeviceSchemaConfig: ReturnType<typeof jest.fn>;
+    devices: unknown[];
+    api: typeof mockAPI;
+    on: ReturnType<typeof jest.fn>;
+
+    constructor() {
+      this.pullDevices = jest.fn().mockReturnValue([]);
+      this.updateInfraredRemotes = jest.fn();
+      this.getDeviceSchemaConfig = jest.fn();
+      this.devices = [];
+      this.api = mockAPI;
+      this.on = jest.fn();
+    }
   };
 });
 

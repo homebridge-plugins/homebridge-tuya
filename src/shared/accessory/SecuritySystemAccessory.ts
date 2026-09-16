@@ -1,3 +1,5 @@
+import { PlatformAccessory } from 'homebridge';
+import { TuyaPlatform, TuyaPluginAccessoryContext } from '../../platform';
 import BaseAccessory from './BaseAccessory';
 import { configureSecuritySystemCurrentState, configureSecuritySystemTargetState } from './characteristic/SecuritySystemState';
 import { configureName } from './characteristic/Name';
@@ -13,7 +15,12 @@ export default class SecuritySystemAccessory extends BaseAccessory {
     return [SCHEMA_CODE.MASTER_MODE, SCHEMA_CODE.SOS_STATE];
   }
 
-  isNightArm = false;
+  isNightArm: boolean;
+
+  constructor(platform: TuyaPlatform, accessory: PlatformAccessory<TuyaPluginAccessoryContext>) {
+    super(platform, accessory);
+    this.isNightArm = false;
+  }
 
   override configureServices() {
     const service = this.accessory.getService(this.Service.SecuritySystem)

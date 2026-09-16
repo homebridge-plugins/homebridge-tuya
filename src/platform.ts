@@ -52,30 +52,30 @@ export type TuyaPluginAccessoryContext = {
  */
 export class TuyaPlatform implements DynamicPlatformPlugin {
   private static readonly PLATFORM_UUID = '8CC2405F-4DB0-4586-B32F-A38CC156164D';
-  public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
-  private readonly platformAccessories = new Map<string, PlatformAccessory<TuyaPluginAccessoryContext>>();
+  public readonly Service: typeof Service;
+  public readonly Characteristic: typeof Characteristic;
+  private readonly platformAccessories: Map<string, PlatformAccessory<TuyaPluginAccessoryContext>>;
 
   /** platform ID */
-  private platformID = uuidv5(this.config.name ?? 'TuyaPlatform', TuyaPlatform.PLATFORM_UUID);
+  private platformID: string;
 
   /** Cast config to our typed shape for easy access. */
-  public platformConfig = this.config as TuyaPlatformConfig;
+  public platformConfig: TuyaPlatformConfig;
 
   /** Active communication mode. Defaults to "cloud" for backward compatibility. */
-  public mode = (this.config as TuyaPlatformConfig).mode ?? TuyaPluginMode.cloud;
+  public mode: TuyaPluginMode;
 
   /** Device manager */
   public deviceManager!: TuyaDeviceManager;
 
   /** All active accessory handler instances. */
-  public accessoryHandlers: BaseAccessory[] = [];
+  public accessoryHandlers: BaseAccessory[];
 
   /** for writing device list */
   private tid:NodeJS.Timeout | undefined;
 
   /** for debug */
-  public debug: boolean = false;
+  public debug: boolean;
   public debugLevel: string | undefined;
 
   validate() {
@@ -174,6 +174,14 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    this.Service = this.api.hap.Service;
+    this.Characteristic = this.api.hap.Characteristic;
+    this.platformAccessories = new Map();
+    this.platformID = uuidv5(this.config.name ?? 'TuyaPlatform', TuyaPlatform.PLATFORM_UUID);
+    this.platformConfig = this.config as TuyaPlatformConfig;
+    this.mode = this.platformConfig.mode ?? TuyaPluginMode.cloud;
+    this.accessoryHandlers = [];
+    this.debug = false;
     initLogger(log);
     this.platformConfig = new ConfigMigrator(!!this.platformConfig.common?.debug).migrate(config);
     this.debug = this.platformConfig.common?.debug ?? false;

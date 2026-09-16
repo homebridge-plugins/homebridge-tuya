@@ -28,9 +28,9 @@ type DgramServer = dgram.Socket | null;
 export default class TuyaDiscovery extends EventEmitter {
   static readonly Events = Events;
 
-  private servers: Record<number, DgramServer> = {};
-  private running = false;
-  private discovered: Map<string, string> = new Map(); // id → ip
+  private servers: Record<number, DgramServer>;
+  private running: boolean;
+  private discovered: Map<string, string>; // id → ip
 
   public log: ExLogger;
 
@@ -38,6 +38,9 @@ export default class TuyaDiscovery extends EventEmitter {
     private debug = false,
   ) {
     super();
+    this.servers = {};
+    this.running = false;
+    this.discovered = new Map();
     this.log = new PrefixLogger(logger(), TuyaDiscovery.name, this.debug);
   }
 

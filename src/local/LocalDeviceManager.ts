@@ -65,39 +65,51 @@ function buildDpToCodeMap(dpMapping: Record<string, number>): Record<number, str
  * handlers.
  */
 export default class LocalDeviceManager extends TuyaDeviceManager {
-  private localConnections: Map<string, LocalDevice> = new Map();
+  private localConnections: Map<string, LocalDevice>;
   private discovery: TuyaDiscovery;
   private config: LocalConfig;
-  private discoveryTimeout: NodeJS.Timeout | null = null;
-  private rediscoveryTimeout: NodeJS.Timeout | null = null;
-  private isDiscoveryActive = false;
-  private discoveredInCurrentPhase: Set<string> = new Set();
+  private discoveryTimeout: NodeJS.Timeout | null;
+  private rediscoveryTimeout: NodeJS.Timeout | null;
+  private isDiscoveryActive: boolean;
+  private discoveredInCurrentPhase: Set<string>;
 
   // Maps deviceId → effective dpMapping (code → dp)
-  private dpMaps: Map<string, Record<string, number>> = new Map();
+  private dpMaps: Map<string, Record<string, number>>;
   // Maps deviceId → reverse dpMapping (dp → code)
-  private reverseDpMaps: Map<string, Record<number, string>> = new Map();
+  private reverseDpMaps: Map<string, Record<number, string>>;
   // Maps discovered gwId → IP (kept even after TuyaDevice created)
-  private discoveredIPs: Map<string, string> = new Map();
+  private discoveredIPs: Map<string, string>;
   // Maps discovered gwId → version
-  private discoveredVersions: Map<string, string> = new Map();
+  private discoveredVersions: Map<string, string>;
   // Pending local response watches to cancel superseded commands
   private pendingLocalResponseWatchers: Map<string, Array<{
     expectedDps: Set<string>;
     cleanup: () => void;
     resolve: (value: boolean) => void;
     reject: (error: Error) => void;
-  }>> = new Map();
+  }>>;
 
   // ── Zigbee gateway/child support ──────────────────────────────────────────
   /** Parent gateway ID → GatewayRelationship (derived from config at init). */
-  private gatewayRelationships: Map<string, GatewayRelationship> = new Map();
+  private gatewayRelationships: Map<string, GatewayRelationship>;
   /** Parent gateway device ID → its active LocalDevice connection. */
-  private gatewayConnections: Map<string, LocalDevice> = new Map();
+  private gatewayConnections: Map<string, LocalDevice>;
   // ──────────────────────────────────────────────────────────────────────────
 
   constructor(localConfig: LocalConfig, debugMode: boolean = false) {
     super(debugMode);
+    this.localConnections = new Map();
+    this.discoveryTimeout = null;
+    this.rediscoveryTimeout = null;
+    this.isDiscoveryActive = false;
+    this.discoveredInCurrentPhase = new Set();
+    this.dpMaps = new Map();
+    this.reverseDpMaps = new Map();
+    this.discoveredIPs = new Map();
+    this.discoveredVersions = new Map();
+    this.pendingLocalResponseWatchers = new Map();
+    this.gatewayRelationships = new Map();
+    this.gatewayConnections = new Map();
     this.config = localConfig;
     this.discovery = new TuyaDiscovery();
   }

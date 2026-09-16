@@ -1,4 +1,6 @@
+import { PlatformAccessory } from 'homebridge';
 import { TuyaDeviceSchemaType, TuyaDeviceStatus } from '../../cloud/device/TuyaDevice';
+import { TuyaPlatform, TuyaPluginAccessoryContext } from '../../platform';
 import FanAccessory from './FanAccessory';
 import { IRAdapter, IRKeyItemMap } from './IRAdapter';
 
@@ -60,7 +62,12 @@ const LEARNING_KEY_NAMES = {
 }
 
 export default class IRFanAccessory extends IRAdapter(FanAccessory) {
-  private powerMap = KEY_ITEM_MAPS.find(i => i.key_name === 'power')!;
+  private powerMap: IRKeyItemMap;
+
+  constructor(platform: TuyaPlatform, accessory: PlatformAccessory<TuyaPluginAccessoryContext>) {
+    super(platform, accessory);
+    this.powerMap = KEY_ITEM_MAPS.find(i => i.key_name === 'power')!;
+  }
 
   override async sendCommands(commands: TuyaDeviceStatus[], debounce?: boolean): Promise<boolean> {
     this.powerMap.defaultValue = true;

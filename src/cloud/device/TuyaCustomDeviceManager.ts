@@ -4,8 +4,8 @@ import TuyaCloudDeviceManager from './TuyaCloudDeviceManager';
 import { TuyaPlatformCustomConfig } from '../../config';
 
 export default class TuyaCustomDeviceManager extends TuyaCloudDeviceManager {
-  private readonly DEFAULT_USER = 'homebridge';
-  private readonly DEFAULT_PASS = 'homebridge';
+  private readonly DEFAULT_USER: string;
+  private readonly DEFAULT_PASS: string;
 
   constructor(
     public override api: TuyaOpenAPI,
@@ -13,6 +13,8 @@ export default class TuyaCustomDeviceManager extends TuyaCloudDeviceManager {
     public override debug = false,
   ) {
     super(api, config, debug);
+    this.DEFAULT_USER = 'homebridge';
+    this.DEFAULT_PASS = 'homebridge';
     this.mq.version = '2.0';
   }
 

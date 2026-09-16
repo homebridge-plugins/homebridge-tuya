@@ -10,13 +10,16 @@ const createdConnections: any[] = [];
 jest.mock('../src/local/LocalDevice', () => ({
   __esModule: true,
   default: class MockLocalDevice extends (require('events').EventEmitter) {
-    public update = jest.fn();
-    public connect = jest.fn();
-    public disconnect = jest.fn();
+    public update: ReturnType<typeof jest.fn>;
+    public connect: ReturnType<typeof jest.fn>;
+    public disconnect: ReturnType<typeof jest.fn>;
     public context: any;
 
     constructor(context: any) {
       super();
+      this.update = jest.fn();
+      this.connect = jest.fn();
+      this.disconnect = jest.fn();
       this.context = context;
       createdConnections.push(this);
     }
@@ -26,9 +29,15 @@ jest.mock('../src/local/LocalDevice', () => ({
 jest.mock('../src/local/TuyaDiscovery', () => ({
   __esModule: true,
   default: class MockTuyaDiscovery {
-    public on = jest.fn();
-    public start = jest.fn();
-    public stop = jest.fn();
+    public on: ReturnType<typeof jest.fn>;
+    public start: ReturnType<typeof jest.fn>;
+    public stop: ReturnType<typeof jest.fn>;
+
+    constructor() {
+      this.on = jest.fn();
+      this.start = jest.fn();
+      this.stop = jest.fn();
+    }
   },
 }));
 

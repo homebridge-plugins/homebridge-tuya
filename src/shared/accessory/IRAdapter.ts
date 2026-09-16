@@ -28,7 +28,12 @@ type Constructor<T = {}> = new (...args: any[]) => T;
 export function IRAdapter<TBase extends Constructor<BaseAccessory>>(Base: TBase) {
   return class extends Base {
     private tid:NodeJS.Timeout | undefined;
-    private associatedIRRemoteKey: TuyaIRRemoteKeyListItem[] = [];
+    private associatedIRRemoteKey: TuyaIRRemoteKeyListItem[];
+
+    constructor(...args: any[]) {
+      super(...args);
+      this.associatedIRRemoteKey = [];
+    }
 
     override configureServices() {
       super.configureServices();

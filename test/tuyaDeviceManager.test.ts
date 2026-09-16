@@ -20,18 +20,31 @@ const mockLog: ExLogger = {
 // Mock TuyaOpenMQ
 jest.mock('../src/cloud/api/TuyaOpenMQ', () => {
   return class MockTuyaOpenMQ extends EventEmitter {
-    addMessageListener = jest.fn();
-    connect = jest.fn();
-    disconnect = jest.fn();
+    addMessageListener: ReturnType<typeof jest.fn>;
+    connect: ReturnType<typeof jest.fn>;
+    disconnect: ReturnType<typeof jest.fn>;
+
+    constructor() {
+      super();
+      this.addMessageListener = jest.fn();
+      this.connect = jest.fn();
+      this.disconnect = jest.fn();
+    }
   };
 });
 
 // Mock TuyaOpenAPI
 jest.mock('../src/cloud/api/TuyaOpenAPI', () => {
   return class MockTuyaOpenAPI {
-    log = { log: console.log };
-    accessId = 'test_id';
-    accessKey = 'test_key';
+    log: { log: typeof console.log };
+    accessId: string;
+    accessKey: string;
+
+    constructor() {
+      this.log = { log: console.log };
+      this.accessId = 'test_id';
+      this.accessKey = 'test_key';
+    }
   };
 });
 

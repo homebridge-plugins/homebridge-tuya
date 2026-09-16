@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { AdaptiveLightingController, Characteristic, CharacteristicValue, Nullable, PlatformAccessory, Service } from 'homebridge';
 
-import { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty, TuyaDeviceStatus } from '../../cloud/device/TuyaDevice';
+import TuyaDevice, { TuyaDeviceSchema, TuyaDeviceSchemaIntegerProperty, TuyaDeviceStatus } from '../../cloud/device/TuyaDevice';
 import { TuyaPlatform, TuyaPluginAccessoryContext } from '../../platform';
+import TuyaDeviceManager from '../TuyaDeviceManager';
 import { logger, PrefixLogger } from '../util/Logger';
 import { configureExtraCharactersitcs } from './characteristic/ExtraCharacteristicAdapter';
 import { debounce, deepEqual, limit, sanitizeName } from '../util/util';
@@ -23,26 +24,48 @@ const SCHEMA_CODE = {
  *   https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
  */
 class BaseAccessory {
-  public readonly Service: typeof Service = this.platform.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.platform.api.hap.Characteristic;
+  public readonly Service: typeof Service;
+  public readonly Characteristic: typeof Characteristic;
 
-  public deviceManager = this.platform.deviceManager!;
-  public device = this.deviceManager.getDevice(this.accessory.context.deviceID)!;
-  public log = new PrefixLogger(
-    logger(),
-    this.device.name.length > 0 ? this.device.name : this.device.id,
-    !!this.platform.debugLevel ? this.platform.debugLevel.includes(this.device.id) : this.platform.debug,
-  );
+  public deviceManager: TuyaDeviceManager;
+  public device: TuyaDevice;
+  public log: PrefixLogger;
 
-  public initialized = false;
+  public initialized: boolean;
 
   public adaptiveLightingController?: AdaptiveLightingController;
-  supportedDPs = new Set();
+  supportedDPs: Set<unknown>;
 
   constructor(
     public readonly platform: TuyaPlatform,
     public readonly accessory: PlatformAccessory<TuyaPluginAccessoryContext>,
   ) {
+    this.Service = this.platform.api.hap.Service;
+    this.Characteristic = this.platform.api.hap.Characteristic;
+    this.deviceManager = this.platform.deviceManager!;
+    this.device = this.deviceManager.getDevice(this.accessory.context.deviceID)!;
+    this.log = new PrefixLogger(
+      logger(),
+      this.device.name.length > 0 ? this.device.name : this.device.id,
+      !!this.platform.debugLevel ? this.platform.debugLevel.includes(this.device.id) : this.platform.debug,
+    );
+    this.initialized = false;
+    this.supportedDPs = new Set();
+    this.sendQueue = new Map();
+    this.debounceSendCommands = debounce(async () => {
+      const commands = [...this.sendQueue.values()];
+      if (commands.length === 0) {
+        return;
+      }
+
+      try {
+        await this.deviceManager.sendCommands(this.device.id, commands);
+      } catch (error) {
+        this.log.warn(`Debounced send failed: ${error instanceof Error ? error.message : error}`);
+      } finally {
+        this.sendQueue.clear();
+      }
+    }, 100);
     this.addAccessoryInfoService();
     this.addBatteryService();
   }
@@ -194,21 +217,8 @@ class BaseAccessory {
     return this.device.status.find(status => status.code === code);
   }
 
-  private sendQueue = new Map<string, TuyaDeviceStatus>();
-  private debounceSendCommands = debounce(async () => {
-    const commands = [...this.sendQueue.values()];
-    if (commands.length === 0) {
-      return;
-    }
-
-    try {
-      await this.deviceManager.sendCommands(this.device.id, commands);
-    } catch (error) {
-      this.log.warn(`Debounced send failed: ${error instanceof Error ? error.message : error}`);
-    } finally {
-      this.sendQueue.clear();
-    }
-  }, 100);
+  private sendQueue: Map<string, TuyaDeviceStatus>;
+  private debounceSendCommands: () => void;
 
   async sendCommands(commands: TuyaDeviceStatus[], debounce = false) {
     if (commands.length === 0) {
@@ -295,7 +305,15 @@ class BaseAccessory {
 // Overriding getSchema, getStatus, sendCommands
 export default class OverridedBaseAccessory extends BaseAccessory {
 
-  private eval = (script: string, device, value) => eval(script);
+  private eval: (script: string, device: TuyaDevice, value: string | number | boolean) => string | number | boolean;
+
+  constructor(
+    platform: TuyaPlatform,
+    accessory: PlatformAccessory<TuyaPluginAccessoryContext>,
+  ) {
+    super(platform, accessory);
+    this.eval = (script: string, device, value) => eval(script);
+  }
 
   private getOverridedSchema(code: string) {
     if (!this.device) {

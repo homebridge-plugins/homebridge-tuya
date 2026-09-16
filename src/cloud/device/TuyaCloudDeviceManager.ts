@@ -19,7 +19,7 @@ enum TuyaMQTTProtocol {
 
 export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
   public mq: TuyaOpenMQ;
-  public ownerIDs: string[] = [];
+  public ownerIDs: string[];
 
   constructor(
     public api: TuyaOpenAPI,
@@ -27,6 +27,7 @@ export default abstract class TuyaCloudDeviceManager extends TuyaDeviceManager {
     public override debug = false,
   ) {
     super(debug);
+    this.ownerIDs = [];
 
     this.mq = new TuyaOpenMQ(api);
     this.mq.addMessageListener(this.onMQTTMessage.bind(this));

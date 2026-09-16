@@ -21,9 +21,16 @@ jest.mock('../src/local/protocol/ProtocolFactory', () => ({
 let mockSocket: any;
 jest.mock('net', () => ({
   Socket: class MockSocket extends EventEmitter {
-    connect = jest.fn();
-    write = jest.fn();
-    destroy = jest.fn();
+    connect: ReturnType<typeof jest.fn>;
+    write: ReturnType<typeof jest.fn>;
+    destroy: ReturnType<typeof jest.fn>;
+
+    constructor() {
+      super();
+      this.connect = jest.fn();
+      this.write = jest.fn();
+      this.destroy = jest.fn();
+    }
   },
   createConnection: jest.fn(() => mockSocket),
 }));

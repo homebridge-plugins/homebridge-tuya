@@ -17,12 +17,13 @@ export default abstract class TuyaDeviceManager extends EventEmitter {
   private static readonly UUID = '9B98886D-EB49-4635-9096-DC826A31A390';
 
   protected log: ExLogger;
-  public devices: TuyaDevice[] = [];
+  public devices: TuyaDevice[];
 
   constructor(
     public debug = false,
   ) {
     super();
+    this.devices = [];
     this.log = new PrefixLogger(logger(), this.constructor.name, debug);
   }
 
