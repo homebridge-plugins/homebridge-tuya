@@ -52,6 +52,8 @@ import LocationWeatherAccessory from './LocationWeatherAccessory';
 import TowelRackAccessory from './TowerRackAccessory';
 import BlindsAccessory from './BlindsAccessory';
 import IRFanAccessory from './IRFanAccessory';
+import CatToiletAccessory from './CatToiletAccessory';
+import SaunaAccessory from './SaunaAccessory';
 
 export default class AccessoryFactory {
   static readonly platformAccessoryOverrides:Partial<
@@ -205,6 +207,9 @@ export default class AccessoryFactory {
       case 'kt':
       case 'ktkzq':
         return new AirConditionerAccessory(platform, accessory);
+      case 'qtwk': // unofficial category.
+        // https://github.com/homebridge-plugins/homebridge-tuya/commit/35fcdd10b27e64430d40a77c39518e7c2ea94865
+        return new SaunaAccessory(platform, accessory);
 
       // Small Home Appliances
       case 'qn':
@@ -245,6 +250,8 @@ export default class AccessoryFactory {
         return new FanAccessory(platform, accessory);
       case 'yyj':
         return new ExtractionHoodAccessory(platform, accessory);
+      case 'msp':
+        return new CatToiletAccessory(platform, accessory);
 
       // Security & Video Surveillance
       case 'sp':
