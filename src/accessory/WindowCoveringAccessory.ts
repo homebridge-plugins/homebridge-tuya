@@ -25,7 +25,8 @@ export default class WindowCoveringAccessory extends BaseAccessory {
   requiredSchema() {
     // HAP mandates the presence of Current Position, Position State, and Target Position.
     // Because altering this logic may cause some devices to malfunction, the implementation will remain as it is.
-    return [SCHEMA_CODE[0].TARGET_POSITION_CONTROL];//, SCHEMA_CODE[1].TARGET_POSITION_CONTROL];
+    // return [SCHEMA_CODE[0].TARGET_POSITION_CONTROL];//, SCHEMA_CODE[1].TARGET_POSITION_CONTROL];
+    return [];
   }
 
   configureServices() {
