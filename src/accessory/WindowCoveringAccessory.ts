@@ -6,14 +6,14 @@ import { configureTargetPosition } from './characteristic/TargetPosition';
 const SCHEMA_CODE = [
   {
     NAME : 'control',
-    TARGET_POSITION_CONTROL: ['control', 'mach_operate'],
+    TARGET_POSITION_CONTROL: ['work_state', 'control', 'mach_operate'],
     TARGET_POSITION_PERCENT: ['percent_control', 'position'],
     CONTROL_BACK: ['control_back_mode', 'control_back', 'opposite'],
     CURRENT_POSITION_PERCENT: ['percent_state'],
   },
   {
     NAME : 'control_2',
-    TARGET_POSITION_CONTROL: ['control_2', 'mach_operate'],
+    TARGET_POSITION_CONTROL: ['work_state2', 'control_2', 'mach_operate'],
     TARGET_POSITION_PERCENT: ['percent_control_2', 'position'],
     CONTROL_BACK: ['control_back_mode', 'control_back'],
     CURRENT_POSITION_PERCENT: ['percent_state'],

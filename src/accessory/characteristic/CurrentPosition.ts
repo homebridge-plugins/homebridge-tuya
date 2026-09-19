@@ -100,12 +100,15 @@ function _configureCurrentPositionWithPositionStateControl(
     .on('change', (context) => {
       // Because the context value was not correct, I retrieve the current value manually.
       const currentValue = onGet();
+      const newValue = context.newValue as number;
+//      const newValue = onGet();
+      const oldValue = context.oldValue as number;
       accessory.log.debug(`current position onchange. currentValue:${currentValue}`);
       accessory.log.debug('context:%o', context);
       // https://github.com/homebridge-plugins/homebridge-tuya/pull/50
       // Although the implementation is unconventional, it was reportedly necessary to achieve the correct behavior on actual hardware.
       // In principle, PositionState is a read‑only characteristic and should not be updated or set.
-      if (context.newValue === 0 || context.newValue === 100) {
+      if (newValue === 0 || newValue === 100) {
         service.updateCharacteristic(
           accessory.Characteristic.PositionState,
           accessory.Characteristic.PositionState.STOPPED,
@@ -113,16 +116,16 @@ function _configureCurrentPositionWithPositionStateControl(
         const status = accessory.getStatus(controlSchema.code);
         const range = (controlSchema.property as TuyaDeviceSchemaEnumProperty).range ?? [];
         const stopped = range.find(state => ControlRange.Stop.includes(state as (typeof ControlRange.Stop)[number]))!;
-        accessory.log.debug(`status:${status?.value}, newValue:${context.newValue}`);
+        accessory.log.debug(`status:${status?.value}, newValue:${newValue}`);
         if (status?.value !== stopped) {
           accessory.sendCommands([{ code: controlSchema.code, value: stopped }], true);
         }
-      } else if ((context.newValue || 0) < (context.oldValue || 0)) {
+      } else if ((newValue || 0) < (oldValue || 0)) {
         service.updateCharacteristic(
           accessory.Characteristic.PositionState,
           accessory.Characteristic.PositionState.DECREASING,
         );
-      } else if ((context.oldValue || 0) < (context.newValue || 0)) {
+      } else if ((oldValue || 0) < (newValue || 0)) {
         service.updateCharacteristic(
           accessory.Characteristic.PositionState,
           accessory.Characteristic.PositionState.INCREASING,

@@ -3,9 +3,9 @@ import { TuyaDeviceSchema, TuyaDeviceSchemaEnumProperty } from '../../device/Tuy
 import BaseAccessory from '../BaseAccessory';
 
 export const ControlRange = {
-  Open: ['open', 'ZZ'],
+  Open: ['opening', 'open', 'ZZ'],
   Stop: ['stop', 'STOP'],
-  Close: ['close', 'FZ'],
+  Close: ['closing', 'close', 'FZ'],
   Continue: ['continue'],
 };
 
