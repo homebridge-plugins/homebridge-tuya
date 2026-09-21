@@ -77,7 +77,12 @@ describe('convert property', () => {
 
   test('enumToPercentageProperty returns 25% steps for 4 enum values', () => {
     const property = { range: ['low', 'medium', 'high', 'auto'] } as unknown as TuyaDeviceSchemaEnumProperty;
-    expect(enumToPercentageProperty(property)).toEqual({ minValue: 0, maxValue: 100, minStep: 25, unit: '%' });
+    expect(enumToPercentageProperty(property, false)).toEqual({ minValue: 0, maxValue: 100, minStep: 25, unit: '%' });
+  });
+
+  test('enumToPercentageProperty returns 25% steps for 5 enum values(including stop code)', () => {
+    const property = { range: ['stop', 'low', 'medium', 'high', 'auto'] } as unknown as TuyaDeviceSchemaEnumProperty;
+    expect(enumToPercentageProperty(property, true)).toEqual({ minValue: 0, maxValue: 100, minStep: 25, unit: '%' });
   });
 
 });

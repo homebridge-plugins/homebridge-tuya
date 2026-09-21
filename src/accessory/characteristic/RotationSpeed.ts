@@ -8,6 +8,9 @@ import {
 import { limit, toHapProperty } from '../../util/util';
 import BaseAccessory from '../BaseAccessory';
 
+// Used to determine whether a STOPPED status code is included.
+const StopCodes = ['stop', '0', 'closed', 'level_0'] as const;
+
 export function configureRotationSpeed(
   accessory: BaseAccessory,
   service: Service,
@@ -19,7 +22,7 @@ export function configureRotationSpeed(
   }
 
   if (schema.type === TuyaDeviceSchemaType.Enum) {
-    configureRotationSpeedEnum(accessory, service, schema, ['auto']);
+    configureRotationSpeedEnum(accessory, service, schema, ['auto', 'smart']);
   } else if (schema.type === TuyaDeviceSchemaType.Integer) {
     configureRotationSpeedInteger(accessory, service, schema);
   } else {
@@ -89,12 +92,13 @@ function configureRotationSpeedEnum(
     range.push(value);
   }
   cloneProperty.range = range;
-  const rotationSpeedProperty = enumToPercentageProperty(cloneProperty);
+  const includesStopCode = StopCodes.some(value => range.includes(value));
+  const rotationSpeedProperty = enumToPercentageProperty(cloneProperty, includesStopCode);
 
   const onGetHandler = () => {
     const status = accessory.getStatus(schema.code)!;
     const index = range.indexOf(status.value as string);
-    const level = index + 1;
+    const level = includesStopCode ? index : index + 1;
     const hapValue = level * rotationSpeedProperty.minStep!;
     accessory.log.debug(`(get) value from device: ${status.value} (${typeof status.value})`);
     accessory.log.debug(`to home app: ${hapValue} (${typeof hapValue})`);
@@ -109,7 +113,9 @@ function configureRotationSpeedEnum(
       if (!Number.isFinite(percent) || percent <= 0) {
         return;
       }
-      const speed = String(Math.floor(percent / rotationSpeedProperty.minStep!));
+      const level = Math.floor(percent / rotationSpeedProperty.minStep!);
+      const index = includesStopCode ? level : level - 1;
+      const speed = cloneProperty.range[index];
       accessory.log.debug(`(set) value from Home app: ${value} (${typeof value})`);
       accessory.log.debug(`to device: ${speed} (${typeof speed})`);
       await accessory.sendCommands([{ code: schema.code, value: speed }], true);
@@ -196,9 +202,9 @@ export function integerToPercentageProperty(property: TuyaDeviceSchemaIntegerPro
   return { minValue: 0, maxValue: 100, minStep: Math.floor(100 / stepCount), unit: '%' };
 }
 
-export function enumToPercentageProperty(property: TuyaDeviceSchemaEnumProperty): PartialAllowingNull<CharacteristicProps> {
+export function enumToPercentageProperty(property: TuyaDeviceSchemaEnumProperty, includesStopCode: boolean): PartialAllowingNull<CharacteristicProps> {
   const min = 0;
-  const max = property.range.length;
+  const max = includesStopCode ? property.range.length - 1 : property.range.length;
   const step = 1;
   return integerToPercentageProperty({ min: min, max: max, step: step, scale: 0, unit: '%' });
 }
