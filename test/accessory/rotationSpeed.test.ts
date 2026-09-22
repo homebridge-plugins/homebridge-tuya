@@ -70,9 +70,9 @@ describe('convert property', () => {
     expect(integerToPercentageProperty(property)).toEqual({ minValue: 0, maxValue: 100, minStep: 25, unit: '%' });
   });
 
-  test('integerToPercentageProperty returns 33% steps for 0..3 levels', () => {
+  test('integerToPercentageProperty returns 33.3% steps for 0..3 levels', () => {
     const property = { min: 0, max: 3, step: 1, scale: 0, unit: '' } as unknown as TuyaDeviceSchemaIntegerProperty;
-    expect(integerToPercentageProperty(property)).toEqual({ minValue: 0, maxValue: 100, minStep: 33, unit: '%' });
+    expect(integerToPercentageProperty(property)).toEqual({ minValue: 0, maxValue: 100, minStep: 33.3, unit: '%' });
   });
 
   test('enumToPercentageProperty returns 25% steps for 4 enum values', () => {

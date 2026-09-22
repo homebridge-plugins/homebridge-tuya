@@ -199,7 +199,7 @@ export function integerToPercentageProperty(property: TuyaDeviceSchemaIntegerPro
   } else {
     stepCount = Math.min(100, Math.ceil((hapProperty.maxValue! - hapProperty.minValue!) / hapProperty.minStep!) + 1);
   }
-  return { minValue: 0, maxValue: 100, minStep: Math.floor(100 / stepCount), unit: '%' };
+  return { minValue: 0, maxValue: 100, minStep: Number((100 / stepCount).toFixed(1)), unit: '%' };
 }
 
 export function enumToPercentageProperty(property: TuyaDeviceSchemaEnumProperty, includesStopCode: boolean): PartialAllowingNull<CharacteristicProps> {
