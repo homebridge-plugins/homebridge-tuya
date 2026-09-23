@@ -12,6 +12,7 @@ import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { TuyaPlatformConfigOptions, customOptionsSchema, homeOptionsSchema } from './config';
 import AccessoryFactory from './accessory/AccessoryFactory';
 import BaseAccessory from './accessory/BaseAccessory';
+import { sanitizeName } from './util/util';
 import TuyaOpenAPI, { LOGIN_ERROR_MESSAGES } from './core/TuyaOpenAPI';
 
 
@@ -139,6 +140,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
+    AccessoryFactory.configAccessory(this, accessory);
     // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.cachedAccessories.push(accessory);
   }
@@ -239,7 +241,14 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       }
     });
 
-    const schemaConfig = deviceConfig.schema.find(item => item.newCode ? item.newCode === code : item.code === code);
+    // ignore case - guard against undefined codes
+    const schemaConfig = deviceConfig.schema.find(item => {
+      const itemCode = (item.newCode ?? item.code);
+      if (!itemCode || !code) {
+        return false;
+      }
+      return itemCode.toString().toLowerCase() === code.toString().toLowerCase();
+    });
     if (!schemaConfig) {
       return undefined;
     }
@@ -258,7 +267,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     let res;
     const { endpoint, accessId, accessKey, debug, debugLevel } = this.options;
     const debugMode = debug && ((debugLevel ?? '').length > 0 ? debugLevel?.includes('api') : true);
-    const api = new TuyaOpenAPI(endpoint, accessId, accessKey, this.log, 'en', debugMode);
+    const api = new TuyaOpenAPI(endpoint, accessId, accessKey, this.log, 'en', debugMode, this.options.forceIPv4);
     const deviceManager = new TuyaCustomDeviceManager(api, debugMode);
 
     this.log.info('Get token.');
@@ -353,7 +362,8 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       accessKey,
       this.log,
       'en',
-      debugMode);
+      debugMode,
+      this.options.forceIPv4);
     const deviceManager = new TuyaHomeDeviceManager(api, debugMode);
 
     this.log.info('Log in to Tuya Cloud.');
@@ -409,6 +419,14 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     }
 
     this.deviceManager = deviceManager;
+
+    if (this.options.generateWeatherAccessory) {
+      const targetDevice = devices.find(device => device.lat && device.lon);
+      if (targetDevice) {
+        devices.push(this.createWeatherDevice(targetDevice, res.result));
+      }
+    }
+
     return devices;
   }
 
@@ -443,8 +461,9 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       // the accessory does not yet exist, so we need to create it
       this.log.info('Adding new accessory:', device.name);
 
-      // create a new accessory
-      const accessory = new this.api.platformAccessory(device.name, uuid);
+      // create a new accessory (sanitize name to conform to HAP rules)
+      const safeName = sanitizeName(device.name) ?? (device.id || 'Tuya Device');
+      const accessory = new this.api.platformAccessory(safeName, uuid);
       accessory.context.deviceID = device.id;
 
       // create the accessory handler for the newly create accessory
@@ -457,6 +476,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       } else {
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
+      AccessoryFactory.configAccessory(this, accessory);
     }
   }
 
@@ -499,4 +519,15 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     return this.accessoryHandlers.find(handler => handler.device.id === deviceID);
   }
 
+  createWeatherDevice(device: TuyaDevice, result: { home_id: string; name: string }[]): TuyaDevice {
+    const key = `weather-${device.owner_id}`;
+    const uuid = this.api.hap.uuid.generate(key);
+    this.log.info(`add weather device:${key}`);
+    const virtualDevice = this.deviceManager!.createVirtualDevice(device, uuid);
+    virtualDevice.product_id = 'virtual-product-id-weather';
+    virtualDevice.category = 'wsdcg';
+    virtualDevice.name = `Weather(${result.find(home => home.home_id === device.owner_id)?.name})`;
+    return virtualDevice;
+  }
 }
+

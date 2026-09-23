@@ -1,17 +1,17 @@
 /* eslint-disable no-console */
 import { describe, expect, test } from '@jest/globals';
 
-import TuyaOpenAPI from '../src/core/TuyaOpenAPI';
-import TuyaDevice from '../src/device/TuyaDevice';
+import TuyaOpenAPI from '../src/cloud/api/TuyaOpenAPI';
+import TuyaDevice from '../src/cloud/device/TuyaDevice';
 
-import TuyaCustomDeviceManager from '../src/device/TuyaCustomDeviceManager';
+import TuyaCustomDeviceManager from '../src/cloud/device/TuyaCustomDeviceManager';
 
 import { config, expectDevice, expectSuccessResponse } from './util';
 
 const { options } = config;
-if (options.projectType === '1') {
+if (options?.projectType === '1') {
   const api = new TuyaOpenAPI(options.endpoint, options.accessId, options.accessKey);
-  const deviceManager = new TuyaCustomDeviceManager(api);
+  const deviceManager = new TuyaCustomDeviceManager(api, options);
 
   describe('TuyaOpenAPI', () => {
     test('getToken()', async () => {
@@ -26,7 +26,7 @@ if (options.projectType === '1') {
 
     test('customCreateUser()', async () => {
       const res = await api.customCreateUser('homebridge', 'homebridge');
-      if (res.success === false && res.code === 14520015) {
+      if (!res.success && res.code === 14520015) {
         // already exist
       } else {
         expectSuccessResponse(res);

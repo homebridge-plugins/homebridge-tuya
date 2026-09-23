@@ -1,5 +1,58 @@
 # Changelog
 
+## [3.0.0] - (2026.6.1)
+
+### Breaking Changes
+- **Complete codebase restructure** — source files are now organised under `src/cloud/`, `src/local/`, and `src/shared/` instead of the previous flat layout. No config changes needed for existing cloud users.
+- Requires Node.js `^20 || ^22 || ^24 || ^25`.
+
+### Added
+- **Local LAN mode** — communicate directly with Tuya devices over TCP on your local network with no cloud connection required. Set `"mode": "local"` in your config.
+- **Both mode** — run cloud and local connections simultaneously (`"mode": "both"`).
+- **UDP auto-discovery** — automatically finds Tuya devices on the local network (ports 6666/6667/7000). Supports protocol versions 3.1–3.5 including AES-GCM (v3.5).
+- **Full local protocol support** — LAN TCP client with AES-128-ECB (v3.1–v3.4) and AES-128-GCM (v3.5), 3-way key exchange for v3.4/v3.5, and automatic reconnection with exponential backoff.
+- New `local` config block in Homebridge UI with device list and discovery options.
+- New `mode` selector in the Homebridge UI config screen.
+
+### Changed
+- Updated `config.schema.json` with the new `mode` enum and `local` block; all cloud options now only appear when mode is `cloud` or `both`.
+- Version bump to 3.0.0 to reflect the breaking restructure.
+- Updated README with full cloud and local setup instructions.
+
+## [2.2.0] - (2026.2.23)
+
+### Fixed
+ - Fixed the HeaterAccessory to follow the device’s schema information.
+If you want to revert to the previous behavior, set the category code to qn_old. 
+
+### Changed
+ - Updated the handling of DP Codes so they are now processed in a case‑insensitive manner.
+ - Updated the plugin settings window to mask the password field.
+
+## [2.1.0] - (2026.1.5)
+
+### Added
+ - Support Towel Rack(mjj)
+The implementation is almost identical to a thermostat.
+The difference is that there is no limit on the set temperature.
+The lower limit, upper limit, and step of the set temperature may sometimes differ from expectations. Since this is an issue with the product you are using, please override it to any desired value in Advanced Options.
+
+## [2.0.3] - (2025.9.6)
+
+First release after forking.
+Homebridge verified.
+
+### Added
+ - Added an illuminance sensor to the IRControlHub.
+ - Added an accessory that displays weather temperature and humidity.
+ - config.schema.json to allow customizing the Service information for each accessory.
+
+### Fixed
+ - Fixed an issue where learned infrared codes in the IRControlHub would not work in some cases. This likely improves compatibility with older devices.
+### Changed
+ - Updated the IRControlHub to calculate WBGT based on its temperature and humidity readings and expose it as an accessory.
+ - Updated the Outlet accessory so that its “in use” status can be checked in the Home app.
+
 ## [1.7.0] - (unreleased)
 
 ### Added
@@ -122,6 +175,6 @@ This version has been completely rewritten in TypeScript, brings a lot of bug fi
 
 
 ### Removed
-- Remove `debug` option. Silence logs for users. For debugging, please refer to [troubleshooting](https://github.com/0x5e/homebridge-tuya-platform#troubleshooting).
+- Remove `debug` option. Silence logs for users. For debugging, please refer to [troubleshooting](https://github.com/homebridge-plugins/homebridge-tuya#troubleshooting).
 - Remove `lang` option.
 - Remove `username` and `password` options for `Custom` project. User will be created and authorized automatically. (#11)

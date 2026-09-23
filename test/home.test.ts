@@ -1,17 +1,17 @@
 /* eslint-disable no-console */
 import { describe, expect, test } from '@jest/globals';
 
-import TuyaOpenAPI from '../src/core/TuyaOpenAPI';
-import TuyaDevice from '../src/device/TuyaDevice';
+import TuyaOpenAPI from '../src/cloud/api/TuyaOpenAPI';
+import TuyaDevice from '../src/cloud/device/TuyaDevice';
 
-import TuyaHomeDeviceManager from '../src/device/TuyaHomeDeviceManager';
+import TuyaHomeDeviceManager from '../src/cloud/device/TuyaHomeDeviceManager';
 
 import { config, expectDevice, expectSuccessResponse } from './util';
 
 const { options } = config;
-if (options.projectType === '2') {
+if (options?.projectType === '2') {
   const api = new TuyaOpenAPI(TuyaOpenAPI.Endpoints.CHINA, options.accessId, options.accessKey);
-  const deviceManager = new TuyaHomeDeviceManager(api);
+  const deviceManager = new TuyaHomeDeviceManager(api, options);
 
   describe('TuyaOpenAPI', () => {
     test('homeLogin()', async () => {

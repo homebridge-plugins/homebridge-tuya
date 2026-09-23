@@ -2,42 +2,1279 @@
     "pluginAlias": "TuyaPlatform",
     "pluginType": "platform",
     "singular": true,
-    "headerDisplay": "",
+    "headerDisplay": "<p align='center'><img height='60px' src='https://user-images.githubusercontent.com/3979615/78354049-dc7ff780-75f6-11ea-8026-2f8bf81d8331.png'></p>",
     "footerDisplay": "",
     "customUi": false,
+    "layout": [
+        {
+            "type": "radiobuttons",
+            "key": "mode",
+            "style": { "selected": "btn-secondary", "unselected": "btn-outline-secondary" }
+        },
+        {
+            "type": "fieldset",
+            "items": [
+                {
+                    "type": "tabs",
+                    "tabs": [
+                        {
+                            "type": "fieldset",
+                            "title": "Local Settings",
+                            "notitle": true,
+                            "items": [
+                                {
+                                "type": "help",
+                                "labelHtmlClass": "alert-link alert-warning",
+                                "helpvalue": "⚠These settings are currently inactive because Cloud mode is enabled.",
+                                "condition": { "functionBody": "return (model.mode === 'cloud')" }
+                                },
+                                "local.autoDiscoverDevices",
+                                "local.discoverTimeout",
+                                "local.rediscoverInterval",
+                                {
+                                    "key": "local.devices",
+                                    "add": "Add Manual Device",
+                                    "title": "{{ 'Add New Device' }}",
+                                    "type": "tabarray",
+                                    "notitle": true,
+                                    "items": [
+                                        {
+                                            "type": "div",
+                                            "displayFlex": false,
+                                            "notitle": true,
+                                            "title": "{{ value.name || value.tuyaDeviceId || 'New Device' }}",
+                                            "items": [
+                                                "local.devices[].category",
+                                                "local.devices[].name",
+                                                "local.devices[].tuyaDeviceId",
+                                                "local.devices[].tuyaKey",
+                                                "local.devices[].ip",
+                                                "local.devices[].protocolVersion",
+                                                "local.devices[].dpMapping",
+                                                "local.devices[].outletCount",
+                                                {
+                                                "type": "help",
+                                                "labelHtmlClass": "alert-link alert-warning",
+                                                "helpvalue": "Set up the camera streaming in the Common Settings > RTSP Camera Settings.",
+                                                "condition": { "functionBody": "return (model.local?.devices?.[arrayIndices[0]].category === 'sp')" }
+                                                },
+                                                {
+                                                    "type": "fieldset",
+                                                    "items": [
+                                                        "local.devices[].dpMapping.add_ele",
+                                                        "local.devices[].dpMapping.air_quality",
+                                                        "local.devices[].dpMapping.alarm_message",
+                                                        "local.devices[].dpMapping.alarm_propel_switch",
+                                                        "local.devices[].dpMapping.battery_percentage",
+                                                        "local.devices[].dpMapping.bright_value",
+                                                        "local.devices[].dpMapping.bright_value_v2",
+                                                        "local.devices[].dpMapping.child_lock",
+                                                        "local.devices[].dpMapping.co2_state",
+                                                        "local.devices[].dpMapping.co2_value",
+                                                        "local.devices[].dpMapping.co_status",
+                                                        "local.devices[].dpMapping.co_value",
+                                                        "local.devices[].dpMapping.colour_data",
+                                                        "local.devices[].dpMapping.colour_data_v2",
+                                                        "local.devices[].dpMapping.control",
+                                                        "local.devices[].dpMapping.cur_current",
+                                                        "local.devices[].dpMapping.cur_power",
+                                                        "local.devices[].dpMapping.cur_voltage",
+                                                        "local.devices[].dpMapping.dehumidify_set_value",
+                                                        "local.devices[].dpMapping.doorbell_call",
+                                                        "local.devices[].dpMapping.doorbell_pic",
+                                                        "local.devices[].dpMapping.doorbell_ring_exist",
+                                                        "local.devices[].dpMapping.doorbell_volume_value",
+                                                        "local.devices[].dpMapping.doorcontact_state",
+                                                        "local.devices[].dpMapping.fan_direction",
+                                                        "local.devices[].dpMapping.fan_speed",
+                                                        "local.devices[].dpMapping.fan_speed_enum",
+                                                        "local.devices[].dpMapping.feed_report",
+                                                        "local.devices[].dpMapping.feed_state",
+                                                        "local.devices[].dpMapping.floodlight_lightness",
+                                                        "local.devices[].dpMapping.floodlight_switch",
+                                                        "local.devices[].dpMapping.gas_sensor_status",
+                                                        "local.devices[].dpMapping.humidity_current",
+                                                        "local.devices[].dpMapping.humidity_indoor",
+                                                        "local.devices[].dpMapping.humidity_set",
+                                                        "local.devices[].dpMapping.level",
+                                                        "local.devices[].dpMapping.light",
+                                                        "local.devices[].dpMapping.lock",
+                                                        "local.devices[].dpMapping.lock_motor_state",
+                                                        "local.devices[].dpMapping.manual_feed",
+                                                        "local.devices[].dpMapping.master_mode",
+                                                        "local.devices[].dpMapping.meal_plan",
+                                                        "local.devices[].dpMapping.mode",
+                                                        "local.devices[].dpMapping.motion_switch",
+                                                        "local.devices[].dpMapping.movement_detect_pic",
+                                                        "local.devices[].dpMapping.open_close",
+                                                        "local.devices[].dpMapping.percent_control",
+                                                        "local.devices[].dpMapping.percent_state",
+                                                        "local.devices[].dpMapping.pir",
+                                                        "local.devices[].dpMapping.pir_state",
+                                                        "local.devices[].dpMapping.pm10_value",
+                                                        "local.devices[].dpMapping.pm25",
+                                                        "local.devices[].dpMapping.pm25_value",
+                                                        "local.devices[].dpMapping.position",
+                                                        "local.devices[].dpMapping.presence_state",
+                                                        "local.devices[].dpMapping.quick_feed",
+                                                        "local.devices[].dpMapping.shake",
+                                                        "local.devices[].dpMapping.shock_state",
+                                                        "local.devices[].dpMapping.slow_feed",
+                                                        "local.devices[].dpMapping.smoke_sensor_status",
+                                                        "local.devices[].dpMapping.sos_state",
+                                                        "local.devices[].dpMapping.speed",
+                                                        "local.devices[].dpMapping.swing",
+                                                        "local.devices[].dpMapping.switch",
+                                                        "local.devices[].dpMapping.switch_1",
+                                                        "local.devices[].dpMapping.switch_fan",
+                                                        "local.devices[].dpMapping.switch_horizontal",
+                                                        "local.devices[].dpMapping.switch_inching",
+                                                        "local.devices[].dpMapping.switch_led",
+                                                        "local.devices[].dpMapping.switch_mode1",
+                                                        "local.devices[].dpMapping.switch_music",
+                                                        "local.devices[].dpMapping.switch_pir",
+                                                        "local.devices[].dpMapping.switch_sound",
+                                                        "local.devices[].dpMapping.switch_spray",
+                                                        "local.devices[].dpMapping.temp_current",
+                                                        "local.devices[].dpMapping.temp_indoor",
+                                                        "local.devices[].dpMapping.temp_set",
+                                                        "local.devices[].dpMapping.temp_unit_convert",
+                                                        "local.devices[].dpMapping.temp_value",
+                                                        "local.devices[].dpMapping.temp_value_v2",
+                                                        "local.devices[].dpMapping.tvoc",
+                                                        "local.devices[].dpMapping.va_humidity",
+                                                        "local.devices[].dpMapping.va_temperature",
+                                                        "local.devices[].dpMapping.voc_value",
+                                                        "local.devices[].dpMapping.work_mode",
+                                                        "local.devices[].dpMapping.work_state",
+                                                        "local.devices[].dpMapping.work_status"
+                                                    ]
+                                                },
+                                                {
+                                                    "key": "local.devices[].dpMappingArray",
+                                                    "type": "array",
+                                                    "listItems": 3,
+                                                    "items": [
+                                                        {
+                                                            "type": "div",
+                                                            "displayFlex": true,
+                                                            "flex-direction": "row",
+                                                            "items": [
+                                                                {
+                                                                    "key": "local.devices[].dpMappingArray[].dpCode",
+                                                                    "placeholder": "switch"
+                                                                },
+                                                                {
+                                                                    "key": "local.devices[].dpMappingArray[].dpID",
+                                                                    "placeholder": "1"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "fieldset",
+                            "title": "Cloud Settings",
+                            "notitle": true,
+                            "items": [
+                                {
+                                    "type": "help",
+                                    "labelHtmlClass": "alert-link alert-warning",
+                                    "helpvalue": "⚠These settings are currently inactive because Local mode is enabled.",
+                                    "condition": { "functionBody": "return (model.mode === 'local')" }
+                                },
+                                {
+                                    "type": "fieldset",
+                                    "title": "Tuya Cloud Account Info",
+                                    "expandable": true,
+                                    "expanded": true,
+                                    "items": [
+                                        "options.projectType",
+                                        "options.endpoint",
+                                        "options.accessId",
+                                        "options.accessKey",
+                                        "options.countryCode",
+                                        "options.username",
+                                        "options.password",
+                                        "options.appSchema"
+                                    ]
+                                },
+                                {
+                                    "type": "fieldset",
+                                    "title": "Tuya Home Settings",
+                                    "expandable": true,
+                                    "expanded": false,
+                                    "items": [
+                                        {
+                                            "key": "options.homeWhitelist",
+                                            "add": "Add Another Home ID",
+                                            "type": "tabarray",
+                                            "items": [
+                                                {
+                                                    "type": "div",
+                                                    "title": "{{ value }}",
+                                                    "items": [ "options.homeWhitelist[]" ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "fieldset",
+                                    "title": "Advance Settings",
+                                    "expandable": true,
+                                    "expanded": false,
+                                    "items": [
+                                        "options.generateWeatherAccessory",
+                                        "options.weatherAPI",
+                                        "options.forceIPv4"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "fieldset",
+                            "title": "Common Settings",
+                            "notitle": true,
+                            "items": [
+                                {
+                                    "type": "fieldset",
+                                    "title": "Tuya Device Settings",
+                                    "expandable": true,
+                                    "expanded": true,
+                                    "items": [
+                                        {
+                                            "key": "options.deviceOverrides",
+                                            "add": "Add Another Device Override",
+                                            "title": "{{ value.id || 'New Device Override' }}",
+                                            "type": "tabarray",
+                                            "default": [],
+                                            "items": [
+                                                {
+                                                    "type": "div",
+                                                    "items": [
+                                                        "options.deviceOverrides[].id",
+                                                        "options.deviceOverrides[].category",
+                                                        "options.deviceOverrides[].unbridged",
+                                                        "options.deviceOverrides[].addExtraFeaturesAutomatically",
+                                                        "options.deviceOverrides[].adaptiveLighting",
+                                                        "options.deviceOverrides[].configFor",
+                                                        {
+                                                            "key": "options.deviceOverrides[].schema",
+                                                            "add": "Add New Schema",
+                                                            "title": "{{ value.code }}",
+                                                            "type": "tabarray",
+                                                            "items": [
+                                                                {
+                                                                    "type": "div",
+                                                                    "items": [
+                                                                        "options.deviceOverrides[].schema[].code",
+                                                                        "options.deviceOverrides[].schema[].newCode",
+                                                                        "options.deviceOverrides[].schema[].hidden",
+                                                                        "options.deviceOverrides[].schema[].extra",
+                                                                        "options.deviceOverrides[].schema[].type",
+                                                                        "options.deviceOverrides[].schema[].onGet",
+                                                                        "options.deviceOverrides[].schema[].onSet",
+                                                                        {
+                                                                            "key": "options.deviceOverrides[].schema[].property",
+                                                                            "items": [
+                                                                                "options.deviceOverrides[].schema[].property.min",
+                                                                                "options.deviceOverrides[].schema[].property.max",
+                                                                                "options.deviceOverrides[].schema[].property.scale",
+                                                                                "options.deviceOverrides[].schema[].property.step",
+                                                                                {
+                                                                                    "key": "options.deviceOverrides[].schema[].property.range",
+                                                                                    "add": "Add Range",
+                                                                                    "title": "{{ value }}",
+                                                                                    "type": "tabarray",
+                                                                                    "items": [
+                                                                                        {
+                                                                                            "type": "div",
+                                                                                            "items": [ "options.deviceOverrides[].schema[].property.range[]" ]
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "key": "options.deviceOverrides[].schema[].extraRawSwitch",
+                                                                            "type": "array",
+                                                                            "items": [
+                                                                                {
+                                                                                    "type": "fieldset",
+                                                                                    "items": [
+                                                                                        { "key": "options.deviceOverrides[].schema[].extraRawSwitch[].configuredName" },
+                                                                                        {
+                                                                                            "type": "flex",
+                                                                                            "flex-flow": "row wrap",
+                                                                                            "items": [
+                                                                                                { "key": "options.deviceOverrides[].schema[].extraRawSwitch[].byteIndex", "flex-basis": "min-content" },
+                                                                                                { "key": "options.deviceOverrides[].schema[].extraRawSwitch[].value" }
+                                                                                            ]
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "fieldset",
+                                    "title": "Accessory Service Informations",
+                                    "expandable": true,
+                                    "expanded": false,
+                                    "notitle": false,
+                                    "items": [
+                                        {
+                                            "key": "options.serviceInformationOverrides",
+                                            "add": "Add Another Service Information Override",
+                                            "title": "{{ 'New Service Information Override' }}",
+                                            "type": "tabarray",
+                                            "default": [],
+                                            "items": [
+                                                {
+                                                    "type": "div",
+                                                    "title": "{{ value.configuredName || value.device_id }}",
+                                                    "items": [
+                                                        "options.serviceInformationOverrides[].device_id",
+                                                        "options.serviceInformationOverrides[].index",
+                                                        "options.serviceInformationOverrides[].manifacturer",
+                                                        "options.serviceInformationOverrides[].model",
+                                                        "options.serviceInformationOverrides[].firmwareRevision",
+                                                        "options.serviceInformationOverrides[].configuredName"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "fieldset",
+                                    "title": "RTSP Camera Settings",
+                                    "expandable": true,
+                                    "expanded": false,
+                                    "notitle": false,
+                                    "items": [
+                                        {
+                                            "key": "cameras",
+                                            "add": "Add Camera",
+                                            "title": "{{ 'New Camera' }}",
+                                            "type": "tabarray",
+                                            "notitle": true,
+                                            "items": [
+                                                {
+                                                    "type": "div",
+                                                    "displayFlex": false,
+                                                    "flex-direction": "row",
+                                                    "notitle": true,
+                                                    "title": "{{ value.deviceName }}",
+                                                    "items": [
+                                                        "cameras[].deviceId",
+                                                        "cameras[].deviceName",
+                                                        "cameras[].rtspUrl",
+                                                        "cameras[].username",
+                                                        "cameras[].password"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "fieldset",
+                                    "title": "Debug Settings",
+                                    "expandable": true,
+                                    "expanded": false,
+                                    "notitle": false,
+                                    "items": [
+                                        "common.debug",
+                                        "common.debugLevel"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
     "schema": {
         "type": "object",
+        "required": ["mode"],
         "properties": {
             "name": {
                 "type": "string",
                 "title": "Name",
-                "required": true,
                 "default": "Tuya"
             },
-            "options": {
-                "title": "Project Info",
+            "mode": {
+                "title": "Connection Mode",
+                "description": "How the plugin connects to your devices. Use <strong>Cloud</strong> for the standard Tuya Cloud API, <strong>Local</strong> for direct LAN communication (no cloud needed), or <strong>Both</strong> to run cloud and local simultaneously.",
+                "type": "string",
+                "default": "cloud",
+                "oneOf": [
+                    { "title": "Local (LAN / direct TCP)", "enum": ["local"] },
+                    { "title": "Cloud (Tuya OpenAPI)", "enum": ["cloud"] },
+                    { "title": "Both (Cloud + Local)", "enum": ["both"] }
+                ]
+            },
+            "local": {
+                "title": "Local Settings",
+                "description": "Configure local LAN devices. For help getting local keys, see the <a href='#' onClick='alert(\"Visit: docs/Get-Local-Keys-for-Your-Devices.md\")'>Local Keys Setup Guide</a>.",
                 "type": "object",
-                "required": true,
+                "properties": {
+                    "autoDiscoverDevices": {
+                        "title": "Auto-Discover Devices",
+                        "description": "Automatically find Tuya devices on the local network via UDP broadcast.",
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "discoverTimeout": {
+                        "title": "Discovery Timeout (seconds)",
+                        "description": "How long to listen for UDP broadcast replies. Default: 5 seconds.",
+                        "type": "integer",
+                        "default": 5,
+                        "minimum": 1,
+                        "maximum": 60
+                    },
+                    "rediscoverInterval": {
+                        "title": "Rediscovery Interval (seconds)",
+                        "description": "How often to re-run device discovery to detect devices that go offline and return (e.g. after WiFi reset or IP change). Set to 0 to disable. Default: 900 seconds (15 minutes).",
+                        "type": "integer",
+                        "default": 900,
+                        "minimum": 0,
+                        "maximum": 3600
+                    },
+                    "devices": {
+                        "title": "Manual Devices",
+                        "description": "List individual devices if auto-discovery does not find them or if you want to provide a local key.",
+                        "type": "array",
+                        "default": [],
+                        "items": {
+                            "type": "object",
+                            "required": ["category"],
+                            "properties": {
+                                "category": {
+                                    "title": "Type",
+                                    "description": "Select the device type or category code for proper accessory type detection.",
+                                    "type": "string",
+                                    "default": "",
+                                    "oneOf": [
+                                        { "title": "Please select device type...", "enum": [""] },
+                                        { "title": "Light / Smart Bulb", "enum": ["dj"] },
+                                        { "title": "Dimmer", "enum": ["tgq"] },
+                                        { "title": "Smart Switch", "enum": ["dlq"] },
+                                        { "title": "Smart Outlet / Power Strip", "enum": ["cz"] },
+                                        { "title": "Wireless Remote Switch", "enum": ["wxkg"] },
+                                        { "title": "Scene Switch", "enum": ["cjkg"] },
+                                        { "title": "WhiteNoiseLight", "enum": ["bzyd"] },
+                                        { "title": "Air Conditioner", "enum": ["kt"] },
+                                        { "title": "Heater / Convector", "enum": ["qn"] },
+                                        { "title": "Air Purifier", "enum": ["kj"] },
+                                        { "title": "Diffuser", "enum": ["xxj"] },
+                                        { "title": "Garage Door", "enum": ["ckmkzq"] },
+                                        { "title": "Blind", "enum": ["mg"] },
+                                        { "title": "Window Covering", "enum": ["cl"] },
+                                        { "title": "Pet Feeder", "enum": ["cwwsq"] },
+                                        { "title": "Window / Door Sensor", "enum": ["mc"] },
+                                        { "title": "Thermostat", "enum": ["wk"] },
+                                        { "title": "Towel Rack / Warmer", "enum": ["mjj"] },
+                                        { "title": "Valve", "enum": ["ggq"] },
+                                        { "title": "Humidifier", "enum": ["jsq"] },
+                                        { "title": "Dehumidifier", "enum": ["cs"] },
+                                        { "title": "Fan", "enum": ["fs"] },
+                                        { "title": "ExtractionHood", "enum": ["yyj"] },
+                                        { "title": "Camera", "enum": ["sp"] },
+                                        { "title": "Smoke Sensor", "enum": ["ywbj"] },
+                                        { "title": "Contact Sensor", "enum": ["mcs"] },
+                                        { "title": "Vibration Sensor", "enum": ["zd"] },
+                                        { "title": "Leak Sensor", "enum": ["rqbj"] },
+                                        { "title": "CarbonMonoxide Sensor", "enum": ["cobj"] },
+                                        { "title": "CarbonDioxide Sensor", "enum": ["co2bj"] },
+                                        { "title": "Temperature/Humidity Sensor", "enum": ["wsdcg"] },
+                                        { "title": "Light Sensor", "enum": ["ldcg"] },
+                                        { "title": "Motion Sensor", "enum": ["pir"] },
+                                        { "title": "Air Quality Sensor", "enum": ["pm25"] },
+                                        { "title": "HumanPresence Sensor", "enum": ["hps"] },
+                                        { "title": "Smart Lock", "enum": ["ms"] },
+                                        { "title": "Security System", "enum": ["mal"] },
+                                        { "title": "Doorbell", "enum": ["wxml"] },
+                                        { "title": "WeatherStation", "enum": ["qxj"] },
+                                        { "title": "IRControlHub", "enum": ["wnykq"] },
+                                        { "title": "IRControlHubSub", "enum": ["qt"] },
+                                        { "title": "IRGeneric", "enum": ["infrared_"] },
+                                        { "title": "Custom / Other", "enum": ["other"] }
+                                    ]
+                                },
+                                "tuyaDeviceId": {
+                                    "title": "Device ID",
+                                    "description": "The Tuya device ID (same as the cloud device ID).",
+                                    "type": "string",
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
+                                },
+                                "tuyaKey": {
+                                    "title": "Local Key",
+                                    "description": "The 16-character AES local key for direct communication.",
+                                    "type": "string",
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
+                                },
+                                "ip": {
+                                    "title": "IP Address",
+                                    "description": "Fixed IP address. Leave blank to use auto-discovery.",
+                                    "type": "string",
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
+                                },
+                                "name": {
+                                    "title": "Name",
+                                    "description": "Anything you'd like to use to identify this device.",
+                                    "type": "string",
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
+                                },
+                                "protocolVersion": {
+                                    "title": "Protocol Version",
+                                    "description": "Tuya local protocol version. Leave blank to auto-detect.",
+                                    "type": "string",
+                                    "condition": { "functionBody": "return !!model.local?.devices?.[arrayIndices[0]]?.category;" }
+                                },
+                                "dpMappingArray": {
+                                    "title": "Custom DP Mapping (Advanced)",
+                                    "description": "Override default DP-to-function mappings as JSON.",
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "required": ["dpCode", "dpID"],
+                                        "properties": {
+                                            "dpCode": {
+                                                "type": "string",
+                                                "title": "DP Code"
+                                            },
+                                            "dpID": {
+                                                "type": "integer",
+                                                "title": "DP ID"
+                                            }
+                                        }
+                                    },
+                                    "condition": {
+                                        "functionBody": "return ['wnykq', 'qt', 'infrared_', 'other'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                    }
+                                },
+                                "dpMapping": {
+                                    "title": "DP Mapping (Advanced)",
+                                    "description": "Override default DP-to-function mappings as JSON. Example: {\"switch_1\": 1, \"bright_value\": 2, \"temp_value\": 3}",
+                                    "type": "object",
+                                    "condition": { "functionBody": "return !['other', '', undefined].includes(model.local?.devices?.[arrayIndices[0]]?.category);" },
+                                    "properties": {
+                                        "add_ele": {
+                                            "type": "integer",
+                                            "title": "add_ele",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "air_quality": {
+                                            "type": "integer",
+                                            "title": "air_quality",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "alarm_message": {
+                                            "type": "integer",
+                                            "title": "alarm_message",
+                                            "condition": {
+                                                "functionBody": "return ['sp', 'wxml'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "alarm_propel_switch": {
+                                            "type": "integer",
+                                            "title": "alarm_propel_switch",
+                                            "condition": {
+                                                "functionBody": "return ['wxml'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "battery_percentage": {
+                                            "type": "integer",
+                                            "title": "battery_percentage",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "bright_value": {
+                                            "type": "integer",
+                                            "title": "bright_value",
+                                            "condition": {
+                                                "functionBody": "return ['dj', 'fs', 'jsq', 'ldcg', 'tgq', 'wnykq', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "bright_value_v2": {
+                                            "type": "integer",
+                                            "title": "bright_value_v2",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "child_lock": {
+                                            "type": "integer",
+                                            "title": "child_lock",
+                                            "condition": {
+                                                "functionBody": "return ['cs', 'fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "co2_state": {
+                                            "type": "integer",
+                                            "title": "co2_state",
+                                            "condition": {
+                                                "functionBody": "return ['co2bj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "co2_value": {
+                                            "type": "integer",
+                                            "title": "co2_value",
+                                            "condition": {
+                                                "functionBody": "return ['co2bj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "co_status": {
+                                            "type": "integer",
+                                            "title": "co_status",
+                                            "condition": {
+                                                "functionBody": "return ['cobj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "co_value": {
+                                            "type": "integer",
+                                            "title": "co_value",
+                                            "condition": {
+                                                "functionBody": "return ['cobj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "colour_data": {
+                                            "type": "integer",
+                                            "title": "colour_data",
+                                            "condition": {
+                                                "functionBody": "return ['bzyd', 'dj', 'fs', 'jsq', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "colour_data_v2": {
+                                            "type": "integer",
+                                            "title": "colour_data_v2",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "control": {
+                                            "type": "integer",
+                                            "title": "control",
+                                            "condition": {
+                                                "functionBody": "return ['mg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "cur_current": {
+                                            "type": "integer",
+                                            "title": "cur_current",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "cur_power": {
+                                            "type": "integer",
+                                            "title": "cur_power",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "cur_voltage": {
+                                            "type": "integer",
+                                            "title": "cur_voltage",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "dehumidify_set_value": {
+                                            "type": "integer",
+                                            "title": "dehumidify_set_value",
+                                            "condition": {
+                                                "functionBody": "return ['cs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorbell_call": {
+                                            "type": "integer",
+                                            "title": "doorbell_call",
+                                            "condition": {
+                                                "functionBody": "return ['wxml'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorbell_pic": {
+                                            "type": "integer",
+                                            "title": "doorbell_pic",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorbell_ring_exist": {
+                                            "type": "integer",
+                                            "title": "doorbell_ring_exist",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorbell_volume_value": {
+                                            "type": "integer",
+                                            "title": "doorbell_volume_value",
+                                            "condition": {
+                                                "functionBody": "return ['wxml'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "doorcontact_state": {
+                                            "type": "integer",
+                                            "title": "doorcontact_state",
+                                            "condition": {
+                                                "functionBody": "return ['ckmkzq', 'mcs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "fan_direction": {
+                                            "type": "integer",
+                                            "title": "fan_direction",
+                                            "condition": {
+                                                "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "fan_speed": {
+                                            "type": "integer",
+                                            "title": "fan_speed",
+                                            "condition": {
+                                                "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "fan_speed_enum": {
+                                            "type": "integer",
+                                            "title": "fan_speed_enum",
+                                            "condition": {
+                                                "functionBody": "return ['cs', 'fs', 'kj', 'kt', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "feed_report": {
+                                            "type": "integer",
+                                            "title": "feed_report",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "feed_state": {
+                                            "type": "integer",
+                                            "title": "feed_state",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "floodlight_lightness": {
+                                            "type": "integer",
+                                            "title": "floodlight_lightness",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "floodlight_switch": {
+                                            "type": "integer",
+                                            "title": "floodlight_switch",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "gas_sensor_status": {
+                                            "type": "integer",
+                                            "title": "gas_sensor_status",
+                                            "condition": {
+                                                "functionBody": "return ['rqbj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "humidity_current": {
+                                            "type": "integer",
+                                            "title": "humidity_current",
+                                            "condition": {
+                                                "functionBody": "return ['jsq', 'kt'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "humidity_indoor": {
+                                            "type": "integer",
+                                            "title": "humidity_indoor",
+                                            "condition": {
+                                                "functionBody": "return ['cs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "humidity_set": {
+                                            "type": "integer",
+                                            "title": "humidity_set",
+                                            "condition": {
+                                                "functionBody": "return ['jsq', 'kt'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "level": {
+                                            "type": "integer",
+                                            "title": "level",
+                                            "condition": {
+                                                "functionBody": "return ['xxj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "light": {
+                                            "type": "integer",
+                                            "title": "light",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq', 'fs', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "lock": {
+                                            "type": "integer",
+                                            "title": "lock",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'kt', 'qn', 'qn_old', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "lock_motor_state": {
+                                            "type": "integer",
+                                            "title": "lock_motor_state",
+                                            "condition": {
+                                                "functionBody": "return ['ms'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "manual_feed": {
+                                            "type": "integer",
+                                            "title": "manual_feed",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "master_mode": {
+                                            "type": "integer",
+                                            "title": "master_mode",
+                                            "condition": {
+                                                "functionBody": "return ['mal'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "meal_plan": {
+                                            "type": "integer",
+                                            "title": "meal_plan",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "mode": {
+                                            "type": "integer",
+                                            "title": "mode",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'kt', 'mjj', 'wk', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "motion_switch": {
+                                            "type": "integer",
+                                            "title": "motion_switch",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "movement_detect_pic": {
+                                            "type": "integer",
+                                            "title": "movement_detect_pic",
+                                            "condition": {
+                                                "functionBody": "return ['sp'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "open_close": {
+                                            "type": "integer",
+                                            "title": "open_close",
+                                            "condition": {
+                                                "functionBody": "return ['ms'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "percent_control": {
+                                            "type": "integer",
+                                            "title": "percent_control",
+                                            "condition": {
+                                                "functionBody": "return ['mg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "percent_state": {
+                                            "type": "integer",
+                                            "title": "percent_state",
+                                            "condition": {
+                                                "functionBody": "return ['mg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pir": {
+                                            "type": "integer",
+                                            "title": "pir",
+                                            "condition": {
+                                                "functionBody": "return ['pir'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pir_state": {
+                                            "type": "integer",
+                                            "title": "pir_state",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pm10_value": {
+                                            "type": "integer",
+                                            "title": "pm10_value",
+                                            "condition": {
+                                                "functionBody": "return ['pm25'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pm25": {
+                                            "type": "integer",
+                                            "title": "pm25",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "pm25_value": {
+                                            "type": "integer",
+                                            "title": "pm25_value",
+                                            "condition": {
+                                                "functionBody": "return ['pm25'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "position": {
+                                            "type": "integer",
+                                            "title": "position",
+                                            "condition": {
+                                                "functionBody": "return ['mg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "presence_state": {
+                                            "type": "integer",
+                                            "title": "presence_state",
+                                            "condition": {
+                                                "functionBody": "return ['hps'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "quick_feed": {
+                                            "type": "integer",
+                                            "title": "quick_feed",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "shake": {
+                                            "type": "integer",
+                                            "title": "shake",
+                                            "condition": {
+                                                "functionBody": "return ['qn', 'qn_old'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "shock_state": {
+                                            "type": "integer",
+                                            "title": "shock_state",
+                                            "condition": {
+                                                "functionBody": "return ['zd'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "slow_feed": {
+                                            "type": "integer",
+                                            "title": "slow_feed",
+                                            "condition": {
+                                                "functionBody": "return ['cwwsq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "smoke_sensor_status": {
+                                            "type": "integer",
+                                            "title": "smoke_sensor_status",
+                                            "condition": {
+                                                "functionBody": "return ['ywbj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "sos_state": {
+                                            "type": "integer",
+                                            "title": "sos_state",
+                                            "condition": {
+                                                "functionBody": "return ['mal'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "speed": {
+                                            "type": "integer",
+                                            "title": "speed",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "swing": {
+                                            "type": "integer",
+                                            "title": "swing",
+                                            "condition": {
+                                                "functionBody": "return ['cs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch": {
+                                            "type": "integer",
+                                            "title": "switch",
+                                            "condition": {
+                                                "functionBody": "return ['cs', 'cwwsq', 'cz', 'dj', 'dlq', 'ggq', 'jsq', 'kj', 'kt', 'mjj', 'qn', 'qn_old', 'tgq', 'wk', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_1": {
+                                            "type": "integer",
+                                            "title": "switch_1",
+                                            "condition": {
+                                                "functionBody": "return ['ckmkzq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_fan": {
+                                            "type": "integer",
+                                            "title": "switch_fan",
+                                            "condition": {
+                                                "functionBody": "return ['fs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_horizontal": {
+                                            "type": "integer",
+                                            "title": "switch_horizontal",
+                                            "condition": {
+                                                "functionBody": "return ['fs', 'kt'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_inching": {
+                                            "type": "integer",
+                                            "title": "switch_inching",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_led": {
+                                            "type": "integer",
+                                            "title": "switch_led",
+                                            "condition": {
+                                                "functionBody": "return ['bzyd', 'dj', 'jsq', 'xxj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_mode1": {
+                                            "type": "integer",
+                                            "title": "switch_mode1",
+                                            "condition": {
+                                                "functionBody": "return ['wxkg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_music": {
+                                            "type": "integer",
+                                            "title": "switch_music",
+                                            "condition": {
+                                                "functionBody": "return ['bzyd'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_pir": {
+                                            "type": "integer",
+                                            "title": "switch_pir",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_sound": {
+                                            "type": "integer",
+                                            "title": "switch_sound",
+                                            "condition": {
+                                                "functionBody": "return ['xxj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "switch_spray": {
+                                            "type": "integer",
+                                            "title": "switch_spray",
+                                            "condition": {
+                                                "functionBody": "return ['xxj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_current": {
+                                            "type": "integer",
+                                            "title": "temp_current",
+                                            "condition": {
+                                                "functionBody": "return ['jsq', 'kt', 'mjj', 'qn', 'qn_old', 'wk'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_indoor": {
+                                            "type": "integer",
+                                            "title": "temp_indoor",
+                                            "condition": {
+                                                "functionBody": "return ['cs'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_set": {
+                                            "type": "integer",
+                                            "title": "temp_set",
+                                            "condition": {
+                                                "functionBody": "return ['kt', 'mjj', 'qn', 'qn_old', 'wk'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_unit_convert": {
+                                            "type": "integer",
+                                            "title": "temp_unit_convert",
+                                            "condition": {
+                                                "functionBody": "return ['kt', 'mjj', 'qn', 'qn_old', 'wk'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_value": {
+                                            "type": "integer",
+                                            "title": "temp_value",
+                                            "condition": {
+                                                "functionBody": "return ['dj', 'fs', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "temp_value_v2": {
+                                            "type": "integer",
+                                            "title": "temp_value_v2",
+                                            "condition": {
+                                                "functionBody": "return ['dj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "tvoc": {
+                                            "type": "integer",
+                                            "title": "tvoc",
+                                            "condition": {
+                                                "functionBody": "return ['kj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "va_humidity": {
+                                            "type": "integer",
+                                            "title": "va_humidity",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq', 'pm25', 'wnykq', 'wsdcg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "va_temperature": {
+                                            "type": "integer",
+                                            "title": "va_temperature",
+                                            "condition": {
+                                                "functionBody": "return ['cz', 'dlq', 'pm25', 'wnykq', 'wsdcg'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "voc_value": {
+                                            "type": "integer",
+                                            "title": "voc_value",
+                                            "condition": {
+                                                "functionBody": "return ['pm25'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "work_mode": {
+                                            "type": "integer",
+                                            "title": "work_mode",
+                                            "condition": {
+                                                "functionBody": "return ['dj', 'fs', 'jsq', 'xxj', 'yyj'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "work_state": {
+                                            "type": "integer",
+                                            "title": "work_state",
+                                            "condition": {
+                                                "functionBody": "return ['mjj', 'qn', 'qn_old', 'wk'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        },
+                                        "work_status": {
+                                            "type": "integer",
+                                            "title": "work_status",
+                                            "condition": {
+                                                "functionBody": "return ['kt'].includes(model.local?.devices?.[arrayIndices[0]]?.category);"
+                                            }
+                                        }
+                                    }
+                                },
+                                "outletCount": {
+                                    "type": "integer",
+                                    "title": "Outlet Count",
+                                    "placeholder": 5,
+                                    "condition": { "functionBody": "return ['cz', 'pc', 'wkcz'].includes(model.local?.devices?.[arrayIndices[0]]?.category);" }
+                                },
+                                "isZigbeeGateway": {
+                                    "title": "Zigbee Gateway",
+                                    "description": "Mark this device as a Zigbee gateway. Usually auto-detected if other devices reference this device as their parent.",
+                                    "type": "boolean",
+                                    "default": false
+                                },
+                                "parentDeviceId": {
+                                    "title": "Parent Gateway Device ID",
+                                    "description": "For Zigbee sub-devices: the Tuya device ID of the parent gateway. Commands are routed through the parent's TCP connection using the Zigbee CID.",
+                                    "type": "string"
+                                },
+                                "zigbeeChildId": {
+                                    "title": "Zigbee Child ID (CID)",
+                                    "description": "For Zigbee sub-devices: the 16-character hex node ID assigned by the gateway (e.g. '0011223344556601'). Required when parentDeviceId is set.",
+                                    "type": "string",
+                                    "pattern": "^[0-9a-fA-F]{16}$"
+                                },
+                                "childDpMapping": {
+                                    "title": "Child DP Mapping (Override)",
+                                    "description": "For Zigbee sub-devices: optional DP mapping override. If provided, replaces the parent's DP mapping for this child device. Useful when child DPs differ from the gateway.",
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "integer"
+                                    },
+                                    "condition": {
+                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== undefined && ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== '';"
+                                    }
+                                },
+                                "childCategory": {
+                                    "title": "Child Category Override",
+                                    "description": "For Zigbee sub-devices: optional category override. If provided, replaces the parent's category for this child device. Useful when child is a different device type than the gateway.",
+                                    "type": "string",
+                                    "condition": {
+                                        "functionBody": "return ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== undefined && ((model.local && model.local.devices && model.local.devices[arrayIndices[0]]) ? model.local.devices[arrayIndices[0]].parentDeviceId : undefined) !== '';"
+                                    }
+                                },
+                                "remote_keys": {
+                                    "title": "IR Keys",
+                                    "description": "",
+                                    "type": "object",
+                                    "condition": { "functionBody": "return !['other', '', undefined].includes(model.local?.devices?.[arrayIndices[0]]?.category);" },
+                                    "properties": {
+                                        "key_list": {
+                                            "title": "IR Learning Code",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "required": ["id"],
+                                                "properties": {
+                                                    "key_name": {
+                                                        "title": "Display Name",
+                                                        "type": "string"
+                                                    },
+                                                    "learning_code": {
+                                                        "title": "Learning Code",
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "options": {
+                "title": "Cloud Account Info",
+                "type": "object",
                 "properties": {
                     "projectType": {
                         "title": "Project Type (Development Method)",
+                        "description": "Required for Cloud mode.",
                         "type": "string",
                         "default": "2",
                         "oneOf": [
-                            {
-                                "title": "Custom",
-                                "enum": [
-                                    "1"
-                                ]
-                            },
-                            {
-                                "title": "Smart Home",
-                                "enum": [
-                                    "2"
-                                ]
-                            }
-                        ],
-                        "required": true
+                            { "title": "Custom", "enum": [ "1" ] },
+                            { "title": "Smart Home", "enum": [ "2" ] }
+                        ]
                     },
                     "endpoint": {
                         "title": "Endpoint URL",
@@ -46,21 +1283,249 @@
                     },
                     "accessId": {
                         "title": "Access ID",
-                        "type": "string",
-                        "required": true
+                        "description": "Required for Cloud mode.",
+                        "type": "string"
                     },
                     "accessKey": {
+                        "description": "Required for Cloud mode.",
                         "title": "Access Secret",
                         "type": "string",
-                        "required": true
+                        "x-schema-form": {
+                            "type": "password"
+                        }
                     },
                     "countryCode": {
                         "title": "Country Code",
+                        "description": "Select your country or region",
                         "type": "integer",
-                        "minimum": 1,
                         "condition": {
                             "functionBody": "return model.options.projectType === '2';"
-                        }
+                        },
+                        "anyOf": [
+                            { "title": "United States", "enum": [1] },
+                            { "title": "Canada", "enum": [1] },
+                            { "title": "Russia", "enum": [7] },
+                            { "title": "Egypt", "enum": [20] },
+                            { "title": "South Africa", "enum": [27] },
+                            { "title": "Greece", "enum": [30] },
+                            { "title": "Netherlands", "enum": [31] },
+                            { "title": "Belgium", "enum": [32] },
+                            { "title": "France", "enum": [33] },
+                            { "title": "Spain", "enum": [34] },
+                            { "title": "Hungary", "enum": [36] },
+                            { "title": "Italy", "enum": [39] },
+                            { "title": "Romania", "enum": [40] },
+                            { "title": "Switzerland", "enum": [41] },
+                            { "title": "Austria", "enum": [43] },
+                            { "title": "United Kingdom", "enum": [44] },
+                            { "title": "Denmark", "enum": [45] },
+                            { "title": "Sweden", "enum": [46] },
+                            { "title": "Norway", "enum": [47] },
+                            { "title": "Poland", "enum": [48] },
+                            { "title": "Germany", "enum": [49] },
+                            { "title": "Peru", "enum": [51] },
+                            { "title": "Mexico", "enum": [52] },
+                            { "title": "Argentina", "enum": [54] },
+                            { "title": "Brazil", "enum": [55] },
+                            { "title": "Chile", "enum": [56] },
+                            { "title": "Colombia", "enum": [57] },
+                            { "title": "Venezuela", "enum": [58] },
+                            { "title": "Malaysia", "enum": [60] },
+                            { "title": "Australia", "enum": [61] },
+                            { "title": "Indonesia", "enum": [62] },
+                            { "title": "Philippines", "enum": [63] },
+                            { "title": "New Zealand", "enum": [64] },
+                            { "title": "Singapore", "enum": [65] },
+                            { "title": "Thailand", "enum": [66] },
+                            { "title": "Japan", "enum": [81] },
+                            { "title": "South Korea", "enum": [82] },
+                            { "title": "Vietnam", "enum": [84] },
+                            { "title": "China", "enum": [86] },
+                            { "title": "Turkey", "enum": [90] },
+                            { "title": "India", "enum": [91] },
+                            { "title": "Pakistan", "enum": [92] },
+                            { "title": "Afghanistan", "enum": [93] },
+                            { "title": "Sri Lanka", "enum": [94] },
+                            { "title": "Myanmar", "enum": [95] },
+                            { "title": "Morocco", "enum": [212] },
+                            { "title": "Algeria", "enum": [213] },
+                            { "title": "Tunisia", "enum": [216] },
+                            { "title": "Libya", "enum": [218] },
+                            { "title": "The Gambia", "enum": [220] },
+                            { "title": "Senegal", "enum": [221] },
+                            { "title": "Mauritania", "enum": [222] },
+                            { "title": "Mali", "enum": [223] },
+                            { "title": "Guinea", "enum": [224] },
+                            { "title": "Côte d'Ivoire", "enum": [225] },
+                            { "title": "Burkina Faso", "enum": [226] },
+                            { "title": "Niger", "enum": [227] },
+                            { "title": "Togo", "enum": [228] },
+                            { "title": "Benin", "enum": [229] },
+                            { "title": "Mauritius", "enum": [230] },
+                            { "title": "Liberia", "enum": [231] },
+                            { "title": "Sierra Leone", "enum": [232] },
+                            { "title": "Ghana", "enum": [233] },
+                            { "title": "Nigeria", "enum": [234] },
+                            { "title": "Chad", "enum": [235] },
+                            { "title": "Central African Republic", "enum": [236] },
+                            { "title": "Cameroon", "enum": [237] },
+                            { "title": "Cabo Verde", "enum": [238] },
+                            { "title": "São Tomé and Príncipe", "enum": [239] },
+                            { "title": "Equatorial Guinea", "enum": [240] },
+                            { "title": "Gabon", "enum": [241] },
+                            { "title": "Congo", "enum": [242] },
+                            { "title": "Congo (DRC)", "enum": [243] },
+                            { "title": "Angola", "enum": [244] },
+                            { "title": "Guinea-Bissau", "enum": [245] },
+                            { "title": "British Indian Ocean Territory", "enum": [246] },
+                            { "title": "Seychelles", "enum": [248] },
+                            { "title": "Rwanda", "enum": [250] },
+                            { "title": "Ethiopia", "enum": [251] },
+                            { "title": "Somalia", "enum": [252] },
+                            { "title": "Djibouti", "enum": [253] },
+                            { "title": "Kenya", "enum": [254] },
+                            { "title": "Tanzania", "enum": [255] },
+                            { "title": "Uganda", "enum": [256] },
+                            { "title": "Burundi", "enum": [257] },
+                            { "title": "Mozambique", "enum": [258] },
+                            { "title": "Zambia", "enum": [260] },
+                            { "title": "Madagascar", "enum": [261] },
+                            { "title": "Mayotte", "enum": [262] },
+                            { "title": "Zimbabwe", "enum": [263] },
+                            { "title": "Namibia", "enum": [264] },
+                            { "title": "Malawi", "enum": [265] },
+                            { "title": "Lesotho", "enum": [266] },
+                            { "title": "Botswana", "enum": [267] },
+                            { "title": "Swaziland", "enum": [268] },
+                            { "title": "Comoros", "enum": [269] },
+                            { "title": "Eritrea", "enum": [291] },
+                            { "title": "Aruba", "enum": [297] },
+                            { "title": "Faroe Islands", "enum": [298] },
+                            { "title": "Greenland", "enum": [299] },
+                            { "title": "Gibraltar", "enum": [350] },
+                            { "title": "Portugal", "enum": [351] },
+                            { "title": "Luxembourg", "enum": [352] },
+                            { "title": "Ireland", "enum": [353] },
+                            { "title": "Iceland", "enum": [354] },
+                            { "title": "Albania", "enum": [355] },
+                            { "title": "Malta", "enum": [356] },
+                            { "title": "Cyprus", "enum": [357] },
+                            { "title": "Finland", "enum": [358] },
+                            { "title": "Bulgaria", "enum": [359] },
+                            { "title": "Lithuania", "enum": [370] },
+                            { "title": "Latvia", "enum": [371] },
+                            { "title": "Estonia", "enum": [372] },
+                            { "title": "Moldova", "enum": [373] },
+                            { "title": "Armenia", "enum": [374] },
+                            { "title": "Belarus", "enum": [375] },
+                            { "title": "Andorra", "enum": [376] },
+                            { "title": "Monaco", "enum": [377] },
+                            { "title": "San Marino", "enum": [378] },
+                            { "title": "Vatican City", "enum": [379] },
+                            { "title": "Ukraine", "enum": [380] },
+                            { "title": "Serbia", "enum": [381] },
+                            { "title": "Montenegro", "enum": [382] },
+                            { "title": "Croatia", "enum": [385] },
+                            { "title": "Slovenia", "enum": [386] },
+                            { "title": "Bosnia and Herzegovina", "enum": [387] },
+                            { "title": "Macedonian", "enum": [389] },
+                            { "title": "Czech Republic", "enum": [420] },
+                            { "title": "Slovakia", "enum": [421] },
+                            { "title": "Liechtenstein", "enum": [423] },
+                            { "title": "Belize", "enum": [501] },
+                            { "title": "Guatemala", "enum": [502] },
+                            { "title": "El Salvador", "enum": [503] },
+                            { "title": "Honduras", "enum": [504] },
+                            { "title": "Nicaragua", "enum": [505] },
+                            { "title": "Costa Rica", "enum": [506] },
+                            { "title": "Panama", "enum": [507] },
+                            { "title": "Saint Pierre and Miquelon", "enum": [508] },
+                            { "title": "Haiti", "enum": [509] },
+                            { "title": "Saint Martin", "enum": [590] },
+                            { "title": "Bolivia", "enum": [591] },
+                            { "title": "Guyana", "enum": [592] },
+                            { "title": "Ecuador", "enum": [593] },
+                            { "title": "French Guiana", "enum": [594] },
+                            { "title": "Paraguay", "enum": [595] },
+                            { "title": "Martinique", "enum": [596] },
+                            { "title": "Suriname", "enum": [597] },
+                            { "title": "Uruguay", "enum": [598] },
+                            { "title": "Brunei", "enum": [673] },
+                            { "title": "Nauru", "enum": [674] },
+                            { "title": "Papua New Guinea", "enum": [675] },
+                            { "title": "Tonga", "enum": [676] },
+                            { "title": "Solomon Islands", "enum": [677] },
+                            { "title": "Vanuatu", "enum": [678] },
+                            { "title": "Fiji", "enum": [679] },
+                            { "title": "Palau", "enum": [680] },
+                            { "title": "Wallis and Futuna", "enum": [681] },
+                            { "title": "Cook Islands", "enum": [682] },
+                            { "title": "Niue", "enum": [683] },
+                            { "title": "Samoa", "enum": [685] },
+                            { "title": "Kiribati", "enum": [686] },
+                            { "title": "New Caledonia", "enum": [687] },
+                            { "title": "Tuvalu", "enum": [688] },
+                            { "title": "French Polynesia", "enum": [689] },
+                            { "title": "Tokelau", "enum": [690] },
+                            { "title": "Federated States of Micronesia", "enum": [691] },
+                            { "title": "Marshall Islands", "enum": [692] },
+                            { "title": "Cambodia", "enum": [855] },
+                            { "title": "Laos", "enum": [856] },
+                            { "title": "Hong Kong", "enum": [852] },
+                            { "title": "Macao", "enum": [853] },
+                            { "title": "Taiwan", "enum": [886] },
+                            { "title": "Bangladesh", "enum": [880] },
+                            { "title": "Maldives", "enum": [960] },
+                            { "title": "Lebanon", "enum": [961] },
+                            { "title": "Jordan", "enum": [962] },
+                            { "title": "Iraq", "enum": [964] },
+                            { "title": "Kuwait", "enum": [965] },
+                            { "title": "Saudi Arabia", "enum": [966] },
+                            { "title": "Yemen", "enum": [967] },
+                            { "title": "Oman", "enum": [968] },
+                            { "title": "Palestine", "enum": [970] },
+                            { "title": "United Arab Emirates", "enum": [971] },
+                            { "title": "Israel", "enum": [972] },
+                            { "title": "Bahrain", "enum": [973] },
+                            { "title": "Qatar", "enum": [974] },
+                            { "title": "Bhutan", "enum": [975] },
+                            { "title": "Mongolia", "enum": [976] },
+                            { "title": "Nepal", "enum": [977] },
+                            { "title": "Tajikistan", "enum": [992] },
+                            { "title": "Turkmenistan", "enum": [993] },
+                            { "title": "Azerbaijan", "enum": [994] },
+                            { "title": "Georgia", "enum": [995] },
+                            { "title": "Kyrgyzstan", "enum": [996] },
+                            { "title": "Uzbekistan", "enum": [998] },
+                            { "title": "Bahamas", "enum": [1242] },
+                            { "title": "Barbados", "enum": [1246] },
+                            { "title": "Anguilla", "enum": [1264] },
+                            { "title": "Antigua and Barbuda", "enum": [1268] },
+                            { "title": "British Virgin Islands", "enum": [1284] },
+                            { "title": "U.S. Virgin Islands", "enum": [1340] },
+                            { "title": "Cayman Islands", "enum": [1345] },
+                            { "title": "Bermuda", "enum": [1441] },
+                            { "title": "Grenada", "enum": [1473] },
+                            { "title": "Turks and Caicos Islands", "enum": [1649] },
+                            { "title": "Montserrat", "enum": [1664] },
+                            { "title": "Northern Mariana Islands", "enum": [1670] },
+                            { "title": "Guam", "enum": [1671] },
+                            { "title": "American Samoa", "enum": [1684] },
+                            { "title": "Sint Maarten", "enum": [1721] },
+                            { "title": "Saint Lucia", "enum": [1758] },
+                            { "title": "Dominica", "enum": [1767] },
+                            { "title": "Saint Vincent and the Grenadines", "enum": [1784] },
+                            { "title": "Puerto Rico", "enum": [1787] },
+                            { "title": "Dominican Republic (809)", "enum": [1809] },
+                            { "title": "Dominican Republic (829)", "enum": [1829] },
+                            { "title": "Dominican Republic (849)", "enum": [1849] },
+                            { "title": "Trinidad and Tobago", "enum": [1868] },
+                            { "title": "Saint Kitts and Nevis", "enum": [1869] },
+                            { "title": "Jamaica", "enum": [1876] },
+                            { "title": "Svalbard and Jan Mayen", "enum": [4779] },
+                            { "title": "Curaçao", "enum": [5999] },
+                            { "title": "Åland Islands", "enum": [35818] }
+                        ]
                     },
                     "username": {
                         "title": "Username",
@@ -72,6 +1537,9 @@
                     "password": {
                         "title": "Password",
                         "type": "string",
+                        "x-schema-form": {
+                            "type": "password"
+                        },
                         "condition": {
                             "functionBody": "return model.options.projectType === '2';"
                         }
@@ -81,18 +1549,8 @@
                         "type": "string",
                         "default": "tuyaSmart",
                         "oneOf": [
-                            {
-                                "title": "Tuya Smart",
-                                "enum": [
-                                    "tuyaSmart"
-                                ]
-                            },
-                            {
-                                "title": "Smart Life",
-                                "enum": [
-                                    "smartlife"
-                                ]
-                            }
+                            { "title": "Tuya Smart", "enum": [ "tuyaSmart" ] },
+                            { "title": "Smart Life", "enum": [ "smartlife" ] }
                         ],
                         "condition": {
                             "functionBody": "return model.options.projectType === '2';"
@@ -115,19 +1573,19 @@
                         "type": "array",
                         "items": {
                             "type": "object",
+                            "required": ["id"],
                             "properties": {
                                 "id": {
                                     "title": "ID",
                                     "description": "Device ID or Product ID or `global`",
-                                    "type": "string",
-                                    "required": true
+                                    "type": "string"
                                 },
                                 "category": {
                                     "title": "Category",
                                     "description": "Category Code or `hidden`",
                                     "type": "string",
                                     "condition": {
-                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                        "functionBody": "return (model.options?.deviceOverrides);"
                                     }
                                 },
                                 "unbridged": {
@@ -135,7 +1593,43 @@
                                     "description": "Would you like to make this device be an external device?",
                                     "type": "boolean",
                                     "condition": {
+                                        "functionBody": "return (model.options?.deviceOverrides);"
+                                    }
+                                },
+                                "addExtraFeaturesAutomatically": {
+                                    "title": "Add Extra Features Automatically",
+                                    "description": "Show device‑specific features that aren’t part of the standard spec",
+                                    "type": "boolean",
+                                    "condition": {
                                         "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                    }
+                                },
+                                "adaptiveLighting": {
+                                    "title": "Adaptive Lighting",
+                                    "description": "Enable if your device supports intelligently adjusting the brightness and color of your lights",
+                                    "type": "boolean",
+                                    "condition": {
+                                        "functionBody": "return (['bzyd', 'cwwsq', 'dj', 'dsd', 'xdd', 'fwd', 'dc', 'dd', 'gyd', 'tyndj', 'sxd', 'jsq', 'fs', 'fsd', 'fskg', 'yyj', 'xxj', 'sp'].includes(model?.options?.deviceOverrides?.[arrayIndices[0]]?.category));"
+                                    }
+                                },
+                                "configFor": {
+                                    "title": "When to apply the configuration",
+                                    "description": "Whether the setting is for devices on Cloud, devices on Local, or used by both.",
+                                    "type": "string",
+                                    "required": true,
+                                    "default": "cloud",
+                                    "oneOf": [
+                                        { "title": "Cloud", "enum": [ "cloud" ] },
+                                        { "title": "Local", "enum": [ "local" ] },
+                                        { "title": "Both", "enum": [ "both" ] }
+                                    ]
+                                },
+                                "garageDoorUseContactSensorForState": {
+                                    "title": "Use Contact Sensor For Garage Door State",
+                                    "description": "For garage door controllers only. Derive CurrentDoorState and TargetDoorState reads from doorcontact_state instead of switch_1.",
+                                    "type": "boolean",
+                                    "condition": {
+                                        "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].category === 'ckmkzq');"
                                     }
                                 },
                                 "schema": {
@@ -143,20 +1637,20 @@
                                     "type": "array",
                                     "items": {
                                         "type": "object",
+                                        "required": ["code"],
                                         "properties": {
                                             "code": {
                                                 "title": "DP Code",
                                                 "type": "string",
-                                                "required": true,
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                                    "functionBody": "return (model.options?.deviceOverrides);"
                                                 }
                                             },
                                             "newCode": {
                                                 "title": "New DP Code",
                                                 "type": "string",
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                 }
                                             },
                                             "type": {
@@ -164,45 +1658,15 @@
                                                 "type": "string",
                                                 "default": "",
                                                 "oneOf": [
-                                                    {
-                                                        "title": "Boolean",
-                                                        "enum": [
-                                                            "Boolean"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "title": "Integer",
-                                                        "enum": [
-                                                            "Integer"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "title": "Enum",
-                                                        "enum": [
-                                                            "Enum"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "title": "String",
-                                                        "enum": [
-                                                            "String"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "title": "Json",
-                                                        "enum": [
-                                                            "Json"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "title": "Raw",
-                                                        "enum": [
-                                                            "Raw"
-                                                        ]
-                                                    }
+                                                    { "title": "Boolean", "enum": [ "Boolean" ] },
+                                                    { "title": "Integer", "enum": [ "Integer" ] },
+                                                    { "title": "Enum", "enum": [ "Enum" ] },
+                                                    { "title": "String", "enum": [ "String" ] },
+                                                    { "title": "Json", "enum": [ "Json" ] },
+                                                    { "title": "Raw", "enum": [ "Raw" ] }
                                                 ],
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                 }
                                             },
                                             "property": {
@@ -213,28 +1677,28 @@
                                                         "title": "min",
                                                         "type": "integer",
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     },
                                                     "max": {
                                                         "title": "max",
                                                         "type": "integer",
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     },
                                                     "scale": {
                                                         "title": "scale",
                                                         "type": "integer",
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     },
                                                     "step": {
                                                         "title": "step",
                                                         "type": "integer",
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Integer' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     },
                                                     "range": {
@@ -245,30 +1709,164 @@
                                                             "type": "string"
                                                         },
                                                         "condition": {
-                                                            "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                            "functionBody": "return (model.options?.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Enum' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                         }
                                                     }
                                                 },
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
                                                 }
                                             },
                                             "hidden": {
                                                 "title": "Hidden",
                                                 "type": "boolean",
                                                 "condition": {
-                                                    "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                                    "functionBody": "return (model.options?.deviceOverrides);"
+                                                }
+                                            },
+                                            "onGet": {
+                                                "title": "onGet",
+                                                "type": "string",
+                                                "description": "Optional. A one-line JavaScript code to convert the old value to the new value. The function is called with two arguments: device and value. Examples: https://github.com/homebridge-plugins/homebridge-tuya/blob/latest/ADVANCED_OPTIONS.md#examples",
+                                                "placeholder": "value",
+                                                "condition": {
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                }
+                                            },
+                                            "onSet": {
+                                                "title": "onSet",
+                                                "type": "string",
+                                                "description": "Optional. A one-line JavaScript code to convert the new value to the old value. The function is called with two arguments: device and value. Returning undefined means to skip sending the command. Examples: https://github.com/homebridge-plugins/homebridge-tuya/blob/latest/ADVANCED_OPTIONS.md#examples",
+                                                "placeholder": "value",
+                                                "condition": {
+                                                    "functionBody": "return (model.options?.deviceOverrides?.[arrayIndices[0]]?.schema?.[arrayIndices[1]]?.code && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden);"
+                                                }
+                                            },
+                                            "extra": {
+                                                "title": "Extra",
+                                                "type": "boolean",
+                                                "description": "Treat as Extra Feature",
+                                                "condition": {
+                                                    "functionBody": "return (model?.options?.deviceOverrides?.[arrayIndices[0]].schema);"
+                                                }
+                                            },
+                                            "extraRawSwitch": {
+                                                "title": "RawDataSwitches",
+                                                "type": "array",
+                                                "description": "Add switches for updating the byte‑code data.",
+                                                "condition": {
+                                                    "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].schema && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].type === 'Raw' && !model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].hidden && model.options.deviceOverrides[arrayIndices[0]].schema[arrayIndices[1]].extra);"
+                                                },
+                                                "items": {
+                                                    "type": "object",
+                                                    "required": ["configuredName", "notation", "value", "byteIndex"],
+                                                    "properties": {
+                                                        "configuredName": {
+                                                            "title": "Name",
+                                                            "type": "string"
+                                                        },
+                                                        "notation": {
+                                                            "title": "Notation",
+                                                            "type": "string",
+                                                            "default": "base64",
+                                                            "oneOf": [
+                                                                { "title": "Base64", "enum": [ "base64" ] },
+                                                                { "title": "Hexadecimal", "enum": [ "hex" ] }
+                                                            ]
+                                                        },
+                                                        "value": {
+                                                            "title": "Value",
+                                                            "type": "string",
+                                                            "placeholder": "0x01",
+                                                            "pattern": "^0x([0-9a-fA-F]{2})+$"
+                                                        },
+                                                        "byteIndex": {
+                                                            "title": "ByteIndex",
+                                                            "type": "integer",
+                                                            "default": 0,
+                                                            "minimum": 0
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     },
                                     "condition": {
-                                        "functionBody": "return (model.options && model.options.deviceOverrides);"
+                                        "functionBody": "return (model.options?.deviceOverrides);"
                                     }
                                 }
                             }
                         }
                     },
+                    "serviceInformationOverrides": {
+                        "title": "Accessory Service Informations ",
+                        "description": "Accessory Service Information Configs",
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["device_id", "index"],
+                            "properties": {
+                                "device_id": {
+                                    "title": "DeviceID",
+                                    "description": "Device ID. Often Sub Device ID. See Accessory Information > Serial Number.",
+                                    "type": "string"
+                                },
+                                "index": {
+                                    "title": "Characteristic Index",
+                                    "description": "Usually 1. If Accessory has more functions, it might be 2 or more.",
+                                    "type": "string",
+                                    "default": 1
+                                },
+                                "manifacturer": {
+                                    "title": "Manifacturer",
+                                    "description": "Product Manifacturer",
+                                    "type": "string"
+                                },
+                                "model": {
+                                    "title": "Model",
+                                    "description": "Model",
+                                    "type": "string"
+                                },
+                                "firmwareRevision": {
+                                    "title": "Firmware Revision",
+                                    "description": "Firware Revision",
+                                    "type": "string"
+                                },
+                                "configuredName": {
+                                    "title": "Configured Name",
+                                    "description": "Accessory name displayed in Home.app",
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "generateWeatherAccessory": {
+                        "title": "Generate Weather Accessory",
+                        "description": "Generate Current Weather at Home Location. Gets Temperature and Humidity.",
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "weatherAPI": {
+                        "title": "Weather API",
+                        "description": "Open-Meteo : For non-commercial use. [Weather data by Open-Meteo.com](https://open-meteo.com/)<br>Tuya : Requires authorization for Weather Service.",
+                        "type": "string",
+                        "enum": [ "Open-Meteo", "Tuya" ],
+                        "default": "Open-Meteo",
+                        "condition":  {
+                            "functionBody": "return (model.options && model.options.generateWeatherAccessory);"
+                        }
+                    },
+                    "forceIPv4": {
+                        "title": "Forcing IPv4 connection",
+                        "type": "boolean",
+                        "default": false
+                    }
+                }
+            },
+            "common": {
+                "title": "Common Settings",
+                "type": "object",
+                "properties": {
                     "debug": {
                         "title": "Enable Debug Logging",
                         "type": "boolean",
@@ -279,169 +1877,50 @@
                         "description": "An optional list of strings seperated with comma `,`. `api` represents for API and MQTT log, device ID represents for specific device log. If blank, all logs are outputed.",
                         "type": "string",
                         "condition": {
-                            "functionBody": "return (model.options && model.options.debug);"
+                            "functionBody": "return (model.common.debug);"
+                        }
+                    }
+                }
+            },
+            "cameras": {
+                "title": "RTSP Camera",
+                "description": "Specifying a local IP address causes the communication to be routed within the local network (LAN).",
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["rtspUrl"],
+                    "properties": {
+                        "deviceId": {
+                            "title": "DeviceID",
+                            "description": "Device ID. If the device is not a Tuya camera, you don’t need to enter anything.",
+                            "type": "string"
+                        },
+                        "deviceName": {
+                            "title": "Device Name",
+                            "description": "Display Name",
+                            "type": "string"
+                        },
+                        "rtspUrl":  {
+                            "title": "RTSP URL",
+                            "description": "RTSP URLs (starting with rtsp://) for real-time video/audio streaming.",
+                            "type": "string"
+                        },
+                        "username":  {
+                            "title": "username",
+                            "description": "The authentication username for accessing the RTSP stream. If authentication is not required, please leave it empty.",
+                            "type": "string"
+                        },
+                        "password":  {
+                            "title": "password",
+                            "description": "The authentication password for accessing the RTSP stream. If authentication is not required, please leave it empty.",
+                            "type": "string",
+                            "x-schema-form": {
+                                "type": "password"
+                            }
                         }
                     }
                 }
             }
         }
-    },
-    "layout": [
-        {
-            "type": "fieldset",
-            "title": "Tuya Account Info",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-                "options.projectType",
-                "options.endpoint",
-                "options.accessId",
-                "options.accessKey",
-                "options.countryCode",
-                "options.username",
-                "options.password",
-                "options.appSchema"
-            ]
-        },
-        {
-            "type": "fieldset",
-            "title": "Tuya Home Settings",
-            "expandable": true,
-            "expanded": false,
-            "notitle": false,
-            "items": [
-                {
-                    "key": "options.homeWhitelist",
-                    "add": "Add Another Home ID",
-                    "title": "{{ 'New Whitelisted Home' }}",
-                    "type": "tabarray",
-                    "notitle": true,
-                    "items": [
-                        {
-                            "type": "div",
-                            "displayFlex": true,
-                            "flex-direction": "row",
-                            "notitle": true,
-                            "title": "{{ value }}",
-                            "items": [
-                                {
-                                    "key": "options.homeWhitelist[]",
-                                    "placeholder": "Home ID"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "fieldset",
-            "title": "Tuya Device Settings",
-            "expandable": true,
-            "expanded": true,
-            "notitle": false,
-            "items": [
-                {
-                    "key": "options.deviceOverrides",
-                    "add": "Add Another Device Override",
-                    "title": "{{ 'New Device Override' }}",
-                    "type": "tabarray",
-                    "notitle": true,
-                    "items": [
-                        {
-                            "type": "div",
-                            "displayFlex": false,
-                            "flex-direction": "row",
-                            "notitle": true,
-                            "title": "{{ value.id }}",
-                            "items": [
-                                {
-                                    "key": "options.deviceOverrides[].id"
-                                },
-                                {
-                                    "key": "options.deviceOverrides[].category"
-                                },
-                                {
-                                    "key": "options.deviceOverrides[].unbridged"
-                                },
-                                {
-                                    "key": "options.deviceOverrides[].schema",
-                                    "add": "Add New Schema",
-                                    "title": "{{ 'New Schema' }}",
-                                    "type": "tabarray",
-                                    "notitle": true,
-                                    "items": [
-                                        {
-                                            "type": "div",
-                                            "displayFlex": true,
-                                            "title": "{{ value.code }}",
-                                            "flex-direction": "column",
-                                            "notitle": false,
-                                            "items": [
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].code"
-                                                },
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].newCode"
-                                                },
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].hidden"
-                                                },
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].type"
-                                                },
-                                                {
-                                                    "key": "options.deviceOverrides[].schema[].property",
-                                                    "notitle": false,
-                                                    "items": [
-                                                        "options.deviceOverrides[].schema[].property.min",
-                                                        "options.deviceOverrides[].schema[].property.max",
-                                                        "options.deviceOverrides[].schema[].property.scale",
-                                                        "options.deviceOverrides[].schema[].property.step",
-                                                        {
-                                                            "key": "options.deviceOverrides[].schema[].property.range",
-                                                            "add": "Add Range",
-                                                            "title": "{{ 'New Range' }}",
-                                                            "type": "tabarray",
-                                                            "notitle": true,
-                                                            "items": [
-                                                                {
-                                                                    "type": "div",
-                                                                    "displayFlex": true,
-                                                                    "flex-direction": "row",
-                                                                    "notitle": true,
-                                                                    "title": "{{ value }}",
-                                                                    "items": [
-                                                                        {
-                                                                            "key": "options.deviceOverrides[].schema[].property.range[]",
-                                                                            "placeholder": "Range"
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "fieldset",
-            "title": "Advance Settings",
-            "expandable": true,
-            "expanded": false,
-            "notitle": false,
-            "items": [
-                "options.debug",
-                "options.debugLevel"
-            ]
-        }
-    ]
+    }
 }

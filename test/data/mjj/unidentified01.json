@@ -1,0 +1,150 @@
+{
+    "category": "mjj",
+    "name": "Toallero inteligente",
+    "product_id": "unidentified",
+    "product_name": "Heated Towel Rack",
+    "status": [
+        {
+            "code": "countdown_left",
+            "value": 0
+        },
+        {
+            "code": "countdown_set",
+            "value": "cancel"
+        },
+        {
+            "code": "switch",
+            "value": false
+        },
+        {
+            "code": "temp_current",
+            "value": 66
+        },
+        {
+            "code": "temp_current_f",
+            "value": 0
+        },
+        {
+            "code": "temp_set",
+            "value": 65
+        },
+        {
+            "code": "temp_set_f",
+            "value": 115
+        },
+        {
+            "code": "temp_unit_convert",
+            "value": "c"
+        },
+        {
+            "code": "work_state",
+            "value": "heating"
+        }
+    ],
+    "schema": [
+        {
+            "code": "countdown_left",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "min",
+                "min": 0,
+                "max": 1440,
+                "scale": 0,
+                "step": 1
+            }
+        },
+        {
+            "code": "countdown_set",
+            "mode": "rw",
+            "type": "Enum",
+            "property": {
+                "range": [
+                    "cancel",
+                    "1h",
+                    "2h",
+                    "3h",
+                    "4h",
+                    "5h",
+                    "6h"
+                ]
+            }
+        },
+        {
+            "code": "switch",
+            "mode": "rw",
+            "type": "Boolean",
+            "property": {}
+        },
+        {
+            "code": "temp_current",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "℃",
+                "min": 0,
+                "max": 200,
+                "scale": 0,
+                "step": 1
+            }
+        },
+        {
+            "code": "temp_current_f",
+            "mode": "ro",
+            "type": "Integer",
+            "property": {
+                "unit": "℉",
+                "min": 0,
+                "max": 200,
+                "scale": 0,
+                "step": 1
+            }
+        },
+        {
+            "code": "temp_set",
+            "mode": "rw",
+            "type": "Integer",
+            "property": {
+                "unit": "℃",
+                "min": 30,
+                "max": 155,
+                "scale": 0,
+                "step": 5
+            }
+        },
+        {
+            "code": "temp_set_f",
+            "mode": "rw",
+            "type": "Integer",
+            "property": {
+                "unit": "℉",
+                "min": 115,
+                "max": 155,
+                "scale": 0,
+                "step": 5
+            }
+        },
+        {
+            "code": "temp_unit_convert",
+            "mode": "rw",
+            "type": "Enum",
+            "property": {
+                "range": [
+                    "c",
+                    "f"
+                ]
+            }
+        },
+        {
+            "code": "work_state",
+            "mode": "ro",
+            "type": "Enum",
+            "property": {
+                "range": [
+                    "heating",
+                    "standby"
+                ]
+            }
+        }
+    ]
+}

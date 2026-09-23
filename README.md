@@ -1,18 +1,21 @@
-# @0x5e/homebridge-tuya-platform
+# @homebridge-plugins/homebridge-tuya
 
-[![npm](https://badgen.net/npm/v/@0x5e/homebridge-tuya-platform)](https://npmjs.com/package/@0x5e/homebridge-tuya-platform)
-[![npm](https://badgen.net/npm/dt/@0x5e/homebridge-tuya-platform)](https://npmjs.com/package/@0x5e/homebridge-tuya-platform)
-[![mit-license](https://badgen.net/npm/license/@0x5e/homebridge-tuya-platform)](https://github.com/0x5e/homebridge-tuya-platform/blob/main/LICENSE)
-[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
-[![Build and Lint](https://github.com/0x5e/homebridge-tuya-platform/actions/workflows/build.yml/badge.svg)](https://github.com/0x5e/homebridge-tuya-platform/actions/workflows/build.yml)
-[![join-discord](https://badgen.net/badge/icon/discord?icon=discord&label=homebridge/tuya)](https://discord.gg/homebridge-432663330281226270)
+[![verified-by-homebridge](https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=for-the-badge&logoColor=%23FFFFFF&logo=homebridge)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+
+![node](https://badgen.net/npm/node/@homebridge-plugins/homebridge-tuya)
+![homebridge](https://img.shields.io/github/package-json/dependency-version/homebridge-plugins/homebridge-tuya/peer/homebridge)
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-❤-ff69b4)](https://github.com/sponsors/tassy-h)
+[![version](https://badgen.net/npm/v/@homebridge-plugins/homebridge-tuya)](https://npmjs.com/package/@homebridge-plugins/homebridge-tuya)
+![size](https://img.shields.io/npm/unpacked-size/@homebridge-plugins/homebridge-tuya)
+[![npm-downloads](https://badgen.net/npm/dt/@homebridge-plugins/homebridge-tuya)](https://npmjs.com/package/@homebridge-plugins/homebridge-tuya)
+[![mit-license](https://badgen.net/npm/license/@homebridge-plugins/homebridge-tuya)](https://github.com/homebridge-plugins/homebridge-tuya/blob/main/LICENSE)
+[![Build and Lint](https://github.com/homebridge-plugins/homebridge-tuya/actions/workflows/build.yml/badge.svg)](https://github.com/homebridge-plugins/homebridge-tuya/actions/workflows/build.yml)
 
 
-Fork version of the official Tuya Homebridge plugin, with a focus on fixing bugs and adding new device support.
 
 
-
-⚠️**Update on 2024.1.14:** Thanks for the attention on this project. There's more and more "problem device", which has wrong definition by manufacture (reversed 0%-100% state, wrong range, wrong unit, ...). Support them one by one really cost a lot. I'm not going to support them in the future, please try solve them by yourself. PRs are still welcome, and bugs will be focused. Thanks again :)
+Forked from 0x5e/homebridge-tuya-platform, with a focus on fixing bugs and adding new device support.
 
 
 
@@ -41,14 +44,14 @@ See [CHANGELOG.md](./CHANGELOG.md)
 Before using this plugin, please make sure to uninstall `homebridge-tuya-platform` first as these two plugins cannot run simultaneously. However, the configuration files are compatible, so there's no need to delete them.
 
 #### For Homebridge Web UI Users
-Go to plugin page, search for `@0x5e/homebridge-tuya-platform` and install it.
+Go to plugin page, search for `@homebridge-plugins/homebridge-tuya` and install it.
 
 
 #### For Homebridge Command Line Users
 
 Run the following command in the terminal:
 ```
-npm install @0x5e/homebridge-tuya-platform
+npm install @homebridge-plugins/homebridge-tuya
 ```
 
 
@@ -62,7 +65,7 @@ The difference between them is:
 If you are a personal user and are unsure which one to choose, please use the `Smart Home` project.
 
 Before you can configure, you must go to the [Tuya IoT Platform](https://iot.tuya.com):
-- Create a cloud development project, and select the data center where your app account is located. See [Mappings Between OEM App Accounts and Data Centers](https://developer.tuya.com/en/docs/iot/oem-app-data-center-distributed?id=Kafi0ku9l07qb)
+- Create a cloud development project, and select the data center where your app account is located. See [Mappings Between OEM App Accounts and Data Centers](https://developer.tuya.com/en/docs/iot/oem-app-data-center-distributed?id=Kafi0ku9l07qb) or [Countries Regions and Tuya Data Center](https://github.com/tuya/tuya-home-assistant/wiki/Countries-Regions-and-Tuya-Data-Center)
 - Go to the `Project Page` > `Devices Panel` > `Link Tuya App Account`, and link your app account.
 - Go to the `Project Page` > `Service API` > `Go to Authorize`, and subscribe to the following APIs (it is free for trial):
     - Authorization Token Management
@@ -104,11 +107,13 @@ Before you can configure, you must go to the [Tuya IoT Platform](https://iot.tuy
 #### Advanced options
 See [ADVANCED_OPTIONS.md](./ADVANCED_OPTIONS.md)
 
+Garage door controllers that keep `switch_1=true` can opt in to contact-sensor-only state reads with `garageDoorUseContactSensorForState` in `options.deviceOverrides`. This keeps commands on `switch_1`, but reads HomeKit state from `doorcontact_state`.
+
 
 ## Limitations
 - **⚠️Don't forget to extend the API trial period every 6 months. Maybe you can set up a reminder in calendar.**
 - Using the same app account for multiple Homebridge/HomeAssistant instances is not supported. Please use separate app accounts for each instance.
-- The plugin requires an internet connection to the Tuya Cloud and does not support the LAN protocol. See [#90](https://github.com/0x5e/homebridge-tuya-platform/issues/90) for more information.
+- The plugin requires an internet connection to the Tuya Cloud and does not support the LAN protocol. See [#90](https://github.com/homebridge-plugins/homebridge-tuya/issues/90) for more information.
 
 ## FAQ
 
@@ -151,7 +156,7 @@ Yes. The device must be listed in the support list and the following steps must 
 
 
 #### Local support
-See [#90](https://github.com/0x5e/homebridge-tuya-platform/issues/90).
+See [#90](https://github.com/homebridge-plugins/homebridge-tuya/issues/90).
 
 Although the plugin didn't implemented tuya local protocol now, it still remains possibility in the future.
 
