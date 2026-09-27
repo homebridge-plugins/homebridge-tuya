@@ -9,17 +9,17 @@ export function configureTargetPosition(
   accessory: BaseAccessory,
   service: Service,
   schema?: TuyaDeviceSchema,
-  invert?: boolean) {
+) {
 
   if (!schema) {
     return;
   }
 
   if (schema.type === TuyaDeviceSchemaType.Integer) {
-    return _configureTargetPosition(accessory, service, schema, invert);
+    return _configureTargetPosition(accessory, service, schema);
   } else if (schema.type === TuyaDeviceSchemaType.Enum) {
     accessory.log.warn('_configureTargetPositionByPositionState');
-    return _configureTargetPositionByPositionState(accessory, service, schema, invert);
+    return _configureTargetPositionByPositionState(accessory, service, schema);
   } else {
     // nop
     return;
@@ -30,17 +30,18 @@ function _configureTargetPosition(
   accessory: BaseAccessory,
   service: Service,
   percentSchema?: TuyaDeviceSchema,
-  invert?: boolean) {
+) {
 
   if (!percentSchema) {
     return;
   }
   const hapProps = toHapProperty(percentSchema.property) as CharacteristicProps;
-  const onGet = onGetPositionHandler(accessory, percentSchema, !!invert);
+  const onGet = onGetPositionHandler(accessory, percentSchema);
 
   service.getCharacteristic(accessory.Characteristic.TargetPosition)
     .onGet(onGet)
     .onSet(async value => {
+      const invert = accessory['isOpposite'] ?? false;
       if (invert) {
         await accessory.sendCommands([{ code: percentSchema.code, value: (100 - (value as number)) }], true);
       } else {
@@ -54,7 +55,7 @@ function _configureTargetPositionByPositionState(
   accessory: BaseAccessory,
   service: Service,
   controlSchema?: TuyaDeviceSchema,
-  invert?: boolean) {
+) {
 
   if (!controlSchema) {
     return;
@@ -69,6 +70,7 @@ function _configureTargetPositionByPositionState(
   }
   service.getCharacteristic(accessory.Characteristic.TargetPosition)
     .onGet(() => {
+      const invert = accessory['isOpposite'] ?? false;
       const status = accessory.getStatus(controlSchema.code)!;
       if (ControlRange.Close.includes(status.value as (typeof ControlRange.Close)[number])) {
         return invert ? 100 : 0;
@@ -84,6 +86,7 @@ function _configureTargetPositionByPositionState(
       return 50;
     })
     .onSet(async value => {
+      const invert = accessory['isOpposite'] ?? false;
       let control: string;
       const index = isOldSchema ? 1 : 0;
       const normalizedValue = invert ? 100 - (value as number) : value as number;

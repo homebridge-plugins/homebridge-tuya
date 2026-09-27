@@ -12,7 +12,8 @@ export const ControlRange = {
 export function configurePositionState(
   accessory: BaseAccessory,
   service: Service,
-  stateSchema?: TuyaDeviceSchema) {
+  stateSchema?: TuyaDeviceSchema,
+) {
 
   if (!stateSchema) {
     return;
@@ -46,12 +47,13 @@ export function configurePositionStateByPosition(
   service: Service,
   currentPositionSchema?: TuyaDeviceSchema,
   targetPositionSchema?: TuyaDeviceSchema,
-  invert?: boolean) {
+) {
 
   const { DECREASING, INCREASING, STOPPED } = accessory.Characteristic.PositionState;
 
   service.getCharacteristic(accessory.Characteristic.PositionState)
     .onGet(() => {
+      const invert = accessory['isOpposite'] ?? false;
       if (!currentPositionSchema || !targetPositionSchema) {
         return STOPPED;
       }

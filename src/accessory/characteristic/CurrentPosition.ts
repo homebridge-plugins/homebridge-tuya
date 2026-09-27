@@ -9,17 +9,17 @@ export function configureCurrentPosition(
   service: Service,
   percentSchema?: TuyaDeviceSchema,
   controlSchema?: TuyaDeviceSchema,
-  invert?: boolean) {
+) {
 
   if (!!percentSchema && !!controlSchema) {
     accessory.log.debug('_configureCurrentPositionWithPositionStateControl');
-    return _configureCurrentPositionWithPositionStateControl(accessory, service, percentSchema, controlSchema, invert);
+    return _configureCurrentPositionWithPositionStateControl(accessory, service, percentSchema, controlSchema);
   } else if (percentSchema) {
     accessory.log.debug('_configureCurrentPosition');
-    return _configureCurrentPosition(accessory, service, percentSchema, invert);
+    return _configureCurrentPosition(accessory, service, percentSchema);
   } else if (controlSchema) {
     accessory.log.warn('_configureCurrentPositionByPositionState');
-    return _configureCurrentPositionByPositionState(accessory, service, controlSchema, invert);
+    return _configureCurrentPositionByPositionState(accessory, service, controlSchema);
   } else {
     // nop
     return;
@@ -30,9 +30,9 @@ function _configureCurrentPosition(
   accessory: BaseAccessory,
   service: Service,
   percentSchema: TuyaDeviceSchema,
-  invert?: boolean) {
+) {
 
-  const onGet = onGetPositionHandler(accessory, percentSchema, !!invert);
+  const onGet = onGetPositionHandler(accessory, percentSchema);
 
   service.getCharacteristic(accessory.Characteristic.CurrentPosition)
     .onGet(onGet)
@@ -53,10 +53,11 @@ function _configureCurrentPositionByPositionState(
   accessory: BaseAccessory,
   service: Service,
   controlSchema: TuyaDeviceSchema,
-  invert?: boolean) {
+) {
 
   service.getCharacteristic(accessory.Characteristic.CurrentPosition)
     .onGet(() => {
+      const invert = accessory['isOpposite'] ?? false;
       accessory.log.debug(`CurrentPosition backMode: ${invert}`);
       const status = accessory.getStatus(controlSchema.code)!;
       if (ControlRange.Close.includes(status.value as (typeof ControlRange.Close)[number])) {
@@ -89,10 +90,10 @@ function _configureCurrentPositionWithPositionStateControl(
   service: Service,
   percentSchema: TuyaDeviceSchema,
   controlSchema: TuyaDeviceSchema,
-  invert?: boolean) {
+) {
 
   const hapProps = toHapProperty(percentSchema.property) as CharacteristicProps;
-  const onGet = onGetPositionHandler(accessory, percentSchema, !!invert);
+  const onGet = onGetPositionHandler(accessory, percentSchema);
 
   service.getCharacteristic(accessory.Characteristic.CurrentPosition)
     .onGet(onGet)
@@ -101,7 +102,7 @@ function _configureCurrentPositionWithPositionStateControl(
       // Because the context value was not correct, I retrieve the current value manually.
       const currentValue = onGet();
       const newValue = context.newValue as number;
-//      const newValue = onGet();
+      //      const newValue = onGet();
       const oldValue = context.oldValue as number;
       accessory.log.debug(`current position onchange. currentValue:${currentValue}`);
       accessory.log.debug('context:%o', context);
@@ -134,9 +135,10 @@ function _configureCurrentPositionWithPositionStateControl(
     });
 }
 
-export function onGetPositionHandler(accessory: BaseAccessory, schema: TuyaDeviceSchema, invert: boolean) {
+export function onGetPositionHandler(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
   const hapProps = toHapProperty(schema.property) as CharacteristicProps;
   return () => {
+    const invert = accessory['isOpposite'] ?? false;
     const status = accessory.getStatus(schema.code)!;
     if (invert) {
       return 100 - limit(status.value as number, hapProps.minValue ?? 0, hapProps.maxValue ?? 100);
