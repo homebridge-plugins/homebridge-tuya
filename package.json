@@ -22,9 +22,6 @@
     "homebridge": "^1.8.0 || ^2.0.0",
     "node": "^20 || ^22 || ^24 || ^25"
   },
-  "peerDependencies": {
-    "homebridge": "^1.8.0 || ^2.0.0"
-  },
   "main": "dist/index.js",
   "scripts": {
     "lint": "eslint src/**/*.ts --max-warnings=0",
