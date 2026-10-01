@@ -73,6 +73,7 @@ function _configureCurrentPositionByPositionState(
       return 50;
     })
     .on('change', (context) => {
+      accessory.log.debug('context:%o', context);
       // https://github.com/homebridge-plugins/homebridge-tuya/pull/50
       // Although the implementation is unconventional, it was reportedly necessary to achieve the correct behavior on actual hardware.
       // In principle, PositionState is a read‑only characteristic and should not be updated or set.
