@@ -104,33 +104,6 @@ function inColorMode(
   return (status.value === 'colour');
 }
 
-function configureLightOn(
-  accessory: BaseAccessory,
-  service: Service,
-  onSchema: TuyaDeviceSchema,
-  brightSchema?: TuyaDeviceSchema,
-) {
-  service.getCharacteristic(accessory.Characteristic.On)
-    .onGet(() => {
-      accessory.checkOnlineStatus();
-      const status = accessory.getStatus(onSchema.code)!;
-      return status.value as boolean;
-    })
-    .onSet(async value => {
-      const commands: TuyaDeviceStatus[] = [{ code: onSchema.code, value: value as boolean }];
-      // Bundle cached brightness with ON to prevent the device from turning on
-      // at stale brightness when commands arrive in separate debounce batches
-      // (e.g. HomeKit automations controlling multiple services simultaneously).
-      if (value && brightSchema) {
-        const brightStatus = accessory.getStatus(brightSchema.code);
-        if (brightStatus) {
-          commands.push({ code: brightSchema.code, value: brightStatus.value });
-        }
-      }
-      await accessory.sendCommands(commands, true);
-    });
-}
-
 function configureBrightness(
   accessory: BaseAccessory,
   service: Service,
@@ -326,23 +299,23 @@ export function configureLight(
       configureOn(accessory, service, onSchema);
       break;
     case LightType.C:
-      configureLightOn(accessory, service!, onSchema, brightSchema);
+      configureOn(accessory, service, onSchema);
       configureBrightness(accessory, service!, lightType, brightSchema, colorSchema, modeSchema);
       break;
     case LightType.CW:
-      configureLightOn(accessory, service!, onSchema, brightSchema);
+      configureOn(accessory, service, onSchema);
       configureBrightness(accessory, service!, lightType, brightSchema, colorSchema, modeSchema);
       configureColourTemperature(accessory, service!, lightType, tempSchema!, modeSchema);
       break;
     case LightType.RGB:
-      configureLightOn(accessory, service!, onSchema, brightSchema);
+      configureOn(accessory, service, onSchema);
       configureBrightness(accessory, service!, lightType, brightSchema, colorSchema, modeSchema);
       configureHue(accessory, service!, lightType, colorSchema!, modeSchema);
       configureSaturation(accessory, service!, lightType, colorSchema!, modeSchema);
       break;
     case LightType.RGBC:
     case LightType.RGBCW:
-      configureLightOn(accessory, service!, onSchema, brightSchema);
+      configureOn(accessory, service, onSchema);
       configureBrightness(accessory, service!, lightType, brightSchema, colorSchema, modeSchema);
       configureColourTemperature(accessory, service!, lightType, tempSchema!, modeSchema);
       configureHue(accessory, service!, lightType, colorSchema!, modeSchema);
