@@ -187,8 +187,7 @@ export default class WindowCoveringAccessory extends BaseAccessory {
 
     // Make it appear as though the value has changed.
     service.getCharacteristic(this.Characteristic.CurrentPosition).updateValue(dummyPreviousPositionValue);
-    service.getCharacteristic(this.Characteristic.TargetPosition).updateValue(dummyPreviousPositionValue);
-    const updateHomeApp = (loopCount:number) => {
+    const updateHomeApp = (loopCount) => {
       const controlState = this.getStatus(controlSchema.code);
       if (ControlRange.Stop.includes(controlState?.value as (typeof ControlRange.Stop)[number])) {
         setTimeout(() => this.observeControlState(service, targetPositionSchema, controlSchema), 500);
@@ -198,9 +197,7 @@ export default class WindowCoveringAccessory extends BaseAccessory {
         setTimeout(() => this.observeControlState(service, targetPositionSchema, controlSchema), 500);
         return;
       }
-
-      service.getCharacteristic(this.Characteristic.CurrentPosition).updateValue(dummyPreviousPositionValue);
-      service.getCharacteristic(this.Characteristic.TargetPosition).updateValue(targetPosition);
+      //
       service.getCharacteristic(this.Characteristic.CurrentPosition).updateValue(targetPosition);
       if (0 < loopCount) {
         setTimeout(() => updateHomeApp(--loopCount), 500);
