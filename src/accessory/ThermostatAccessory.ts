@@ -86,6 +86,14 @@ export default class ThermostatAccessory extends BaseAccessory {
     // Thermostat valve may not support 'Power Off'
     if (this.getStatus('switch')) {
       validValues.push(OFF);
+      // A device that only carries a relay (no 'mode' dp) is an on/off heater,
+      // and the iOS Home app always writes HEAT when its tile is tapped.
+      // Without HEAT in validValues HAP rejects the write with -70410
+      // INVALID_VALUE_IN_REQUEST before onSet runs, so the tile silently does
+      // nothing while the same control inside the accessory works.
+      if (!this.getSchema(...SCHEMA_CODE.TARGET_MODE)) {
+        validValues.push(HEAT);
+      }
     }
 
     const schema = this.getSchema(...SCHEMA_CODE.TARGET_MODE);
@@ -107,8 +115,9 @@ export default class ThermostatAccessory extends BaseAccessory {
         }
 
         if (!schema) {
-          // If don't support mode, display auto.
-          return AUTO;
+          // No 'mode' dp: the relay being on IS heating, so report HEAT.
+          // Matches the HEAT accepted above, keeping reads and writes in sync.
+          return HEAT;
         }
 
         const status = this.getStatus(schema.code)!;
