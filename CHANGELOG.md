@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.7.1] - (2026.10.20)
+
+### Added
+ - Support combo smoke and carbon monoxide detectors, including CO level, low-battery, and fault reporting.
+
+### Fixed
+ - Improve window-covering compatibility with different control states and reversed position scales, and improve position handling for devices without current-position feedback.
+ - Fix light accessory control.
+ - Support RotationSpeed enums that include a STOPPED state code.
+ - Support decimal values for device step sizes.
+
 ## [2.7.0] - (2026.9.7)
 
 Merged the upstream commit.
