@@ -1,7 +1,24 @@
 import BaseAccessory from './BaseAccessory';
+import { configureCurrentRelativeHumidity } from './characteristic/CurrentRelativeHumidity';
+import { configureCurrentTemperature } from './characteristic/CurrentTemperature';
+
+// Standard (indoor / main unit) DPs of the qxj instruction set.
+const SCHEMA_CODE = {
+  CURRENT_TEMP: ['temp_current', 'va_temperature'],
+  CURRENT_HUMIDITY: ['humidity_value', 'va_humidity'],
+};
 
 export default class TemperatureHumiditySensorAccessory extends BaseAccessory {
   configureServices(): void {
+    const tempSchema = this.getSchema(...SCHEMA_CODE.CURRENT_TEMP);
+    if (tempSchema) {
+      configureCurrentTemperature(this, this.getMainService(this.Service.TemperatureSensor), tempSchema);
+    }
+    const humiditySchema = this.getSchema(...SCHEMA_CODE.CURRENT_HUMIDITY);
+    if (humiditySchema) {
+      configureCurrentRelativeHumidity(this, this.getMainService(this.Service.HumiditySensor), humiditySchema);
+    }
+
     const { temperatureSchemas, humiditySchemas } = this.getDynamicSchemaCodes();
 
     temperatureSchemas.forEach((schema, index) => {
@@ -41,6 +58,12 @@ export default class TemperatureHumiditySensorAccessory extends BaseAccessory {
           return 0; // Default value if no status is found
         });
     });
+  }
+
+  // The service without subtype; getService(type) could return one of the per-channel services instead.
+  private getMainService(type: typeof this.Service.TemperatureSensor | typeof this.Service.HumiditySensor) {
+    return this.accessory.services.find(service => service.UUID === type.UUID && !service.subtype)
+      || this.accessory.addService(type);
   }
 
   private getDynamicSchemaCodes() {
