@@ -58,10 +58,18 @@ export default class WindowCoveringAccessory extends BaseAccessory {
     }
     this.log.info('Curtain amount:', amount);
 
-    this.isOpposite = this.isOppositePositionDevice(
-      this.getSchema(...SCHEMA_CODE[0].TARGET_POSITION_CONTROL),
-      this.getSchema(...SCHEMA_CODE[0].CURRENT_POSITION_PERCENT, ...SCHEMA_CODE[0].TARGET_POSITION_PERCENT),
-    );
+    // Plugin Settings
+    if (this.platform.getDeviceConfig(this.device)?.reversePosition === true) {
+      this.isOpposite = TriState.TRUE;
+    } else {
+      this.isOpposite = TriState.FALSE;
+    }
+
+    // FIXME: Automatic detection. Since there were cases where it didn’t work correctly, this was changed to use the plugin settings.
+    // this.isOpposite = this.isOppositePositionDevice(
+    //   this.getSchema(...SCHEMA_CODE[0].TARGET_POSITION_CONTROL),
+    //   this.getSchema(...SCHEMA_CODE[0].CURRENT_POSITION_PERCENT, ...SCHEMA_CODE[0].TARGET_POSITION_PERCENT),
+    // );
 
     if (this.isOpposite === TriState.TRUE) {
       this.log.info('this device treat the closed state as position 100%.');

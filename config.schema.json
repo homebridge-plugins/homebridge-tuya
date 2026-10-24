@@ -156,6 +156,14 @@
                                         "functionBody": "return (model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]].category === 'ckmkzq');"
                                     }
                                 },
+                                "reversePosition": {
+                                    "title": "Reverse position",
+                                    "description": "When turned on, it shows 100% as the closed position.",
+                                    "type": "boolean",
+                                    "condition": {
+                                        "functionBody": "return (model.options && model.options.deviceOverrides && ['cl', 'clkg', 'mc'].includes(model.options.deviceOverrides[arrayIndices[0]].category));"
+                                    }
+                                },
                                 "schema": {
                                     "title": "Schema Overriding Configs",
                                     "type": "array",
@@ -565,6 +573,9 @@
                                 },
                                 {
                                     "key": "options.deviceOverrides[].garageDoorUseContactSensorForState"
+                                },
+                                {
+                                    "key": "options.deviceOverrides[].reversePosition"
                                 },
                                 {
                                     "key": "options.deviceOverrides[].schema",
