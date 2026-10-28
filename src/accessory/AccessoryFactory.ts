@@ -316,10 +316,11 @@ function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformA
       platform.log.warn('use plugin options and config category to another. https://github.com/homebridge-plugins/homebridge-tuya/blob/develop_1.7.0/ADVANCED_OPTIONS.md https://github.com/homebridge-plugins/homebridge-tuya/blob/develop_1.7.0/SUPPORTED_DEVICES.md');
       return undefined;
 
+    case 'infrared_ac':
+      return new IRAirConditionerAccessory(platform, accessory);
     case 'infrared_tv':
     case 'infrared_stb':
     case 'infrared_box':
-    case 'infrared_ac':
     case 'infrared_fan':
     case 'infrared_light':
     case 'infrared_amplifier':
@@ -334,4 +335,3 @@ function resolveAccessoryByCategory(platform: TuyaPlatform, accessory: PlatformA
       return undefined;
   }
 }
-
