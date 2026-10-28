@@ -25,6 +25,11 @@
   "peerDependencies": {
     "homebridge": "^1.8.0 || ^2.0.0"
   },
+  "peerDependenciesMeta": {
+    "homebridge": {
+      "optional": true
+    }
+  },
   "main": "dist/index.js",
   "scripts": {
     "lint": "eslint src/**/*.ts --max-warnings=0",
