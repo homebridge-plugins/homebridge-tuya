@@ -138,7 +138,7 @@ export default class WindowCoveringAccessory extends BaseAccessory {
       case this.Characteristic.TargetPosition.UUID: {
         this.log.debug(`characteristic change:${change.characteristic.displayName}`);
         this.log.debug(`oldValue: ${change.oldValue}, newValue:${change.newValue}`);
-        if (this.isOpposite !== TriState.INDETERMINATE) {
+        if (this.isOpposite === TriState.INDETERMINATE) {
           this.isOpposite = this.isOppositePositionDevice(positionStateSchema, currentPositionSchema);
         }
         break;
@@ -206,6 +206,7 @@ export default class WindowCoveringAccessory extends BaseAccessory {
         return;
       }
       //
+      service.getCharacteristic(this.Characteristic.TargetPosition).setValue(targetPosition);
       service.getCharacteristic(this.Characteristic.CurrentPosition).updateValue(targetPosition);
       if (0 < loopCount) {
         setTimeout(() => updateHomeApp(--loopCount), 500);
