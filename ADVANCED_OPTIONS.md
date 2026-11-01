@@ -22,6 +22,7 @@ Before configuring, you may need to:
 - `adaptiveLighting` - **optional**: Adaptive Lighting. Defaults to `false`. Not all light device support this feature, please use it on demand.
 - `addExtraFeaturesAutomatically` - **optional**: Automatically expose supported read/write datapoints that are not used by the standard accessory as extra HomeKit services. Boolean datapoints are exposed as switches, Enum datapoints as switches for their available values, and Integer datapoints as sliders. Defaults to `false`.
 - `garageDoorUseContactSensorForState` - **optional**: For garage door controllers. When `true`, `CurrentDoorState` and `TargetDoorState` reads use `doorcontact_state` only, while set commands still use `switch_1`. Defaults to `false`.
+- `et72gwCloudMeasurements` - **optional**: Opt in a supported ET-72GW device to measured floor temperature and actual heating activity. See [ET-72GW cloud measurements](#et-72gw-measured-floor-temperature-and-heating-activity).
 - `schema` - **optional**: An array of schema overriding config objects, used for describing datapoint (DP). When your device has non-standard DP, you need to transform them manually with configuration. Each element in the schema array is described as follows:
   - `code` - **required**: DP code.
   - `newCode` - **optional**: New DP code.
@@ -320,3 +321,53 @@ C = (F - 32) / 1.8
   }
 }
 ```
+
+### ET-72GW measured floor temperature and heating activity
+
+HEATIT/Jiahong ET-72GW thermostats with product ID `m2dkohai78cwr3yd` can expose a target setpoint through Tuya's standard device status while their actual floor sensor and relay state are available only through the cloud property-shadow API. Enable `et72gwCloudMeasurements` on an override whose `id` is the thermostat's actual **device ID**. Product, UUID and `global` overrides do not activate it. Other product IDs are not enabled automatically because their property mappings have not been verified.
+
+```json
+{
+  "options": {
+    "deviceOverrides": [{
+      "id": "your-et72gw-device-id",
+      "et72gwCloudMeasurements": {
+        "enabled": true,
+        "pollIntervalSeconds": 180,
+        "maxCacheAgeSeconds": 900,
+        "maxReportAgeSeconds": 0,
+        "maxHeatingReportAgeSeconds": 0
+      }
+    }]
+  }
+}
+```
+
+Merge the option into your existing device override; retain any `schema` entries, including existing `temp_set` conversion handlers. The option changes only `CurrentTemperature` and `CurrentHeatingCoolingState`. Target temperature, target mode, display-unit configuration, commands, accessory identity and pairing retain their existing behavior. When disabled or omitted, no shadow requests are made and existing thermostat behavior is unchanged. No accessory cache reset or re-pairing is needed.
+
+The adapter uses one `GET /v2.0/cloud/thing/{device_id}/shadow/properties` for both measurements, through the plugin's existing authenticated API client:
+
+| Cloud property | DP | Interpretation |
+| --- | --- | --- |
+| `FloorTemper` | 106 | Measured floor temperature, divided by 10 |
+| `TemperUnitChange` | 107 | Boolean: `true` Fahrenheit, `false` Celsius |
+| `work_status` | 118 | Boolean: `true` heating, `false` idle |
+| `power1` | 101 | Boolean thermostat power; power off reports current activity OFF |
+
+HomeKit always receives Celsius: for example, `FloorTemper = 820` with Fahrenheit selected represents 82°F, approximately 27.8°C. `RoomTemper`/105 and `SetTemp`/102 are not used as floor-temperature substitutes. Idle maps to HomeKit's current OFF state without turning off the configured operating mode. Heating activity is never inferred by comparing current and target temperatures.
+
+| Setting | Default | Range/meaning |
+| --- | --- | --- |
+| `enabled` | `false` | Explicit per-device opt-in |
+| `pollIntervalSeconds` | `300` | Integer 60–3600 seconds between attempts; example above chooses 180 |
+| `maxCacheAgeSeconds` | `900` | Integer 60–86400; maximum age since a successful validated retrieval |
+| `maxReportAgeSeconds` | `0` | Integer 0–604800; optional maximum floor-property report age; 0 disables this check |
+| `maxHeatingReportAgeSeconds` | `0` | Integer 0–604800; optional maximum relay-property report age; 0 disables this check |
+
+One request starts when the accessory is configured, followed by interval-based polling. Concurrent refreshes share the same request. HomeKit reads use the cache and do not trigger HTTP requests. Polling stops when the accessory is removed or Homebridge shuts down. Each request has a 10-second total deadline and a 256 KiB response limit, with no immediate retry, redirect, login or token refresh. Normal plugin session management remains responsible for authentication. HTTP rate limiting uses `Retry-After` (numeric seconds or HTTP date, capped at one day) and the normal cooldown; late timers do not cause catch-up bursts. Authorization rejection makes measurements unavailable and stops this polling instance; resolve cloud permissions/subscription/session issues before restarting the child bridge.
+
+For one continuously online thermostat, 120/180/300-second polling adds approximately **21,600/14,400/8,640 calls per 30 days**, respectively, plus the plugin's other API traffic. Check your own Tuya project allowance and subscription; successful authentication does not establish sufficient monthly capacity. Multiple opted-in devices consume their own polling budgets. The conservative default is 300 seconds; 180 seconds has also been observed working in production.
+
+Tuya property timestamps are last-reported timestamps, not the HTTP retrieval time. A stable temperature, power setting or relay state may retain an old timestamp across successful requests. Default zero report-age limits accept that last reported state while independently enforcing retrieval-cache age. This does not prove physical sensor liveness. Select stricter report ages if needed, accepting that legitimately stable reports can become unavailable. Persistent unit/power metadata may be older than the measurement; a newer unit report cannot reinterpret an older floor sample, and a newer power-on report cannot resurrect an older relay state.
+
+Missing, duplicated, conflicting, malformed, future or regressed properties invalidate the affected measurement independently. Offline devices report unavailable. Transport/session failures retain a valid cached value only until its configured expiry; authorization rejection invalidates both measurements immediately. Unavailable values use HomeKit's communication-failure status, never zero, the setpoint or an inferred heating state. Changed measurements explicitly update the existing HomeKit characteristics. Logs contain fixed failure categories on changes and a recovery message, without raw cloud responses or credentials.

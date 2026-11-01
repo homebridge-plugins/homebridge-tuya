@@ -13,6 +13,14 @@ export interface TuyaPlatformDeviceSchemaConfig {
   extraRawSwitch?: Array<TuyaPlatformExtraRawSwitchConfig>;
 }
 
+export interface ET72GWMeasurementsConfig {
+  enabled: boolean;
+  pollIntervalSeconds?: number;
+  maxCacheAgeSeconds?: number;
+  maxReportAgeSeconds?: number;
+  maxHeatingReportAgeSeconds?: number;
+}
+
 export interface TuyaPlatformDeviceConfig {
   id: string;
   category?: string;
@@ -22,6 +30,7 @@ export interface TuyaPlatformDeviceConfig {
   addExtraFeaturesAutomatically?: boolean;
   garageDoorUseContactSensorForState?: boolean;
   reversePosition?: boolean;
+  et72gwCloudMeasurements?: ET72GWMeasurementsConfig;
 }
 
 export interface TuyaPlatformServiceInformationConfig {

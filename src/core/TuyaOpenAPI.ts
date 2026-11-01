@@ -81,6 +81,16 @@ const ipv4Agent = new https.Agent({
 
 export type TuyaOpenAPIResponse = TuyaOpenAPIResponseSuccess | TuyaOpenAPIResponseError;
 
+/** Sanitized failure: never includes headers, credentials, token URLs, or raw response bodies. */
+export class ShadowReadError extends Error {
+  constructor(
+    readonly kind: 'session' | 'authorization' | 'rate-limit' | 'transport' | 'response',
+    readonly retryAfterSeconds = 0,
+  ) {
+    super(`Shadow read failed: ${kind}`);
+  }
+}
+
 export default class TuyaOpenAPI {
 
   static readonly Endpoints = Endpoints;
@@ -380,6 +390,108 @@ export default class TuyaOpenAPI {
     }
 
     return res;
+  }
+
+  /** One bounded read with the current session. Deliberately bypasses request/refresh/retry/debug logging. */
+  async getDeviceShadow(deviceID: string): Promise<unknown> {
+    if (!/^[a-zA-Z0-9_-]{1,128}$/.test(deviceID)) {
+      throw new ShadowReadError('response');
+    }
+    if (!this.isLogin() || this.isTokenExpired()) {
+      throw new ShadowReadError('session');
+    }
+    const path = `/v2.0/cloud/thing/${deviceID}/shadow/properties`;
+    const now = Date.now();
+    const nonce = uuidv4();
+    const token = this.tokenInfo.access_token;
+    const headers = {
+      t: String(now), client_id: this.accessId, nonce, 'Signature-Headers': 'client_id',
+      sign: this._getSign(this.accessId, this.accessKey, token, now, nonce, this._getStringToSign('GET', path, null, null)),
+      sign_method: 'HMAC-SHA256', access_token: token,
+    };
+    return new Promise((resolve, reject) => {
+      let req: ReturnType<typeof https.request> | undefined;
+      let settled = false;
+      const finish = (error?: ShadowReadError, result?: unknown) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(deadline);
+        if (error) {
+          req?.destroy();
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      };
+      const deadline = setTimeout(() => finish(new ShadowReadError('transport')), 10000);
+      deadline.unref();
+      try {
+        const endpoint = new URL(this.endpoint);
+        if (endpoint.protocol !== 'https:') {
+          finish(new ShadowReadError('response'));
+          return;
+        }
+        req = https.request({
+          hostname: endpoint.hostname, port: endpoint.port || undefined, method: 'GET', path, headers,
+          ...(this.forceIPv4 ? { agent: ipv4Agent } : {}),
+        }, res => {
+          res.on('error', () => finish(new ShadowReadError('transport')));
+          res.on('aborted', () => finish(new ShadowReadError('transport')));
+          if (res.statusCode === 401 || res.statusCode === 403) {
+            finish(new ShadowReadError('authorization'));
+            res.destroy();
+            return;
+          }
+          if (res.statusCode === 429) {
+            const raw = res.headers['retry-after'];
+            const seconds = typeof raw === 'string'
+              ? (/^\d+$/.test(raw) ? Number(raw) : (Date.parse(raw) - Date.now()) / 1000) : 0;
+            // Cap to a day to keep timer arithmetic bounded; the adapter also enforces its normal cooldown.
+            finish(new ShadowReadError('rate-limit', Number.isFinite(seconds) ? Math.max(0, Math.min(86400, seconds)) : 0));
+            res.destroy();
+            return;
+          }
+          if (res.statusCode !== 200) {
+            finish(new ShadowReadError('response'));
+            res.destroy();
+            return;
+          }
+          let size = 0;
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk: Buffer) => {
+            size += chunk.length;
+            if (size > 262144) {
+              finish(new ShadowReadError('response'));
+              res.destroy();
+            } else {
+              chunks.push(chunk);
+            }
+          });
+          res.on('end', () => {
+            if (settled) {
+              return;
+            }
+            try {
+              const data = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+              if (data?.success !== true) {
+                const authCodes = [1004, 1010, 1011, 1100, 1106, 1114, 28841002, 28841101, 28841105];
+                finish(new ShadowReadError(authCodes.includes(Number(data?.code)) ? 'authorization' : 'response'));
+              } else {
+                finish(undefined, data.result);
+              }
+            } catch {
+              finish(new ShadowReadError('response'));
+            }
+          });
+        });
+        req.on('error', () => finish(new ShadowReadError('transport')));
+        req.end();
+      } catch {
+        finish(new ShadowReadError('transport'));
+      }
+    });
   }
 
   async get(path: string, params?) {
