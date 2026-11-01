@@ -164,24 +164,6 @@
                                         "functionBody": "return (model.options && model.options.deviceOverrides && ['cl', 'clkg', 'mc'].includes(model.options.deviceOverrides[arrayIndices[0]].category));"
                                     }
                                 },
-                                "et72gwCloudMeasurements": {
-                                    "title": "ET-72GW Cloud Measurements",
-                                    "description": "Product m2dkohai78cwr3yd only. Use the actual device ID in this override; product/global overrides do not opt in.",
-                                    "type": "object",
-                                    "properties": {
-                                        "enabled": { "title": "Use measured floor temperature and relay activity", "type": "boolean", "default": false },
-                                        "pollIntervalSeconds": { "type": "integer", "minimum": 60, "maximum": 3600, "default": 300 },
-                                        "maxCacheAgeSeconds": { "type": "integer", "minimum": 60, "maximum": 86400, "default": 900 },
-                                        "maxHeatingReportAgeSeconds": {
-                                            "type": "integer", "minimum": 0, "maximum": 604800, "default": 0,
-                                            "description": "Optional maximum relay report age. 0 accepts unchanged timestamps while cache age is enforced."
-                                        },
-                                        "maxReportAgeSeconds": {
-                                            "type": "integer", "minimum": 0, "maximum": 604800, "default": 0,
-                                            "description": "0 accepts unchanged cloud timestamps; cache retrieval age is still enforced."
-                                        }
-                                    }
-                                },
                                 "schema": {
                                     "title": "Schema Overriding Configs",
                                     "type": "array",
@@ -594,16 +576,6 @@
                                 },
                                 {
                                     "key": "options.deviceOverrides[].reversePosition"
-                                },
-                                {
-                                    "key": "options.deviceOverrides[].et72gwCloudMeasurements",
-                                    "items": [
-                                        "options.deviceOverrides[].et72gwCloudMeasurements.enabled",
-                                        "options.deviceOverrides[].et72gwCloudMeasurements.pollIntervalSeconds",
-                                        "options.deviceOverrides[].et72gwCloudMeasurements.maxCacheAgeSeconds",
-                                        "options.deviceOverrides[].et72gwCloudMeasurements.maxReportAgeSeconds",
-                                        "options.deviceOverrides[].et72gwCloudMeasurements.maxHeatingReportAgeSeconds"
-                                    ]
                                 },
                                 {
                                     "key": "options.deviceOverrides[].schema",

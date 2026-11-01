@@ -1,6 +1,4 @@
-import type { ET72GWMeasurementsConfig, TuyaPlatformDeviceConfig } from '../config';
 import type Logger from '../util/Logger';
-import type TuyaDevice from './TuyaDevice';
 import { ShadowReadError } from '../core/TuyaOpenAPI';
 
 export interface FloorSample {
@@ -32,35 +30,6 @@ export interface ET72GWMeasurementOptions {
   maxCacheAgeSeconds: number;
   maxReportAgeSeconds: number;
   maxHeatingReportAgeSeconds?: number;
-}
-
-export function et72gwOptions(device: Pick<TuyaDevice, 'id' | 'product_id'>, configs?: TuyaPlatformDeviceConfig[]) {
-  // Deliberately do not inherit product/global/UUID overrides: activation needs the actual device ID.
-  const config = configs?.find(item => item.id === device.id)?.et72gwCloudMeasurements;
-  if (device.product_id !== 'm2dkohai78cwr3yd' || config?.enabled !== true) {
-    return undefined;
-  }
-  return validateOptions(config);
-}
-
-function validateOptions(config: ET72GWMeasurementsConfig): ET72GWMeasurementOptions {
-  const options = {
-    pollIntervalSeconds: config.pollIntervalSeconds ?? 300,
-    maxCacheAgeSeconds: config.maxCacheAgeSeconds ?? 900,
-    maxReportAgeSeconds: config.maxReportAgeSeconds ?? 0,
-    maxHeatingReportAgeSeconds: config.maxHeatingReportAgeSeconds ?? 0,
-  };
-  for (const [key, min, max] of [
-    ['pollIntervalSeconds', 60, 3600],
-    ['maxCacheAgeSeconds', 60, 86400],
-    ['maxReportAgeSeconds', 0, 604800],
-    ['maxHeatingReportAgeSeconds', 0, 604800],
-  ] as const) {
-    if (!Number.isInteger(options[key]) || options[key] < min || options[key] > max) {
-      throw new Error(`Invalid ET-72GW ${key}`);
-    }
-  }
-  return options;
 }
 
 type UnitReport = { unitTime: number; fahrenheit: boolean };

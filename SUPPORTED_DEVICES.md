@@ -68,7 +68,7 @@ Most category code is pinyin abbreviation of Chinese name.
 | Extraction hood            | 香薰机 | yyj           | Air Purifier<br> Lightbulb | ✅ | Documentation        |
 | Curtain                    | 窗帘 | cl            | Window Covering | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorycl?id=Kaiuz1hnpo7df)      |
 | Door and Window Controller | 门窗控制器 | mc            | Window | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categorymc?id=Kaiuz1jyoassg)      |
-| Thermostat                 | 温控器 | wk            | Thermostat | ✅ | [ET-72GW cloud measurements](./ADVANCED_OPTIONS.md#et-72gw-measured-floor-temperature-and-heating-activity) (HEATIT/Jiahong ET-72GW, product `m2dkohai78cwr3yd`)<br>[Documentation](https://developer.tuya.com/en/docs/iot/categorywk?id=Kaiuz1m1xqnt6)      |
+| Thermostat                 | 温控器 | wk            | Thermostat | ✅ | [Automatic ET-72GW support](./ADVANCED_OPTIONS.md#et-72gw-measured-floor-temperature-and-heating-activity) (HEATIT/Jiahong ET-72GW, product `m2dkohai78cwr3yd`)<br>[Documentation](https://developer.tuya.com/en/docs/iot/categorywk?id=Kaiuz1m1xqnt6)      |
 | Thermostat Valve           | 温控阀 | wkf           | Thermostat | ✅ | Documentation                                                                            |
 | Bathroom Heater            | 浴霸 | yb            | | | [Documentation](https://developer.tuya.com/en/docs/iot/categoryyb?id=Kaiuz1oajgpib)      |
 | Irrigator                  | 灌溉器 | ggq<br> sfkzq | Valve | ✅ | [Documentation](https://developer.tuya.com/en/docs/iot/categoryggq?id=Kaiuz1qib7z0k)     |

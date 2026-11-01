@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { ET72GWMeasurements, et72gwOptions, ET72GWMeasurementOptions } from '../src/device/ET72GWMeasurements';
+import { ET72GWMeasurements, ET72GWMeasurementOptions } from '../src/device/ET72GWMeasurements';
 import { ShadowReadError } from '../src/core/TuyaOpenAPI';
 
 const now = 1800000000000;
@@ -33,19 +33,6 @@ describe('ET-72GW read-only floor cache', () => {
       expect(adapter.currentFloor()?.celsius).toBeCloseTo(expected);
       expect(adapter.currentFloor()?.measuredAt).toBe(now - 240000);
     });
-
-  test('requires exact configured ID, matching product, and explicit opt-in; no inheritance', () => {
-    const device = { id: 'configured-device', product_id: 'm2dkohai78cwr3yd' };
-    const enabled = { enabled: true };
-    expect(et72gwOptions(device, [{ id: device.id, et72gwCloudMeasurements: enabled }])).toEqual(options);
-    for (const id of ['global', device.product_id, 'another-device']) {
-      expect(et72gwOptions(device, [{ id, et72gwCloudMeasurements: enabled }])).toBeUndefined();
-    }
-    expect(et72gwOptions({ ...device, product_id: 'other' }, [{ id: device.id, et72gwCloudMeasurements: enabled }])).toBeUndefined();
-    expect(et72gwOptions(device, [{ id: device.id }])).toBeUndefined();
-    expect(et72gwOptions(device, [{ id: device.id, et72gwCloudMeasurements: { enabled: false } }])).toBeUndefined();
-    expect(() => et72gwOptions(device, [{ id: device.id, et72gwCloudMeasurements: { enabled: true, pollIntervalSeconds: 1 } }])).toThrow();
-  });
 
   test('logs failure categories once and recovery without exposing exception contents', async () => {
     const log = { warn: jest.fn(), info: jest.fn() };

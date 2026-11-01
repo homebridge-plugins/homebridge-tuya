@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Added
- - Opt-in HEATIT/Jiahong ET-72GW cloud-shadow floor temperature and relay activity reporting, with independent freshness controls, bounded polling and existing thermostat controls preserved.
+ - Automatically recognize the verified HEATIT/Jiahong ET-72GW product with a dedicated accessory for measured floor temperature, relay activity and native Fahrenheit/Celsius target conversion; no device configuration is required.
 
 ## [2.7.1] - (2026.10.20)
 

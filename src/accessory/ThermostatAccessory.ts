@@ -1,6 +1,5 @@
 import { TuyaDeviceSchemaEnumProperty, TuyaDeviceSchemaIntegerProperty, TuyaDeviceStatus } from '../device/TuyaDevice';
 import { limit } from '../util/util';
-import { ET72GWMeasurements, et72gwOptions } from '../device/ET72GWMeasurements';
 import BaseAccessory from './BaseAccessory';
 import { configureCurrentTemperature } from './characteristic/CurrentTemperature';
 import { configureTempDisplayUnits } from './characteristic/TemperatureDisplayUnits';
@@ -16,8 +15,6 @@ const SCHEMA_CODE = {
 
 export default class ThermostatAccessory extends BaseAccessory {
 
-  private cloudMeasurements?: ET72GWMeasurements;
-
   requiredSchema() {
     return [SCHEMA_CODE.CURRENT_TEMP, SCHEMA_CODE.TARGET_TEMP];
   }
@@ -25,95 +22,11 @@ export default class ThermostatAccessory extends BaseAccessory {
   configureServices() {
     this.configureCurrentState();
     this.configureTargetState();
-    if (!this.configureCloudMeasurements()) {
-      configureCurrentTemperature(this, this.mainService(), this.getSchema(...SCHEMA_CODE.CURRENT_TEMP));
-    }
+    configureCurrentTemperature(this, this.mainService(), this.getSchema(...SCHEMA_CODE.CURRENT_TEMP));
     this.configureTargetTemp();
     configureTempDisplayUnits(this, this.mainService(), this.getSchema(...SCHEMA_CODE.TEMP_UNIT_CONVERT));
   }
 
-  private configureCloudMeasurements() {
-    this.cloudMeasurements?.stop();
-    this.cloudMeasurements = undefined;
-    const characteristic = this.mainService().getCharacteristic(this.Characteristic.CurrentTemperature);
-    const unavailable = () => {
-      const { HapStatusError, HAPStatus } = this.platform.api.hap;
-      return new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-    };
-    let options;
-    try {
-      options = et72gwOptions(this.device, this.platform.options.deviceOverrides);
-    } catch {
-      this.log.warn('Invalid ET-72GW floor temperature configuration; measurement unavailable.');
-      characteristic.onGet(() => {
-        throw unavailable();
-      });
-      characteristic.updateValue(unavailable());
-      this.mainService().getCharacteristic(this.Characteristic.CurrentHeatingCoolingState)
-        .onGet(() => {
-          throw unavailable();
-        }).updateValue(unavailable());
-      return true;
-    }
-    if (!options) {
-      return false;
-    }
-    const publish = () => this.publishCloudMeasurements();
-    this.cloudMeasurements = new ET72GWMeasurements(
-      () => this.deviceManager.api.getDeviceShadow(this.device.id), options, publish, () => this.device.online, this.log,
-    );
-    // Set only this characteristic's standard bounds; never reuse Fahrenheit temp_set schema metadata.
-    characteristic.setProps({ minValue: -270, maxValue: 100, minStep: 0.1 }).onGet(() => {
-      const sample = this.cloudMeasurements?.currentFloor();
-      if (!sample) {
-        throw unavailable();
-      }
-      return sample.celsius;
-    });
-    this.mainService().getCharacteristic(this.Characteristic.CurrentHeatingCoolingState)
-      .onGet(() => this.readCloudHeatingState());
-    publish();
-    this.cloudMeasurements.start();
-    return true;
-  }
-
-  dispose() {
-    this.cloudMeasurements?.stop();
-  }
-
-  private readCloudHeatingState() {
-    const sample = this.cloudMeasurements?.currentHeating();
-    if (!sample) {
-      const { HapStatusError, HAPStatus } = this.platform.api.hap;
-      throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-    }
-    const { OFF, HEAT } = this.Characteristic.CurrentHeatingCoolingState;
-    // Use the power1 report from the same shadow response; an untimestamped legacy switch may be older.
-    return sample.heating ? HEAT : OFF;
-  }
-
-  private publishCloudMeasurements() {
-    const { HapStatusError, HAPStatus } = this.platform.api.hap;
-    const unavailable = () => new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-    const sample = this.cloudMeasurements?.currentFloor();
-    this.mainService().getCharacteristic(this.Characteristic.CurrentTemperature)
-      .updateValue(sample ? sample.celsius : unavailable());
-    let state: number | Error;
-    try {
-      state = this.readCloudHeatingState();
-    } catch {
-      state = unavailable();
-    }
-    // updateValue emits HAP change notifications; it never invokes an onSet handler or writes a mode.
-    this.mainService().getCharacteristic(this.Characteristic.CurrentHeatingCoolingState).updateValue(state);
-  }
-
-  async onDeviceInfoUpdate(info) {
-    await super.onDeviceInfoUpdate(info);
-    if (this.cloudMeasurements) {
-      this.publishCloudMeasurements();
-    }
-  }
 
   mainService() {
     return this.accessory.getService(this.Service.Thermostat)

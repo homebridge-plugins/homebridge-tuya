@@ -22,7 +22,6 @@ Before configuring, you may need to:
 - `adaptiveLighting` - **optional**: Adaptive Lighting. Defaults to `false`. Not all light device support this feature, please use it on demand.
 - `addExtraFeaturesAutomatically` - **optional**: Automatically expose supported read/write datapoints that are not used by the standard accessory as extra HomeKit services. Boolean datapoints are exposed as switches, Enum datapoints as switches for their available values, and Integer datapoints as sliders. Defaults to `false`.
 - `garageDoorUseContactSensorForState` - **optional**: For garage door controllers. When `true`, `CurrentDoorState` and `TargetDoorState` reads use `doorcontact_state` only, while set commands still use `switch_1`. Defaults to `false`.
-- `et72gwCloudMeasurements` - **optional**: Opt in a supported ET-72GW device to measured floor temperature and actual heating activity. See [ET-72GW cloud measurements](#et-72gw-measured-floor-temperature-and-heating-activity).
 - `schema` - **optional**: An array of schema overriding config objects, used for describing datapoint (DP). When your device has non-standard DP, you need to transform them manually with configuration. Each element in the schema array is described as follows:
   - `code` - **required**: DP code.
   - `newCode` - **optional**: New DP code.
@@ -324,50 +323,25 @@ C = (F - 32) / 1.8
 
 ### ET-72GW measured floor temperature and heating activity
 
-HEATIT/Jiahong ET-72GW thermostats with product ID `m2dkohai78cwr3yd` can expose a target setpoint through Tuya's standard device status while their actual floor sensor and relay state are available only through the cloud property-shadow API. Enable `et72gwCloudMeasurements` on an override whose `id` is the thermostat's actual **device ID**. Product, UUID and `global` overrides do not activate it. Other product IDs are not enabled automatically because their property mappings have not been verified.
+HEATIT/Jiahong ET-72GW thermostats with verified product ID **`m2dkohai78cwr3yd`** are automatically recognized by `AccessoryFactory` before the generic category resolver. The dedicated `ET72GWAccessory` needs **no device override or feature option**. Other product IDs continue to use their existing category accessory; other ET-72GW variants are not assumed to share this profile. No cache reset or re-pairing is required.
 
-```json
-{
-  "options": {
-    "deviceOverrides": [{
-      "id": "your-et72gw-device-id",
-      "et72gwCloudMeasurements": {
-        "enabled": true,
-        "pollIntervalSeconds": 180,
-        "maxCacheAgeSeconds": 900,
-        "maxReportAgeSeconds": 0,
-        "maxHeatingReportAgeSeconds": 0
-      }
-    }]
-  }
-}
-```
-
-Merge the option into your existing device override; retain any `schema` entries, including existing `temp_set` conversion handlers. The option changes only `CurrentTemperature` and `CurrentHeatingCoolingState`. Target temperature, target mode, display-unit configuration, commands, accessory identity and pairing retain their existing behavior. When disabled or omitted, no shadow requests are made and existing thermostat behavior is unchanged. No accessory cache reset or re-pairing is needed.
-
-The adapter uses one `GET /v2.0/cloud/thing/{device_id}/shadow/properties` for both measurements, through the plugin's existing authenticated API client:
+The dedicated accessory inherits normal thermostat operating-mode controls and the existing accessory/service identities. It supplies the measured floor temperature and actual heating activity from one bounded `GET /v2.0/cloud/thing/{device_id}/shadow/properties` through the existing authenticated API client:
 
 | Cloud property | DP | Interpretation |
 | --- | --- | --- |
-| `FloorTemper` | 106 | Measured floor temperature, divided by 10 |
+| `FloorTemper` | 106 | Floor temperature in tenths of the device's unit |
 | `TemperUnitChange` | 107 | Boolean: `true` Fahrenheit, `false` Celsius |
 | `work_status` | 118 | Boolean: `true` heating, `false` idle |
-| `power1` | 101 | Boolean thermostat power; power off reports current activity OFF |
+| `power1` | 101 | Thermostat power; power off reports current activity OFF |
 
-HomeKit always receives Celsius: for example, `FloorTemper = 820` with Fahrenheit selected represents 82°F, approximately 27.8°C. `RoomTemper`/105 and `SetTemp`/102 are not used as floor-temperature substitutes. Idle maps to HomeKit's current OFF state without turning off the configured operating mode. Heating activity is never inferred by comparing current and target temperatures.
+HomeKit receives Celsius. For example, `FloorTemper = 820` with Fahrenheit selected is 82°F, approximately 27.8°C. Room temperature and the setpoint are never used as substitutes for a missing floor reading. Idle means HomeKit's **current** heating state is OFF; it does not change the thermostat's configured target mode. Heating activity is never inferred from target/current temperature comparisons.
 
-| Setting | Default | Range/meaning |
-| --- | --- | --- |
-| `enabled` | `false` | Explicit per-device opt-in |
-| `pollIntervalSeconds` | `300` | Integer 60–3600 seconds between attempts; example above chooses 180 |
-| `maxCacheAgeSeconds` | `900` | Integer 60–86400; maximum age since a successful validated retrieval |
-| `maxReportAgeSeconds` | `0` | Integer 0–604800; optional maximum floor-property report age; 0 disables this check |
-| `maxHeatingReportAgeSeconds` | `0` | Integer 0–604800; optional maximum relay-property report age; 0 disables this check |
+The verified target datapoint (`SetTemp`/102, exposed by standard status as `temp_set`) also uses native tenths. The generic target scaling alone does not convert Fahrenheit to Celsius; this accessory reads the reported `temp_unit_convert`/`c_f` value for conversion. For example, a native Fahrenheit setpoint of 800 is 80°F/26.6667°C, and a HomeKit target of 27.3°C writes 811 (81.1°F). Celsius setpoints use tenths directly. Writes round once to the device integer, preserving `Math.round(C * 10 * 9 / 5 + 320)` in Fahrenheit. No `temp_set` conversion override is needed. The advertised range metadata may remain Celsius while native values are Fahrenheit; range metadata and live value units are handled separately, retaining the existing HomeKit target limits. Unknown live units or invalid values make the target unavailable and prevent a native command.
 
-One request starts when the accessory is configured, followed by interval-based polling. Concurrent refreshes share the same request. HomeKit reads use the cache and do not trigger HTTP requests. Polling stops when the accessory is removed or Homebridge shuts down. Each request has a 10-second total deadline and a 256 KiB response limit, with no immediate retry, redirect, login or token refresh. Normal plugin session management remains responsible for authentication. HTTP rate limiting uses `Retry-After` (numeric seconds or HTTP date, capped at one day) and the normal cooldown; late timers do not cause catch-up bursts. Authorization rejection makes measurements unavailable and stops this polling instance; resolve cloud permissions/subscription/session issues before restarting the child bridge.
+Explicit schema `onGet`/`onSet` handlers remain supported independently through the existing override pipeline. Their converted values use the unit/scale in the effective schema (Celsius when the unit is omitted); the accessory does not convert them twice. Existing Celsius-conversion handlers can therefore remain in place, although they are no longer required. Unit/scale metadata must be valid for explicit conversion handlers.
 
-For one continuously online thermostat, 120/180/300-second polling adds approximately **21,600/14,400/8,640 calls per 30 days**, respectively, plus the plugin's other API traffic. Check your own Tuya project allowance and subscription; successful authentication does not establish sufficient monthly capacity. Multiple opted-in devices consume their own polling budgets. The conservative default is 300 seconds; 180 seconds has also been observed working in production.
+Internal defaults are **300-second polling**, **900-second retrieval-cache lifetime**, and **no maximum age for unchanged last-reported property timestamps**. There are no ET-72GW public configuration fields. A recognized online device starts one read when configured, then polls at most once per interval; concurrent refreshes share one request. HomeKit getters read the cache. Polling stops on accessory removal, reconfiguration or Homebridge shutdown. One continuously online thermostat adds approximately **8,640 cloud API calls per 30 days**, plus existing plugin traffic. Check your Tuya project allowance, permissions and subscription: successful authentication does not prove sufficient monthly entitlement.
 
-Tuya property timestamps are last-reported timestamps, not the HTTP retrieval time. A stable temperature, power setting or relay state may retain an old timestamp across successful requests. Default zero report-age limits accept that last reported state while independently enforcing retrieval-cache age. This does not prove physical sensor liveness. Select stricter report ages if needed, accepting that legitimately stable reports can become unavailable. Persistent unit/power metadata may be older than the measurement; a newer unit report cannot reinterpret an older floor sample, and a newer power-on report cannot resurrect an older relay state.
+The reusable shadow reader has a 10-second total deadline and 256 KiB response limit, with no immediate HTTP retry, redirect, login or token refresh. Normal plugin authentication remains responsible for the session. HTTP rate limiting uses `Retry-After` (numeric seconds or HTTP date, capped at one day) and the normal polling cooldown. Late callbacks never trigger catch-up bursts. Authorization rejection invalidates measured values and stops that polling instance; resolve the cloud permission/session issue before restarting the child bridge. Target controls remain separate from the measurement cache.
 
-Missing, duplicated, conflicting, malformed, future or regressed properties invalidate the affected measurement independently. Offline devices report unavailable. Transport/session failures retain a valid cached value only until its configured expiry; authorization rejection invalidates both measurements immediately. Unavailable values use HomeKit's communication-failure status, never zero, the setpoint or an inferred heating state. Changed measurements explicitly update the existing HomeKit characteristics. Logs contain fixed failure categories on changes and a recovery message, without raw cloud responses or credentials.
+Cloud timestamps are last-reported timestamps, not HTTP retrieval times. A stable temperature, power setting or relay can retain an old timestamp across successful reads. This implementation accepts unchanged reports while enforcing retrieval-cache age; it does **not** independently prove physical sensor liveness. A newer unit report cannot reinterpret an older floor sample, and a newer power-on report cannot resurrect an older relay state. Missing, malformed, duplicated, conflicting, future or regressed properties invalidate the affected measurement independently. Offline or unavailable measurements report HomeKit communication failure, never zero, the target setpoint or invented activity. Valid cached values can survive transport/session failures only until the 900-second retrieval lifetime expires. Changes explicitly update existing HomeKit characteristics. Failure/recovery logs contain fixed categories without raw responses or credentials.
