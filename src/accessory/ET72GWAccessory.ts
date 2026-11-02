@@ -37,6 +37,34 @@ export default class ET72GWAccessory extends ThermostatAccessory {
       .onGet(() => this.currentHeatingState());
   }
 
+  configureTargetState() {
+    const { OFF, HEAT, AUTO } = this.Characteristic.TargetHeatingCoolingState;
+    this.mainService().getCharacteristic(this.Characteristic.TargetHeatingCoolingState)
+      .setProps({ validValues: [OFF, HEAT, AUTO] })
+      .onGet(() => this.targetMode())
+      .onSet(async value => {
+        this.checkOnlineStatus();
+        if (value === OFF) {
+          // Keep the established power command; do not alter the stored schedule or mode.
+          await this.sendCommands([{ code: 'switch', value: false }]);
+        } else if (value === HEAT || value === AUTO) {
+          await this.deviceManager.api.setDeviceControlMode(this.device.id, value === HEAT ? 'Manual' : 'Smart');
+        } else {
+          const { HapStatusError, HAPStatus } = this.platform.api.hap;
+          throw new HapStatusError(HAPStatus.INVALID_VALUE_IN_REQUEST);
+        }
+      });
+  }
+
+  private targetMode() {
+    const sample = this.measurements?.currentMode();
+    if (!sample) {
+      throw this.unavailable();
+    }
+    const { OFF, HEAT, AUTO } = this.Characteristic.TargetHeatingCoolingState;
+    return !sample.powered ? OFF : sample.mode === 'Manual' ? HEAT : AUTO;
+  }
+
   private currentHeatingState() {
     const sample = this.measurements?.currentHeating();
     if (!sample) {
@@ -63,6 +91,13 @@ export default class ET72GWAccessory extends ThermostatAccessory {
     }
     // updateValue notifies Home clients without invoking target/mode setters.
     this.mainService().getCharacteristic(this.Characteristic.CurrentHeatingCoolingState).updateValue(state);
+    let target: number | Error;
+    try {
+      target = this.targetMode();
+    } catch {
+      target = this.unavailable();
+    }
+    this.mainService().getCharacteristic(this.Characteristic.TargetHeatingCoolingState).updateValue(target);
   }
 
   async onDeviceInfoUpdate(info) {

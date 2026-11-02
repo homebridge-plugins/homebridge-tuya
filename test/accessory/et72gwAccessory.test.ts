@@ -15,6 +15,7 @@ const schemaOverride = {
   onGet: '(value - 320) * 5 / 9', onSet: 'Math.round(value * 9 / 5 + 320)',
 };
 const payload = () => ({ properties: [
+  { code: 'ControlMode', dpId: 103, value: 'Manual', time: Date.now() - 240000 },
   { code: 'FloorTemper', dpId: 106, value: 820, time: Date.now() - 240000 },
   { code: 'RoomTemper', dpId: 105, value: 740, time: Date.now() - 240000 },
   { code: 'SetTemp', dpId: 102, value: 800, time: Date.now() - 240000 },
@@ -77,6 +78,7 @@ describe('automatically recognized ET-72GW accessory', () => {
     }
     const shadow = jest.fn<() => Promise<unknown>>().mockResolvedValue(payload());
     const commands = jest.fn();
+    const setMode = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const characteristic: any = {
       CurrentHeatingCoolingState: { OFF: 0, HEAT: 1, COOL: 2 }, TargetHeatingCoolingState: { OFF: 0, HEAT: 1, COOL: 2, AUTO: 3 },
       CurrentTemperature: 'CurrentTemperature', TargetTemperature: 'TargetTemperature', TemperatureDisplayUnits: { CELSIUS: 0, FAHRENHEIT: 1 },
@@ -89,14 +91,14 @@ describe('automatically recognized ET-72GW accessory', () => {
         HapStatusError: MockHapStatusError, HAPStatus: { SERVICE_COMMUNICATION_FAILURE: -70402, INVALID_VALUE_IN_REQUEST: -70410 },
       } },
       options: withOverride ? { deviceOverrides: [{ id: configID, schema: [schemaOverride] }] } : {},
-      deviceManager: { getDevice: () => device, api: { getDeviceShadow: shadow }, sendCommands: commands },
+      deviceManager: { getDevice: () => device, api: { getDeviceShadow: shadow, setDeviceControlMode: setMode }, sendCommands: commands },
       getDeviceConfig: TuyaPlatform.prototype.getDeviceConfig,
       getDeviceSchemaConfig: TuyaPlatform.prototype.getDeviceSchemaConfig,
     };
     const handler = AccessoryFactory.createAccessory(platform, accessory, device) as ThermostatAccessory;
     handlers.push(handler);
     return {
-      handler, accessory, platform, device, shadow, commands,
+      handler, accessory, platform, device, shadow, commands, setMode,
       current: characteristics.get('CurrentTemperature'), target: characteristics.get('TargetTemperature'),
       state: characteristics.get(characteristic.CurrentHeatingCoolingState),
       targetState: characteristics.get(characteristic.TargetHeatingCoolingState),
@@ -144,14 +146,14 @@ describe('automatically recognized ET-72GW accessory', () => {
     expect(t.commands).not.toHaveBeenCalled();
   });
 
-  test('shadow power-off dominates active relay without changing configured heat mode', async () => {
+  test('shadow power-off reports both relay and target off without changing cached legacy mode', async () => {
     const t = setup(true, 'm2dkohai78cwr3yd', deviceID, true);
     await jest.advanceTimersByTimeAsync(0);
     t.shadow.mockImplementation(async () => ({ properties: payload().properties.map(p => p.dpId === 118 ? { ...p, value: true }
       : p.dpId === 101 ? { ...p, value: false } : p) }));
     await jest.advanceTimersByTimeAsync(300000);
     expect(t.state.getHandler()).toBe(0);
-    expect(t.targetState.getHandler()).toBe(1);
+    expect(t.targetState.getHandler()).toBe(0);
     expect(t.device.status.find(s => s.code === 'switch')?.value).toBe(true);
     expect(t.commands).not.toHaveBeenCalled();
   });
@@ -163,7 +165,7 @@ describe('automatically recognized ET-72GW accessory', () => {
     t.shadow.mockImplementation(async () => ({ properties: payload().properties.map(p => p.dpId === 118 ? { ...p, value: true } : p) }));
     await jest.advanceTimersByTimeAsync(300000);
     expect(t.state.getHandler()).toBe(1); // Actual shadow power=true/relay=true.
-    expect(t.targetState.getHandler()).toBe(0); // Existing target-mode semantics remain untouched.
+    expect(t.targetState.getHandler()).toBe(1); // Shadow power and Manual mode also govern target state.
     expect(t.commands).not.toHaveBeenCalled();
   });
 
@@ -194,8 +196,79 @@ describe('automatically recognized ET-72GW accessory', () => {
     await t.targetState.setHandler(0);
     expect(t.commands).toHaveBeenLastCalledWith(deviceID, [{ code: 'switch', value: false }]);
     await t.targetState.setHandler(1);
-    expect(t.commands).toHaveBeenLastCalledWith(deviceID, [{ code: 'switch', value: true }, { code: 'mode', value: 'hot' }]);
-    expect(t.commands).toHaveBeenCalledTimes(2);
+    expect(t.setMode).toHaveBeenLastCalledWith(deviceID, 'Manual');
+    expect(t.commands).toHaveBeenCalledTimes(1);
+  });
+
+  test('Manual and Smart map to Heat and Auto without issuing commands on refresh', async () => {
+    const t = setup();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(t.targetState.props.validValues).toEqual([0, 1, 3]);
+    expect(t.targetState.getHandler()).toBe(1);
+    t.shadow.mockResolvedValue({ properties: payload().properties.map(p => p.dpId === 103
+      ? { ...p, value: 'Smart', time: Date.now() } : p) });
+    await jest.advanceTimersByTimeAsync(300000);
+    expect(t.targetState.getHandler()).toBe(3);
+    expect(t.targetState.updateValue).toHaveBeenLastCalledWith(3);
+    expect(t.state.getHandler()).toBe(0);
+    expect(t.commands).not.toHaveBeenCalled();
+    expect(t.setMode).not.toHaveBeenCalled();
+    expect(t.shadow).toHaveBeenCalledTimes(2);
+  });
+
+  test('explicit mode writes leave the setpoint alone and reject cooling/offline requests', async () => {
+    const t = setup(); await jest.advanceTimersByTimeAsync(0);
+    const target = t.target.getHandler();
+    await t.targetState.setHandler(3);
+    await t.targetState.setHandler(1);
+    expect(t.setMode.mock.calls).toEqual([[deviceID, 'Smart'], [deviceID, 'Manual']]);
+    await expect(t.targetState.setHandler(2)).rejects.toThrow(MockHapStatusError);
+    t.device.online = false;
+    await expect(t.targetState.setHandler(1)).rejects.toThrow(MockHapStatusError);
+    expect(t.setMode).toHaveBeenCalledTimes(2);
+    expect(t.commands).not.toHaveBeenCalled();
+    expect(t.target.getHandler()).toBe(target);
+  });
+
+  test('failed mode commands propagate without changing other controls', async () => {
+    const t = setup(); await jest.advanceTimersByTimeAsync(0);
+    t.setMode.mockRejectedValue(new Error('rejected'));
+    await expect(t.targetState.setHandler(1)).rejects.toThrow('rejected');
+    expect(t.setMode).toHaveBeenCalledTimes(1);
+    expect(t.commands).not.toHaveBeenCalled();
+    expect(t.target.getHandler()).toBeCloseTo(26.6666667);
+  });
+
+  test.each(['missing', 'unknown', 'future', 'duplicate', 'conflicting', 'regressing', 'invalid-time', 'malformed'])('invalid %s mode is unavailable independently of floor and relay', async kind => {
+    const t = setup(); await jest.advanceTimersByTimeAsync(0);
+    let properties = payload().properties;
+    if (kind === 'missing') { properties = properties.filter(p => p.dpId !== 103); }
+    if (kind === 'unknown') { properties = properties.map(p => p.dpId === 103 ? { ...p, value: 'Anti_frozen' } : p); }
+    if (kind === 'future') { properties = properties.map(p => p.dpId === 103 ? { ...p, time: Date.now() + 1000000 } : p); }
+    if (kind === 'regressing') { properties = properties.map(p => p.dpId === 103 ? { ...p, time: p.time - 1 } : p); }
+    if (kind === 'invalid-time') { properties = properties.map(p => p.dpId === 103 ? { ...p, time: 0 } : p); }
+    if (kind === 'malformed') { properties = properties.map(p => p.dpId === 103 ? { ...p, value: 1 } : p); }
+    if (kind === 'duplicate') { properties.push(properties.find(p => p.dpId === 103)!); }
+    if (kind === 'conflicting') { properties = properties.map(p => p.dpId === 103 ? { ...p, value: 'Smart' } : p); }
+    t.shadow.mockResolvedValue({ properties });
+    await jest.advanceTimersByTimeAsync(300000);
+    expect(() => t.targetState.getHandler()).toThrow(MockHapStatusError);
+    expect(t.targetState.value).toBeInstanceOf(MockHapStatusError);
+    expect(t.current.getHandler()).toBeCloseTo(27.7777778);
+    expect(t.state.getHandler()).toBe(0);
+    expect(t.setMode).not.toHaveBeenCalled();
+  });
+
+  test('power off remains readable even with missing mode; expired mode is unavailable', async () => {
+    const t = setup(); await jest.advanceTimersByTimeAsync(0);
+    t.shadow.mockResolvedValue({ properties: payload().properties.filter(p => p.dpId !== 103)
+      .map(p => p.dpId === 101 ? { ...p, value: false, time: Date.now() } : p) });
+    await jest.advanceTimersByTimeAsync(300000);
+    expect(t.targetState.getHandler()).toBe(0);
+    t.shadow.mockRejectedValue(new Error('transport'));
+    await jest.advanceTimersByTimeAsync(900000);
+    expect(() => t.targetState.getHandler()).toThrow(MockHapStatusError);
+    expect(t.setMode).not.toHaveBeenCalled();
   });
 
   test('factory automatically selects only the verified product before category fallback', async () => {

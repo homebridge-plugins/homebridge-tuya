@@ -39,6 +39,31 @@ describe('bounded current-session shadow GET', () => {
     jest.restoreAllMocks(); jest.useRealTimers();
   });
 
+  test.each(['Smart', 'Manual'] as const)('mode %s uses one bounded POST with no setpoint or reauthentication', async mode => {
+    await api.setDeviceControlMode('configured-device', mode);
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0]).toMatchObject({ method: 'POST', path: '/v2.0/cloud/thing/configured-device/shadow/properties/issue' });
+    expect(JSON.parse(req.end.mock.calls[0][0])).toEqual({ properties: JSON.stringify({ ControlMode: mode, power1: true }) });
+  });
+
+  test('invalid mode cannot reach the network', async () => {
+    await expect(api.setDeviceControlMode('configured-device', 'Anti_frozen' as any)).rejects.toMatchObject({ kind: 'response' });
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  test('mode POST times out once without retry or login', async () => {
+    reply = () => {};
+    const pending = expect(api.setDeviceControlMode('configured-device', 'Manual')).rejects.toMatchObject({ kind: 'transport' });
+    await jest.advanceTimersByTimeAsync(10000); await pending;
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  test('mode POST authorization failure is not retried', async () => {
+    res.statusCode = 403;
+    await expect(api.setDeviceControlMode('configured-device', 'Manual')).rejects.toMatchObject({ kind: 'authorization' });
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
   test('signs exactly one GET for the selected device with the existing token', async () => {
     await expect(api.getDeviceShadow('configured-device')).resolves.toEqual({ properties: [] });
     expect(request).toHaveBeenCalledTimes(1);

@@ -14,6 +14,12 @@ export interface HeatingSample {
   powerMeasuredAt: number;
 }
 
+export interface ModeSample {
+  mode?: 'Smart' | 'Manual';
+  powered: boolean;
+  measuredAt: number;
+}
+
 interface BooleanReport {
   value: boolean;
   time: number;
@@ -110,6 +116,9 @@ export class ET72GWMeasurements {
   private relayHighWater?: BooleanReport;
   private powerHighWater?: BooleanReport;
   private heatingSample?: HeatingSample;
+  private modeSample?: ModeSample;
+  private modeHighWater?: { value: string; time: number };
+  private modeRetrievedAt = -Infinity;
   private heatingRetrievedAt = -Infinity;
   private retrievedAt = -Infinity;
   private nextAttempt = -Infinity;
@@ -145,6 +154,14 @@ export class ET72GWMeasurements {
       return undefined;
     }
     return { ...this.heatingSample };
+  }
+
+  currentMode(): ModeSample | undefined {
+    if (!this.online() || !this.modeSample
+      || performance.now() - this.modeRetrievedAt >= this.options.maxCacheAgeSeconds * 1000) {
+      return undefined;
+    }
+    return { ...this.modeSample };
   }
 
   start() {
@@ -241,6 +258,31 @@ export class ET72GWMeasurements {
       } catch {
         this.heatingSample = undefined;
       }
+      try {
+        const property = propertyReader(result, Date.now());
+        const power = property('power1', 101);
+        if (typeof power.value !== 'boolean') {
+          throw new Error('Invalid power');
+        }
+        this.powerHighWater = this.acceptBoolean(power, this.powerHighWater);
+        let mode: ModeSample['mode'];
+        let measuredAt = power.time;
+        if (power.value) {
+          const report = property('ControlMode', 103);
+          if (!['Smart', 'Manual'].includes(report.value)
+            || (this.modeHighWater && (report.time < this.modeHighWater.time
+              || (report.time === this.modeHighWater.time && report.value !== this.modeHighWater.value)))) {
+            throw new Error('Invalid or regressing control mode');
+          }
+          this.modeHighWater = { value: report.value, time: report.time };
+          mode = report.value;
+          measuredAt = report.time;
+        }
+        this.modeSample = { mode, powered: power.value, measuredAt };
+        this.modeRetrievedAt = performance.now();
+      } catch {
+        this.modeSample = undefined;
+      }
       if (!this.sample || !this.heatingSample) {
         failure = 'data';
       }
@@ -251,6 +293,7 @@ export class ET72GWMeasurements {
           this.authorizationFailed = true;
           this.sample = undefined;
           this.heatingSample = undefined;
+          this.modeSample = undefined;
           clearTimeout(this.pollTimer);
         } else if (error.kind === 'rate-limit') {
           this.nextAttempt = Math.max(this.nextAttempt, performance.now() + error.retryAfterSeconds * 1000);
@@ -300,6 +343,9 @@ export class ET72GWMeasurements {
       if ((this.options.maxHeatingReportAgeSeconds ?? 0) > 0) {
         remaining.push(this.options.maxHeatingReportAgeSeconds! * 1000 - (Date.now() - this.heatingSample.measuredAt));
       }
+    }
+    if (this.currentMode()) {
+      remaining.push(this.options.maxCacheAgeSeconds * 1000 - (performance.now() - this.modeRetrievedAt));
     }
     if (remaining.length === 0) {
       return;

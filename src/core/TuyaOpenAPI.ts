@@ -394,20 +394,35 @@ export default class TuyaOpenAPI {
 
   /** One bounded read with the current session. Deliberately bypasses request/refresh/retry/debug logging. */
   async getDeviceShadow(deviceID: string): Promise<unknown> {
+    return this.requestDeviceShadow(deviceID);
+  }
+
+  /** Explicit ET-72GW mode command only; measurement refreshes never call this method. */
+  async setDeviceControlMode(deviceID: string, mode: 'Smart' | 'Manual'): Promise<void> {
+    if (mode !== 'Smart' && mode !== 'Manual') {
+      throw new ShadowReadError('response');
+    }
+    await this.requestDeviceShadow(deviceID, { ControlMode: mode, power1: true });
+  }
+
+  private async requestDeviceShadow(deviceID: string, properties?: { ControlMode: string; power1: boolean }): Promise<unknown> {
     if (!/^[a-zA-Z0-9_-]{1,128}$/.test(deviceID)) {
       throw new ShadowReadError('response');
     }
     if (!this.isLogin() || this.isTokenExpired()) {
       throw new ShadowReadError('session');
     }
-    const path = `/v2.0/cloud/thing/${deviceID}/shadow/properties`;
+    const method = properties ? 'POST' : 'GET';
+    const body = properties ? { properties: JSON.stringify(properties) } : null;
+    const path = `/v2.0/cloud/thing/${deviceID}/shadow/properties${properties ? '/issue' : ''}`;
     const now = Date.now();
     const nonce = uuidv4();
     const token = this.tokenInfo.access_token;
     const headers = {
       t: String(now), client_id: this.accessId, nonce, 'Signature-Headers': 'client_id',
-      sign: this._getSign(this.accessId, this.accessKey, token, now, nonce, this._getStringToSign('GET', path, null, null)),
+      sign: this._getSign(this.accessId, this.accessKey, token, now, nonce, this._getStringToSign(method, path, null, body)),
       sign_method: 'HMAC-SHA256', access_token: token,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
     };
     return new Promise((resolve, reject) => {
       let req: ReturnType<typeof https.request> | undefined;
@@ -434,7 +449,7 @@ export default class TuyaOpenAPI {
           return;
         }
         req = https.request({
-          hostname: endpoint.hostname, port: endpoint.port || undefined, method: 'GET', path, headers,
+          hostname: endpoint.hostname, port: endpoint.port || undefined, method, path, headers,
           ...(this.forceIPv4 ? { agent: ipv4Agent } : {}),
         }, res => {
           res.on('error', () => finish(new ShadowReadError('transport')));
@@ -487,7 +502,7 @@ export default class TuyaOpenAPI {
           });
         });
         req.on('error', () => finish(new ShadowReadError('transport')));
-        req.end();
+        req.end(body ? JSON.stringify(body) : undefined);
       } catch {
         finish(new ShadowReadError('transport'));
       }
