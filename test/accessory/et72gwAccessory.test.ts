@@ -50,7 +50,7 @@ describe('automatically recognized ET-72GW accessory', () => {
       getService: (type: any) => services.find(s => s.UUID === type),
       addService: (type: any) => {
         const s: any = {
-          UUID: type, characteristics: [],
+          UUID: type, characteristics: [], emit: jest.fn(),
           getCharacteristic: (key: any) => {
             const c = characteristics.get(key) || makeCharacteristic(key);
             if (!s.characteristics.includes(c)) { s.characteristics.push(c); }
@@ -214,6 +214,17 @@ describe('automatically recognized ET-72GW accessory', () => {
     expect(t.commands).not.toHaveBeenCalled();
     expect(t.setMode).not.toHaveBeenCalled();
     expect(t.shadow).toHaveBeenCalledTimes(2);
+  });
+
+  test('mode capabilities announce a configuration change once, without polling announcements or commands', async () => {
+    const t = setup();
+    const service = t.handler.mainService() as any;
+    expect(service.emit).toHaveBeenCalledTimes(1);
+    expect(service.emit).toHaveBeenCalledWith('service-configurationChange');
+    await jest.advanceTimersByTimeAsync(600000);
+    expect(service.emit).toHaveBeenCalledTimes(1);
+    expect(t.commands).not.toHaveBeenCalled();
+    expect(t.setMode).not.toHaveBeenCalled();
   });
 
   test('explicit mode writes leave the setpoint alone and reject cooling/offline requests', async () => {

@@ -54,6 +54,9 @@ export default class ET72GWAccessory extends ThermostatAccessory {
           throw new HapStatusError(HAPStatus.INVALID_VALUE_IN_REQUEST);
         }
       });
+    // setProps alone does not announce capability changes after a cached bridge is published.
+    // Recompute/advertise the configuration once on setup; measurement polls never do this.
+    this.mainService().emit('service-configurationChange');
   }
 
   private targetMode() {
