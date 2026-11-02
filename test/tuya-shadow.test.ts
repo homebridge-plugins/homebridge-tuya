@@ -43,7 +43,13 @@ describe('bounded current-session shadow GET', () => {
     await api.setDeviceControlMode('configured-device', mode);
     expect(request).toHaveBeenCalledTimes(1);
     expect(request.mock.calls[0][0]).toMatchObject({ method: 'POST', path: '/v2.0/cloud/thing/configured-device/shadow/properties/issue' });
-    expect(JSON.parse(req.end.mock.calls[0][0])).toEqual({ properties: JSON.stringify({ ControlMode: mode, power1: true }) });
+    expect(JSON.parse(req.end.mock.calls[0][0])).toEqual({ properties: JSON.stringify({ ControlMode: mode }) });
+  });
+
+  test('mode command includes power-on only when explicitly needed', async () => {
+    await api.setDeviceControlMode('configured-device', 'Manual', true);
+    expect(JSON.parse(req.end.mock.calls[0][0])).toEqual({ properties: JSON.stringify({ ControlMode: 'Manual', power1: true }) });
+    expect(request).toHaveBeenCalledTimes(1);
   });
 
   test('invalid mode cannot reach the network', async () => {

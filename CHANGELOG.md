@@ -12,6 +12,7 @@
  - Support combo smoke and carbon monoxide detectors, including CO level, low-battery, and fault reporting.
 
 ### Fixed
+ - Keep ET-72GW relay reports valid across independent power timestamps and avoid redundant power-on writes when selecting Auto/Manual.
  - Improve window-covering compatibility with different control states and reversed position scales, and improve position handling for devices without current-position feedback.
  - Fix light accessory control.
  - Support RotationSpeed enums that include a STOPPED state code.

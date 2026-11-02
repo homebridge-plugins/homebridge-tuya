@@ -48,7 +48,13 @@ export default class ET72GWAccessory extends ThermostatAccessory {
           // Keep the established power command; do not alter the stored schedule or mode.
           await this.sendCommands([{ code: 'switch', value: false }]);
         } else if (value === HEAT || value === AUTO) {
-          await this.deviceManager.api.setDeviceControlMode(this.device.id, value === HEAT ? 'Manual' : 'Smart');
+          const powered = this.measurements?.currentMode()?.powered ?? this.measurements?.currentHeating()?.powered;
+          if (typeof powered !== 'boolean') {
+            throw this.unavailable();
+          }
+          // The legacy cache also remembers a just-acknowledged Off before the next shadow poll.
+          const powerOn = !powered || this.getStatus('switch')?.value === false;
+          await this.deviceManager.api.setDeviceControlMode(this.device.id, value === HEAT ? 'Manual' : 'Smart', powerOn);
         } else {
           const { HapStatusError, HAPStatus } = this.platform.api.hap;
           throw new HapStatusError(HAPStatus.INVALID_VALUE_IN_REQUEST);

@@ -88,18 +88,30 @@ describe('ET-72GW relay/power cache on the single shadow response', () => {
     const conflict=payload().properties.map(p=>p.dpId===id?{...p,value:false}:p);
     read.mockResolvedValue({properties:conflict});await adapter.refresh();expect(adapter.currentHeating()).toBeUndefined();
   });
-  test('new power-on with older relay is ambiguous; off dominates until a consistent relay arrives',async()=>{
+  test('independent power/relay timestamps are valid; power off dominates and regressions remain invalid',async()=>{
     const off=payload(true,false,now-1);off.properties=off.properties.map(p=>p.dpId===101?{...p,time:now}:p);
     read.mockResolvedValue(off);await adapter.refresh();expect(adapter.currentHeating()?.heating).toBe(false);
     await jest.advanceTimersByTimeAsync(300000);
     const on=payload(true,true,now-1);on.properties=on.properties.map(p=>p.dpId===101?{...p,time:now+1}:p);
-    read.mockResolvedValue(on);await adapter.refresh();expect(adapter.currentHeating()).toBeUndefined();
+    read.mockResolvedValue(on);await adapter.refresh();expect(adapter.currentHeating()?.heating).toBe(true);
     await jest.advanceTimersByTimeAsync(300000);
     read.mockResolvedValue(off);await adapter.refresh();expect(adapter.currentHeating()).toBeUndefined();
     await jest.advanceTimersByTimeAsync(300000);
     const consistent=payload(true,true,Date.now());consistent.properties=consistent.properties.map(p=>p.dpId===101?{...p,time:now+1}:p);
     read.mockResolvedValue(consistent);await adapter.refresh();expect(adapter.currentHeating()?.heating).toBe(true);
   });
+  test.each([true, false])('a newer true power timestamp does not invalidate unchanged relay=%s', async active => {
+    read.mockResolvedValue(payload(active)); await adapter.refresh();
+    const oldTime = adapter.currentHeating()!.measuredAt;
+    await jest.advanceTimersByTimeAsync(300000);
+    read.mockResolvedValue({ properties: payload(active).properties.map(p => p.dpId === 101 ? { ...p, time: Date.now() } : p) });
+    await adapter.refresh();
+    expect(adapter.currentHeating()).toMatchObject({ heating: active, measuredAt: oldTime, powerMeasuredAt: Date.now() });
+    expect(read).toHaveBeenCalledTimes(2);
+    await jest.advanceTimersByTimeAsync(900000);
+    expect(adapter.currentHeating()).toBeUndefined();
+  });
+
   test.each(['transport','authorization'] as const)('handles %s using the common lifecycle without extra requests',async kind=>{
     await adapter.refresh();await jest.advanceTimersByTimeAsync(300000);
     read.mockRejectedValue(new ShadowReadError(kind));await adapter.refresh();

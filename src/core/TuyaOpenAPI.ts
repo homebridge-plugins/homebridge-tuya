@@ -398,14 +398,14 @@ export default class TuyaOpenAPI {
   }
 
   /** Explicit ET-72GW mode command only; measurement refreshes never call this method. */
-  async setDeviceControlMode(deviceID: string, mode: 'Smart' | 'Manual'): Promise<void> {
-    if (mode !== 'Smart' && mode !== 'Manual') {
+  async setDeviceControlMode(deviceID: string, mode: 'Smart' | 'Manual', powerOn = false): Promise<void> {
+    if ((mode !== 'Smart' && mode !== 'Manual') || typeof powerOn !== 'boolean') {
       throw new ShadowReadError('response');
     }
-    await this.requestDeviceShadow(deviceID, { ControlMode: mode, power1: true });
+    await this.requestDeviceShadow(deviceID, { ControlMode: mode, ...(powerOn ? { power1: true as const } : {}) });
   }
 
-  private async requestDeviceShadow(deviceID: string, properties?: { ControlMode: string; power1: boolean }): Promise<unknown> {
+  private async requestDeviceShadow(deviceID: string, properties?: { ControlMode: string; power1?: true }): Promise<unknown> {
     if (!/^[a-zA-Z0-9_-]{1,128}$/.test(deviceID)) {
       throw new ShadowReadError('response');
     }

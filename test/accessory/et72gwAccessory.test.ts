@@ -196,7 +196,7 @@ describe('automatically recognized ET-72GW accessory', () => {
     await t.targetState.setHandler(0);
     expect(t.commands).toHaveBeenLastCalledWith(deviceID, [{ code: 'switch', value: false }]);
     await t.targetState.setHandler(1);
-    expect(t.setMode).toHaveBeenLastCalledWith(deviceID, 'Manual');
+    expect(t.setMode).toHaveBeenLastCalledWith(deviceID, 'Manual', true);
     expect(t.commands).toHaveBeenCalledTimes(1);
   });
 
@@ -232,13 +232,45 @@ describe('automatically recognized ET-72GW accessory', () => {
     const target = t.target.getHandler();
     await t.targetState.setHandler(3);
     await t.targetState.setHandler(1);
-    expect(t.setMode.mock.calls).toEqual([[deviceID, 'Smart'], [deviceID, 'Manual']]);
+    expect(t.setMode.mock.calls).toEqual([[deviceID, 'Smart', false], [deviceID, 'Manual', false]]);
     await expect(t.targetState.setHandler(2)).rejects.toThrow(MockHapStatusError);
     t.device.online = false;
     await expect(t.targetState.setHandler(1)).rejects.toThrow(MockHapStatusError);
     expect(t.setMode).toHaveBeenCalledTimes(2);
     expect(t.commands).not.toHaveBeenCalled();
     expect(t.target.getHandler()).toBe(target);
+  });
+
+  test('selecting Heat from reported Off powers on without a setpoint command', async () => {
+    const t = setup();
+    await jest.advanceTimersByTimeAsync(0);
+    t.shadow.mockResolvedValue({ properties: payload().properties.map(p => p.dpId === 101 ? { ...p, value: false, time: Date.now() } : p) });
+    await jest.advanceTimersByTimeAsync(300000);
+    expect(t.targetState.getHandler()).toBe(0);
+    await t.targetState.setHandler(1);
+    expect(t.setMode).toHaveBeenCalledWith(deviceID, 'Manual', true);
+    expect(t.commands).not.toHaveBeenCalled();
+    expect(t.target.getHandler()).toBeCloseTo(26.6666667);
+  });
+
+  test('mode changes with unavailable power cache do not issue a guessed power command', async () => {
+    const t = setup();
+    await expect(t.targetState.setHandler(1)).rejects.toThrow(MockHapStatusError);
+    expect(t.setMode).not.toHaveBeenCalled();
+    expect(t.commands).not.toHaveBeenCalled();
+  });
+
+  test.each([false, true])('Manual with a newer power timestamp keeps reported activity=%s and notifications', async active => {
+    const t = setup(); await jest.advanceTimersByTimeAsync(0);
+    t.shadow.mockResolvedValue({ properties: payload().properties.map(p => p.dpId === 101 ? { ...p, time: Date.now() }
+      : p.dpId === 118 ? { ...p, value: active, time: Date.now() - 1000 } : p) });
+    await jest.advanceTimersByTimeAsync(300000);
+    expect(t.targetState.getHandler()).toBe(1);
+    expect(t.state.getHandler()).toBe(active ? 1 : 0);
+    expect(t.state.updateValue).toHaveBeenLastCalledWith(active ? 1 : 0);
+    expect(t.current.getHandler()).toBeCloseTo(27.7777778);
+    expect(t.setMode).not.toHaveBeenCalled();
+    expect(t.commands).not.toHaveBeenCalled();
   });
 
   test('failed mode commands propagate without changing other controls', async () => {

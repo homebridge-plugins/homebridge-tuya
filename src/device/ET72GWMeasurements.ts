@@ -99,8 +99,10 @@ function parseHeating(
   try {
     power = readBoolean('power1', 101, observePower);
   } catch { /* Relay history is retained even with an invalid power report. */ }
-  if (!relay || !power || (power.value && power.time > relay.time)) {
-    throw new Error('Unavailable or temporally ambiguous heating state');
+  // These are independent last-updated timestamps, not an ordered transaction.
+  // A mode/power write need not change an already-idle or active relay report.
+  if (!relay || !power) {
+    throw new Error('Unavailable heating state');
   }
   return {
     heating: power.value && relay.value, relayActive: relay.value, powered: power.value,
