@@ -6,13 +6,15 @@
  - Map ET-72GW DP103 Smart/Manual to HomeKit Auto/Heat using the shared shadow poll, with bounded explicit mode commands.
  - Automatically recognize the verified HEATIT/Jiahong ET-72GW product with a dedicated accessory for measured floor temperature, relay activity and native Fahrenheit/Celsius target conversion; no device configuration is required.
 
+### Fixed
+ - Keep ET-72GW relay reports valid across independent power timestamps and avoid redundant power-on writes when selecting Auto/Manual.
+
 ## [2.7.1] - (2026.10.20)
 
 ### Added
  - Support combo smoke and carbon monoxide detectors, including CO level, low-battery, and fault reporting.
 
 ### Fixed
- - Keep ET-72GW relay reports valid across independent power timestamps and avoid redundant power-on writes when selecting Auto/Manual.
  - Improve window-covering compatibility with different control states and reversed position scales, and improve position handling for devices without current-position feedback.
  - Fix light accessory control.
  - Support RotationSpeed enums that include a STOPPED state code.
