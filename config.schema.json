@@ -632,16 +632,20 @@
                                     "key": "options.deviceOverrides[].reversePosition"
                                 },
                                 {
-                                    "key": "options.deviceOverrides[].garageDoorTiming.opening"
+                                    "key": "options.deviceOverrides[].garageDoorTiming.opening",
+                                    "type": "number"
                                 },
                                 {
-                                    "key": "options.deviceOverrides[].garageDoorTiming.open"
+                                    "key": "options.deviceOverrides[].garageDoorTiming.open",
+                                    "type": "number"
                                 },
                                 {
-                                    "key": "options.deviceOverrides[].garageDoorTiming.closing"
+                                    "key": "options.deviceOverrides[].garageDoorTiming.closing",
+                                    "type": "number"
                                 },
                                 {
-                                    "key": "options.deviceOverrides[].lockTiming.unlocked"
+                                    "key": "options.deviceOverrides[].lockTiming.unlocked",
+                                    "type": "number"
                                 },
                                 {
                                     "key": "options.deviceOverrides[].schema",

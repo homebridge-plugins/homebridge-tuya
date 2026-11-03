@@ -346,3 +346,27 @@ describe('timed garage door and lock state', () => {
     });
   });
 });
+
+describe('settings screen', () => {
+  test('timing fields are number boxes, not sliders', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { layout } = require('../../config.schema.json');
+    const flat: { key?: string; type?: string }[] = [];
+    const walk = (items: unknown[]) => items.forEach((i) => {
+      const item = i as { items?: unknown[]; key?: string; type?: string };
+      if (item && typeof item === 'object') {
+        if (item.key) {
+          flat.push(item);
+        }
+        if (Array.isArray(item.items)) {
+          walk(item.items);
+        }
+      }
+    });
+    walk(layout);
+    for (const key of ['garageDoorTiming.opening', 'garageDoorTiming.open', 'garageDoorTiming.closing', 'lockTiming.unlocked']) {
+      const item = flat.find((i) => i.key === `options.deviceOverrides[].${key}`);
+      expect(item?.type).toBe('number');
+    }
+  });
+});
