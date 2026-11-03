@@ -327,7 +327,7 @@
                                                         "notation": {
                                                             "title": "Notation",
                                                             "type": "string",
-                                                            "default": "base64",
+                                                            "description": "Base64 when not set.",
                                                             "oneOf": [
                                                                 {
                                                                     "title": "Base64",
@@ -352,7 +352,8 @@
                                                         "byteIndex": {
                                                             "title": "ByteIndex",
                                                             "type": "integer",
-                                                            "default": 0,
+                                                            "description": "0 when not set.",
+                                                            "placeholder": "0",
                                                             "minimum": 0
                                                         }
                                                     }
@@ -381,9 +382,9 @@
                                 },
                                 "index": {
                                     "title": "Characteristic Index",
-                                    "description": "Usually 1. If Accessory has more functions, it might be 2 or more.",
+                                    "description": "Usually 1, which is used when empty. If Accessory has more functions, it might be 2 or more.",
                                     "type": "string",
-                                    "default": "1"
+                                    "placeholder": "1"
                                 },
                                 "manifacturer": {
                                     "title": "Manifacturer",
