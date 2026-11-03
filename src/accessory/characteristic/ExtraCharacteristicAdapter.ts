@@ -117,7 +117,7 @@ function createExtraRawSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema
   const schemaConfig = accessory.platform.getDeviceConfig(accessory.device)?.schema?.find(item => {
     return item.code === schema.code;
   });
-  const switches = configureRawOn(accessory, schema, schemaConfig?.extraRawSwitch ?? []);
+  const switches = configureRawOn(accessory, schema, (schemaConfig?.extraRawSwitch ?? []).filter(item => item && item.configuredName && item.value));
   Object.entries(switches).forEach(([key, value]) => {
     const schemaConfig = accessory.platform.getDeviceConfig(accessory.device)?.schema?.find(item => {
       return item.code === key;

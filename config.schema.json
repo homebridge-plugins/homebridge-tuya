@@ -16,7 +16,7 @@
             "options": {
                 "title": "Project Info",
                 "type": "object",
-                "required": ["projectType", "accessId", "accessKey", "weatherAPI"],
+                "required": ["projectType", "accessId", "accessKey"],
                 "properties": {
                     "projectType": {
                         "title": "Project Type (Development Method)",
@@ -169,7 +169,6 @@
                                     "type": "array",
                                     "items": {
                                         "type": "object",
-                                        "required": ["code"],
                                         "properties": {
                                             "code": {
                                                 "title": "DP Code",
@@ -188,7 +187,6 @@
                                             "type": {
                                                 "title": "New DP Type",
                                                 "type": "string",
-                                                "default": "",
                                                 "oneOf": [
                                                     {
                                                         "title": "Boolean",
@@ -321,7 +319,6 @@
                                                 },
                                                 "items": {
                                                     "type": "object",
-                                                    "required": ["configuredName", "notation", "value", "byteIndex"],
                                                     "properties": {
                                                         "configuredName": {
                                                             "title": "Name",
@@ -376,7 +373,6 @@
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "required": ["device_id", "index"],
                             "properties": {
                                 "device_id": {
                                     "title": "DeviceID",
@@ -387,7 +383,7 @@
                                     "title": "Characteristic Index",
                                     "description": "Usually 1. If Accessory has more functions, it might be 2 or more.",
                                     "type": "string",
-                                    "default": 1
+                                    "default": "1"
                                 },
                                 "manifacturer": {
                                     "title": "Manifacturer",
@@ -454,7 +450,6 @@
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "required": ["rtspUrl"],
                     "properties": {
                         "deviceId": {
                             "title": "DeviceID",
