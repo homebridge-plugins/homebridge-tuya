@@ -49,6 +49,22 @@ const RETRY_INTERVAL = 10 * 1000;
  */
 const PENDING_TARGET_STATE_TIMEOUT = RETRY_WINDOW + 15 * 1000;
 
+/**
+ * Timed lock state, enabled per device with `deviceOverrides[].lockTiming`.
+ *
+ * For locks that unlock remotely but never report their bolt state (e.g. BLE
+ * key boxes that relock on their own). After a successful unlock the tile shows
+ * Unlocked for `lockTiming.unlocked` seconds, then Locked. When `unlocked` is
+ * missing or <= 0, the lock's own `auto_lock_time` + 1s is used (6s if the lock
+ * doesn't report one). Locking sends no command, since the lock relocks itself.
+ * Unlocks the lock does report through its `unlock_*` record DPs (fingerprint,
+ * card, password, app, ...) run the same cycle.
+ */
+const DEFAULT_UNLOCKED_SECONDS = 6;
+
+/** `unlock_*` DPs that are settings or bookkeeping, not "the lock was just opened" events. */
+const NON_EVENT_UNLOCK_DPS = /^unlock_(method|offline|record|double|switch|ble_ibeacon)/;
+
 /** What one attempt at the two-step Smart Lock flow concluded. */
 type DoorOperationOutcome = 'ok' | 'unreachable' | 'failed';
 
@@ -67,6 +83,8 @@ export default class LockAccessory extends BaseAccessory {
   private pendingTargetState?: CharacteristicValue;
   private pendingTargetStateTimer?: ReturnType<typeof setTimeout>;
   private retryTimer?: ReturnType<typeof setTimeout>;
+  private displayedUnlocked = false;
+  private relockTimer?: ReturnType<typeof setTimeout>;
 
   requiredSchema() {
     return [SCHEMA_CODE.LOCK_CURRENT_STATE];
@@ -75,6 +93,24 @@ export default class LockAccessory extends BaseAccessory {
   configureServices() {
     this.configureLockCurrentState();
     this.configureLockTargetState();
+
+    if (this.lockTiming()) {
+      this.log.info('[Lock] Timed lock state: shows Unlocked for %ss after an unlock.', this.unlockedSeconds());
+    }
+  }
+
+  /** The `lockTiming` override for this device, if any. */
+  lockTiming() {
+    return this.platform.getDeviceConfig(this.device)?.lockTiming;
+  }
+
+  unlockedSeconds() {
+    const unlocked = this.lockTiming()?.unlocked;
+    if (typeof unlocked === 'number' && unlocked > 0) {
+      return unlocked;
+    }
+    const autoLock = this.getStatus('auto_lock_time');
+    return (autoLock && typeof autoLock.value === 'number') ? autoLock.value + 1 : DEFAULT_UNLOCKED_SECONDS;
   }
 
   mainService() {
@@ -93,6 +129,9 @@ export default class LockAccessory extends BaseAccessory {
     const { UNSECURED, SECURED } = this.Characteristic.LockCurrentState;
     this.mainService().getCharacteristic(this.Characteristic.LockCurrentState)
       .onGet(() => {
+        if (this.lockTiming()) {
+          return this.displayedUnlocked ? UNSECURED : SECURED;
+        }
         const status = this.getStatus(schema.code);
         if (!status) {
           this.log.debug('[Lock] LockCurrentState: no status reported for dp `%s` yet, assuming SECURED.', schema.code);
@@ -119,6 +158,9 @@ export default class LockAccessory extends BaseAccessory {
         if (this.pendingTargetState !== undefined) {
           return this.pendingTargetState;
         }
+        if (this.lockTiming()) {
+          return this.displayedUnlocked ? UNSECURED : SECURED;
+        }
         const status = this.getStatus(schema.code);
         if (!status) {
           return SECURED;
@@ -139,6 +181,10 @@ export default class LockAccessory extends BaseAccessory {
    * status update moves it.
    */
   private async setLockTargetState(value: CharacteristicValue) {
+    if (this.lockTiming()) {
+      return this.setTimedLockTargetState(value);
+    }
+
     const { UNSECURED } = this.Characteristic.LockTargetState;
     const open = (value === UNSECURED);
 
@@ -181,6 +227,75 @@ export default class LockAccessory extends BaseAccessory {
       + '(HomeKit is NOT marked as %s yet).', open ? 'unlocked' : 'locked');
   }
 
+  /** Timed lock state: unlock once, then show Unlocked for a while and fall back to Locked. */
+  private async setTimedLockTargetState(value: CharacteristicValue) {
+    const { UNSECURED } = this.Characteristic.LockTargetState;
+
+    if (value !== UNSECURED) {
+      // The lock relocks itself; locking only resets what HomeKit shows.
+      this.clearPendingTargetState();
+      this.clearRelockTimer();
+      this.setDisplayedState(false);
+      return;
+    }
+
+    if (this.relockTimer) {
+      // Already shown as unlocked: don't open again.
+      this.setDisplayedState(true);
+      return;
+    }
+
+    this.log.info('[Lock] HomeKit requested unlock (timed lock state).');
+    this.setPendingTargetState(value);
+
+    const outcome = await this.performDoorOperation(true);
+
+    if (outcome === 'ok') {
+      this.log.info('[Lock] Door operation accepted.');
+      this.clearPendingTargetState();
+      this.startUnlockedCycle();
+      return;
+    }
+
+    if (outcome === 'failed') {
+      this.clearPendingTargetState();
+      this.setDisplayedState(false);
+      throw this.communicationError();
+    }
+
+    this.log.info('[Lock] Lock is not reachable through the gateway right now. '
+      + 'Retrying for up to %ds in the background.', RETRY_WINDOW / 1000);
+    this.scheduleRetry(true, Date.now() + RETRY_WINDOW);
+  }
+
+  private startUnlockedCycle() {
+    this.clearRelockTimer();
+    this.log.debug('[Lock] Showing Unlocked for %ss.', this.unlockedSeconds());
+    this.setDisplayedState(true);
+    this.relockTimer = setTimeout(() => {
+      this.relockTimer = undefined;
+      this.log.debug('[Lock] Showing Locked.');
+      this.setDisplayedState(false);
+    }, this.unlockedSeconds() * 1000);
+    this.relockTimer.unref?.();
+  }
+
+  private clearRelockTimer() {
+    if (this.relockTimer) {
+      clearTimeout(this.relockTimer);
+      this.relockTimer = undefined;
+    }
+  }
+
+  private setDisplayedState(unlocked: boolean) {
+    const C = this.Characteristic;
+    this.displayedUnlocked = unlocked;
+    this.mainService().getCharacteristic(C.LockTargetState)
+      .updateValue(unlocked ? C.LockTargetState.UNSECURED : C.LockTargetState.SECURED);
+    this.mainService().getCharacteristic(C.LockCurrentState)
+      .updateValue(unlocked ? C.LockCurrentState.UNSECURED : C.LockCurrentState.SECURED);
+  }
+
   /**
    * Keeps asking until the lock's next connection window opens, the deadline
    * passes, or something cancels the pending state (a device report, or the
@@ -208,6 +323,12 @@ export default class LockAccessory extends BaseAccessory {
       const outcome = await this.performDoorOperation(open);
 
       if (outcome === 'ok') {
+        if (this.lockTiming()) {
+          this.log.info('[Lock] Door operation accepted on retry.');
+          this.clearPendingTargetState();
+          this.startUnlockedCycle();
+          return;
+        }
         this.log.info('[Lock] Door operation accepted on retry. Waiting for the device to report its real state.');
         return;
       }
@@ -314,6 +435,20 @@ export default class LockAccessory extends BaseAccessory {
   }
 
   async onDeviceStatusUpdate(status: TuyaDeviceStatus[]) {
+    if (this.lockTiming()) {
+      // Unlock record DPs carry the id of whoever opened the lock, so any positive value is an unlock event.
+      const unlockEvent = status.find(item => item.code.startsWith('unlock_')
+        && !NON_EVENT_UNLOCK_DPS.test(item.code) && typeof item.value === 'number' && item.value > 0);
+      if (unlockEvent && !this.relockTimer) {
+        this.log.info('[Lock] Lock reported an unlock (%s).', unlockEvent.code);
+        this.clearPendingTargetState();
+        this.startUnlockedCycle();
+      }
+      // The lock state DPs don't change in this mode, so the pending-state logic below doesn't apply.
+      await super.onDeviceStatusUpdate(status);
+      return;
+    }
+
     const schema = this.getSchema(...SCHEMA_CODE.LOCK_CURRENT_STATE);
     const update = schema && status.find(item => item.code === schema.code);
 

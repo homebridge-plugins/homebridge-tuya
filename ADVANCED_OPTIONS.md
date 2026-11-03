@@ -22,6 +22,8 @@ Before configuring, you may need to:
 - `adaptiveLighting` - **optional**: Adaptive Lighting. Defaults to `false`. Not all light device support this feature, please use it on demand.
 - `addExtraFeaturesAutomatically` - **optional**: Automatically expose supported read/write datapoints that are not used by the standard accessory as extra HomeKit services. Boolean datapoints are exposed as switches, Enum datapoints as switches for their available values, and Integer datapoints as sliders. Defaults to `false`.
 - `garageDoorUseContactSensorForState` - **optional**: For garage door controllers. When `true`, `CurrentDoorState` and `TargetDoorState` reads use `doorcontact_state` only, while set commands still use `switch_1`. Defaults to `false`.
+- `garageDoorTiming` - **optional**: For garage door controllers without a door contact sensor. An object with `opening`, `open` and `closing` in seconds (defaults 12, 20, 12). See [Timed garage door state](#timed-garage-door-state).
+- `lockTiming` - **optional**: For locks that don't report their state. An object with `unlocked` in seconds; `0` or `-1` uses the lock's `auto_lock_time` + 1s. See [Timed lock state](#timed-lock-state).
 - `schema` - **optional**: An array of schema overriding config objects, used for describing datapoint (DP). When your device has non-standard DP, you need to transform them manually with configuration. Each element in the schema array is described as follows:
   - `code` - **required**: DP code.
   - `newCode` - **optional**: New DP code.
@@ -128,6 +130,45 @@ Some `ckmkzq` garage door controllers keep `switch_1` as `true`, which can make 
   }
 }
 ```
+
+
+### Timed garage door state
+
+Some `ckmkzq` controllers are a relay that pulses an opener and have no door contact sensor (or one that never changes). HomeKit then can't know whether the door is open. With `garageDoorTiming`, Open sends a single pulse and HomeKit shows Opening, Open, Closing and Closed on the timings you set. Close sends nothing, because a second pulse would start the motor again; it only resets the tile to Closed. Presses from the Tuya app or a scene run the same cycle.
+
+The option takes effect only when the device has no `doorcontact_state`. If it has one that doesn't work, hide it:
+
+```js
+{
+  "options": {
+    // ...
+    "deviceOverrides": [{
+      "id": "{device_id}",
+      "schema": [{ "code": "doorcontact_state", "hidden": true }],
+      "garageDoorTiming": { "opening": 8, "open": 17, "closing": 8 }
+    }]
+  }
+}
+```
+
+
+### Timed lock state
+
+Some locks (for example Bluetooth key boxes behind a gateway) unlock remotely but never report whether they are locked, so the tile stays on Unlocking. With `lockTiming`, an unlock from HomeKit shows Unlocked for `unlocked` seconds and then Locked. Locking from HomeKit sends nothing, because the lock relocks itself. Unlocks the lock reports through its `unlock_*` record DPs (fingerprint, card, password, app) run the same cycle.
+
+```js
+{
+  "options": {
+    // ...
+    "deviceOverrides": [{
+      "id": "{device_id}",
+      "lockTiming": { "unlocked": -1 }
+    }]
+  }
+}
+```
+
+`-1` (or `0`) follows the lock's own `auto_lock_time` plus one second.
 
 
 ### Offline as off

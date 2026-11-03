@@ -21,6 +21,14 @@ export interface TuyaPlatformDeviceConfig {
   adaptiveLighting?: boolean;
   addExtraFeaturesAutomatically?: boolean;
   garageDoorUseContactSensorForState?: boolean;
+  garageDoorTiming?: {
+    opening?: number;
+    open?: number;
+    closing?: number;
+  };
+  lockTiming?: {
+    unlocked?: number;
+  };
   reversePosition?: boolean;
 }
 
