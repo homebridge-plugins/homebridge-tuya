@@ -164,6 +164,60 @@
                                         "functionBody": "return (model.options && model.options.deviceOverrides && ['cl', 'clkg', 'mc'].includes(model.options.deviceOverrides[arrayIndices[0]].category));"
                                     }
                                 },
+                                "garageDoorTiming": {
+                                    "title": "Timed Door State",
+                                    "description": "For garage door controllers without a door contact sensor. Open sends one relay pulse and HomeKit shows Opening, Open, Closing and Closed on these timings. Close sends nothing.",
+                                    "type": "object",
+                                    "properties": {
+                                        "opening": {
+                                            "title": "Opening Time (s)",
+                                            "description": "Seconds from the tap until the door is fully open.",
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 600,
+                                            "condition": {
+                                                "functionBody": "const o = model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]]; return !!(o && (o.category === 'ckmkzq' || o.garageDoorTiming));"
+                                            }
+                                        },
+                                        "open": {
+                                            "title": "Open Time (s)",
+                                            "description": "Seconds the door stays open before it closes by itself.",
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 3600,
+                                            "condition": {
+                                                "functionBody": "const o = model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]]; return !!(o && (o.category === 'ckmkzq' || o.garageDoorTiming));"
+                                            }
+                                        },
+                                        "closing": {
+                                            "title": "Closing Time (s)",
+                                            "description": "Seconds the door takes to close.",
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 600,
+                                            "condition": {
+                                                "functionBody": "const o = model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]]; return !!(o && (o.category === 'ckmkzq' || o.garageDoorTiming));"
+                                            }
+                                        }
+                                    }
+                                },
+                                "lockTiming": {
+                                    "title": "Timed Lock State",
+                                    "description": "For locks that don't report their state. After an unlock HomeKit shows Unlocked for this long, then Locked. Locking sends nothing.",
+                                    "type": "object",
+                                    "properties": {
+                                        "unlocked": {
+                                            "title": "Unlocked Time (s)",
+                                            "description": "Seconds HomeKit shows Unlocked after an unlock. 0 or -1 uses the lock's auto-lock time + 1s.",
+                                            "type": "integer",
+                                            "minimum": -1,
+                                            "maximum": 1800,
+                                            "condition": {
+                                                "functionBody": "const o = model.options && model.options.deviceOverrides && model.options.deviceOverrides[arrayIndices[0]]; return !!(o && (['ms', 'jtmspro'].includes(o.category) || o.lockTiming));"
+                                            }
+                                        }
+                                    }
+                                },
                                 "schema": {
                                     "title": "Schema Overriding Configs",
                                     "type": "array",
@@ -576,6 +630,22 @@
                                 },
                                 {
                                     "key": "options.deviceOverrides[].reversePosition"
+                                },
+                                {
+                                    "key": "options.deviceOverrides[].garageDoorTiming.opening",
+                                    "type": "number"
+                                },
+                                {
+                                    "key": "options.deviceOverrides[].garageDoorTiming.open",
+                                    "type": "number"
+                                },
+                                {
+                                    "key": "options.deviceOverrides[].garageDoorTiming.closing",
+                                    "type": "number"
+                                },
+                                {
+                                    "key": "options.deviceOverrides[].lockTiming.unlocked",
+                                    "type": "number"
                                 },
                                 {
                                     "key": "options.deviceOverrides[].schema",
