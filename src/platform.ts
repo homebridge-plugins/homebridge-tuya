@@ -92,6 +92,10 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       }
       const idMap = new Map();
       for (const item of deviceOverride.schema) {
+        // The settings screen can save an entry without a code (e.g. { hidden: false }); it matches nothing.
+        if (!item || !item.code) {
+          continue;
+        }
         if (idMap.has(item.code)) {
           idMap.get(item.code)?.push(item);
         } else {
@@ -203,7 +207,9 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     }
 
     // add RTSP camera accessories
+    // Entries saved blank from the settings screen have no rtspUrl; skip them.
     (this.config as TuyaPlatformConfig).cameras?.
+      filter(cconfig => cconfig && cconfig.rtspUrl).
       filter(cconfig => !devices.map(device => device.id).includes(cconfig.deviceId)).forEach(cconfig => {
         const device = this.deviceManager!.createRTSPCameraDevice(cconfig);
         this.addAccessory(device);
