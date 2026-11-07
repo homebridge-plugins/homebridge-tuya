@@ -34,6 +34,10 @@ export default class TuyaDeviceManager extends EventEmitter {
   public devices: TuyaDevice[];
   public log: ExLogger;
 
+  // Devices for which no specification is fetched (e.g. ones overridden to "hidden").
+  // They get an empty schema, as when Tuya can't provide one.
+  public skipSchema: (device: TuyaDevice) => boolean = () => false;
+
   constructor(
     public api: TuyaOpenAPI,
     public debug = false,
@@ -112,7 +116,7 @@ export default class TuyaDeviceManager extends EventEmitter {
     }
 
     const device = new TuyaDevice(res.result);
-    device.schema = await this.getDeviceSchema(deviceID);
+    device.schema = this.skipSchema(device) ? [] : await this.getDeviceSchema(deviceID);
 
     const oldDevice = this.getDevice(deviceID);
     if (oldDevice) {

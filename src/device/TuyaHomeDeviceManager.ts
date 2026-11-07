@@ -25,7 +25,7 @@ export default class TuyaHomeDeviceManager extends TuyaDeviceManager {
     }
 
     for (const device of devices) {
-      device.schema = await this.getDeviceSchema(device.id);
+      device.schema = this.skipSchema(device) ? [] : await this.getDeviceSchema(device.id);
     }
 
     // this.log.debug('Devices updated.\n', JSON.stringify(devices, null, 2));
