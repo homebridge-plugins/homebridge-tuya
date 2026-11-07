@@ -409,7 +409,7 @@ export default class TuyaOpenAPI {
   }
 
   async post(path: string, params?, options?: TuyaRequestOptions) {
-    return this.request('post', path, null, params, options);
+    return options === undefined ? this.request('post', path, null, params) : this.request('post', path, null, params, options);
   }
 
   async delete(path: string, params?) {
