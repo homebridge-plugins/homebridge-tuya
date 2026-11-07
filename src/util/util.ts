@@ -140,12 +140,88 @@ function updateBuffer(buf: Buffer, byteIndex: number, value: number | Buffer | A
 
   return buf;
 }
-/**
- * Keys whose values must never reach the log, no matter which log level is
- * active. Note that `PrefixLogger` disables its own masking in debug mode
- * (`mask = !debugMode`), so redaction has to happen at the call site.
- */
-const SENSITIVE_KEY_PATTERN = /(password|secret|access_?key|access_?token|refresh_?token|ticket_key|api_?key|tuya_?key)/i;
+/** Shared credential names used for both structured and preformatted log data. */
+const SENSITIVE_KEY_PATTERN = new RegExp('(password|secret|(?:access|refresh|local|api|tuya)[_-]?(?:key|token)'
+  + '|ticket[_-]?(?:key|id)|token|^sign$|authorization|srtp[_-]?(?:in|out)?[_-]?params)', 'i');
+
+/** Redact credentials in messages, JSON fragments, API paths and media URLs. */
+export function redactSensitiveText(value: string, depth = 0): string {
+  if (depth > 20) {
+    return '***';
+  }
+  // Parse complete payloads before regex fallback so sensitive parent values,
+  // escaped JSON keys and Tuya {code, value} pairs are also protected.
+  if (['{', '['].includes(value.trimStart()[0])) {
+    try {
+      const parsed = JSON.parse(value);
+      return JSON.stringify(redactSensitive(parsed, depth + 1), null, value.includes('\n') ? 2 : undefined);
+    } catch {
+      // Error responses and FFmpeg messages are not necessarily valid JSON.
+    }
+  }
+  return value
+    // A Tuya refresh token is a URL path segment rather than a named field.
+    .replace(/(\/v\d+(?:\.\d+)?\/token\/)[^/?#\s"'<>\\]+/gi, '$1***')
+    // RTSP URLs can carry credentials in their path/query as well as userinfo.
+    .replace(/rtsps?:\/\/[^\s"'<>\\]+/gi, 'rtsp://***')
+    .replace(/([a-z][a-z0-9+.-]*:\/\/)[^/\s"'<>@]+@/gi, '$1***@')
+    .replace(/\b(Bearer|Basic)\s+[a-z0-9+/=_-]+/gi, '$1 ***')
+    .replace(/"([^"\\]+)"(\s*:\s*)("(?:\\.|[^"\\])*(?:"|$))/g,
+      (match, key, separator, literal) => {
+        if (SENSITIVE_KEY_PATTERN.test(key)) {
+          return `"${key}"${separator}"***"`;
+        }
+        try {
+          return `"${key}"${separator}${JSON.stringify(redactSensitiveText(JSON.parse(literal), depth + 1))}`;
+        } catch {
+          return match;
+        }
+      })
+    .replace(/'([^'\\]+)'(\s*:\s*)'(?:\\.|[^'\\])*(?:'|$)/g,
+      (match, key, separator) => SENSITIVE_KEY_PATTERN.test(key) ? `'${key}'${separator}'***'` : match)
+    .replace(/(["'])([^"']+)\1(\s*:\s*)(-?\d+(?:\.\d+)?|true|false|null)/g,
+      (match, quote, key, separator) => SENSITIVE_KEY_PATTERN.test(key) ? `${quote}${key}${quote}${separator}"***"` : match)
+    .replace(/([?&]|\b)([a-z][a-z0-9_-]*)=([^&\s"'<>]+)/gi,
+      (match, prefix, key) => SENSITIVE_KEY_PATTERN.test(key) ? `${prefix}${key}=***` : match)
+    .replace(/(-srtp_(?:in|out)_params)(?:\s+|=)(?:"(?:\\.|[^"\\])*"|'[^']*'|[^\s]+)/gi, '$1 ***');
+}
+
+/** Format a diagnostic command without exposing media credentials or changing execution arguments. */
+export function formatRedactedCommand(command: string, args: readonly string[]): string {
+  let sensitiveArgument = false;
+  const safeArgs = args.map(argument => {
+    if (sensitiveArgument) {
+      sensitiveArgument = false;
+      return JSON.stringify('***');
+    }
+    if (/^-srtp_(?:in|out)_params$/i.test(argument)) {
+      sensitiveArgument = true;
+    }
+    return JSON.stringify(redactSensitiveText(argument));
+  });
+  return `${redactSensitiveText(command)} ${safeArgs.join(' ')}`;
+}
+
+/** FFmpeg may repeat a raw SRTP value in errors without its option name. */
+export function redactMediaLog(message: string, args: readonly string[]): string {
+  let sensitiveArgument = false;
+  for (const argument of args) {
+    if (sensitiveArgument) {
+      if (argument) {
+        message = message.split(argument).join('***');
+      }
+      sensitiveArgument = false;
+    } else if (/^-srtp_(?:in|out)_params$/i.test(argument)) {
+      sensitiveArgument = true;
+    } else {
+      const inline = /^-srtp_(?:in|out)_params=(.+)$/i.exec(argument);
+      if (inline) {
+        message = message.split(inline[1]).join('***');
+      }
+    }
+  }
+  return redactSensitiveText(message);
+}
 
 /**
  * Mask an identifier that is not secret enough to print, but useful enough to
@@ -166,26 +242,64 @@ export function maskSecret(value?: string | number | null, visible = 4): string 
 }
 
 /**
- * Deep-copy a JSON-ish value, replacing the values of sensitive keys with
- * `***`. Used before dumping API payloads to the log.
+ * Create a log-safe copy without invoking getters/custom inspectors. Cycles,
+ * binary data and depth limits are replaced rather than exposing the original.
+ * The generic return type is retained for existing payload-redaction callers.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function redactSensitive<T>(value: T, depth = 0): T {
-  if (depth > 10 || value === null || typeof value !== 'object') {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(item => redactSensitive(item, depth + 1)) as unknown as T;
-  }
-
-  const result = {};
-  for (const [key, item] of Object.entries(value)) {
-    if (SENSITIVE_KEY_PATTERN.test(key)) {
-      result[key] = '***';
-    } else {
-      result[key] = redactSensitive(item, depth + 1);
+  const ancestors = new WeakSet<object>();
+  const redact = (item: unknown, currentDepth: number): unknown => {
+    if (typeof item === 'string') {
+      return redactSensitiveText(item, currentDepth);
     }
-  }
-  return result as T;
+    if (item === null || typeof item !== 'object') {
+      return typeof item === 'function' ? '[Function]' : typeof item === 'symbol' ? '[Symbol]' : item;
+    }
+    if (currentDepth > 20) {
+      return '[Truncated]';
+    }
+    if (ancestors.has(item)) {
+      return '[Circular]';
+    }
+    if (Buffer.isBuffer(item) || ArrayBuffer.isView(item) || item instanceof ArrayBuffer) {
+      return '[Binary data]';
+    }
+    ancestors.add(item);
+    try {
+      if (Array.isArray(item)) {
+        return Array.from({ length: item.length }, (_, index) => {
+          const descriptor = Object.getOwnPropertyDescriptor(item, index);
+          return descriptor && 'value' in descriptor ? redact(descriptor.value, currentDepth + 1) : '[Getter]';
+        });
+      }
+      if (item instanceof Map) {
+        return Array.from(item, ([key, entry]) => [redact(key, currentDepth + 1),
+          typeof key === 'string' && SENSITIVE_KEY_PATTERN.test(key) ? '***' : redact(entry, currentDepth + 1)]);
+      }
+      if (item instanceof Set) {
+        return Array.from(item, entry => redact(entry, currentDepth + 1));
+      }
+      if (item instanceof Date) {
+        return Date.prototype.toISOString.call(item);
+      }
+      const result: Record<string, unknown> = Object.create(null);
+      if (item instanceof Error) {
+        result.name = 'Error';
+      }
+      const descriptors = Object.getOwnPropertyDescriptors(item);
+      const code = descriptors.code;
+      const sensitiveCode = code && 'value' in code && typeof code.value === 'string' && SENSITIVE_KEY_PATTERN.test(code.value);
+      for (const [key, descriptor] of Object.entries(descriptors)) {
+        const safeKey = redactSensitiveText(key);
+        result[safeKey] = SENSITIVE_KEY_PATTERN.test(key) || key === 'value' && sensitiveCode ? '***'
+          : 'value' in descriptor ? redact(descriptor.value, currentDepth + 1) : '[Getter]';
+      }
+      return result;
+    } catch {
+      return '[Uninspectable]';
+    } finally {
+      ancestors.delete(item);
+    }
+  };
+  return redact(value, depth) as T;
 }

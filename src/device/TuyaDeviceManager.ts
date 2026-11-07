@@ -405,14 +405,14 @@ export default class TuyaDeviceManager extends EventEmitter {
    * `open = true` unlocks, `open = false` locks.
    * https://developer.tuya.com/en/docs/cloud/8b36eabd4d?id=Kayexavknr6dt
    */
-  async sendLockCommands(deviceID: string, ticketID: string, open: boolean) {
+  async sendLockCommands(deviceID: string, ticketID: string, open: boolean, shouldProceed?: () => boolean) {
     this.log.debug('Sending smart lock door operation. devID = %s, ticket_id = %s, open = %s',
       deviceID, maskSecret(ticketID), open);
     const res = await this.api.post(`/v1.0/smart-lock/devices/${deviceID}/password-free/door-operate`, {
       device_id: deviceID,
       ticket_id: ticketID,
       open,
-    });
+    }, { shouldProceed, attempts: 1 });
     if (res.success === false) {
       this.log.warn('Send lock command failed. devID = %s, code = %s, msg = %s', deviceID, res.code, res.msg);
     } else {

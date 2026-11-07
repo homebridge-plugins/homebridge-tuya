@@ -192,6 +192,16 @@ describe('LockAccessory', () => {
 
   const allLogText = () => logs.map(l => l.message).join('\n');
 
+  const deferredResponse = () => {
+    let resolve!: (response: any) => void;
+    let reject!: (error: Error) => void;
+    const promise = new Promise<any>((resolvePromise, rejectPromise) => {
+      resolve = resolvePromise;
+      reject = rejectPromise;
+    });
+    return { promise, resolve, reject };
+  };
+
   // ─── Handler registration ────────────────────────────────────────
 
   test('registers an onSet handler on LockTargetState for a `ms` BLE lock', () => {
@@ -229,7 +239,7 @@ describe('LockAccessory', () => {
 
     expect(mockDeviceManager.getLockTemporaryKey).toHaveBeenCalledWith('lock-device-id');
     expect(mockDeviceManager.sendLockCommands)
-      .toHaveBeenCalledWith('lock-device-id', 'TICKET-ABCDEF123456', true);
+      .toHaveBeenCalledWith('lock-device-id', 'TICKET-ABCDEF123456', true, expect.any(Function));
   });
 
   test('SECURED -> UNSECURED does not fall back to a raw unlock_ble dp write', async () => {
@@ -349,7 +359,7 @@ describe('LockAccessory', () => {
 
     expect(mockDeviceManager.getLockTemporaryKey).toHaveBeenCalledWith('lock-device-id');
     expect(mockDeviceManager.sendLockCommands)
-      .toHaveBeenCalledWith('lock-device-id', 'TICKET-ABCDEF123456', true);
+      .toHaveBeenCalledWith('lock-device-id', 'TICKET-ABCDEF123456', true, expect.any(Function));
     expect(allLogText()).toContain('Tuya reports this device as offline');
   });
 
@@ -532,6 +542,225 @@ describe('LockAccessory', () => {
       const opens = mockDeviceManager.sendLockCommands.mock.calls.map((c: any[]) => c[2]);
       expect(opens.slice(2).every((o: boolean) => o === false)).toBe(true);
     });
+
+    test('an unlock ticket arriving after a newer lock request cannot dispatch the old unlock', async () => {
+      const ticket = deferredResponse();
+      mockDeviceManager.getLockTemporaryKey.mockImplementationOnce(() => ticket.promise);
+      setup();
+
+      const oldUnlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await targetStateCharacteristic().setHandler(LockTargetState.SECURED);
+      ticket.resolve({ success: true, result: { ticket_id: 'OLD-TICKET' } });
+      await oldUnlock;
+      await jest.advanceTimersByTimeAsync(30 * 1000);
+
+      expect(mockDeviceManager.sendLockCommands.mock.calls.map((call: any[]) => call[2])).toEqual([false]);
+    });
+
+    test('a new request for the same state also invalidates an older delayed ticket', async () => {
+      const ticket = deferredResponse();
+      mockDeviceManager.getLockTemporaryKey.mockImplementationOnce(() => ticket.promise);
+      setup();
+
+      const oldUnlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      ticket.resolve({ success: true, result: { ticket_id: 'OLD-TICKET' } });
+      await oldUnlock;
+
+      expect(mockDeviceManager.sendLockCommands).toHaveBeenCalledTimes(1);
+      expect(mockDeviceManager.sendLockCommands)
+        .toHaveBeenCalledWith('lock-device-id', 'TICKET-ABCDEF123456', true, expect.any(Function));
+      expect(await targetStateCharacteristic().getHandler()).toBe(LockTargetState.UNSECURED);
+    });
+
+    test.each(['response', 'exception'])('a stale ticket %s cannot clear a newer pending target', async failure => {
+      const ticket = deferredResponse();
+      mockDeviceManager.getLockTemporaryKey.mockImplementationOnce(() => ticket.promise);
+      setup();
+
+      const oldUnlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      if (failure === 'response') {
+        ticket.resolve({ success: false, code: 1106, msg: 'permission deny' });
+      } else {
+        ticket.reject(new Error('old request failed'));
+      }
+      await expect(oldUnlock).resolves.toBeUndefined();
+
+      expect(mockDeviceManager.sendLockCommands).toHaveBeenCalledTimes(1);
+      expect(await targetStateCharacteristic().getHandler()).toBe(LockTargetState.UNSECURED);
+    });
+
+    test('an old in-flight operation cannot restart retries after a newer lock request', async () => {
+      const operation = deferredResponse();
+      mockDeviceManager.sendLockCommands.mockImplementationOnce(() => operation.promise);
+      setup();
+
+      const oldUnlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await Promise.resolve(); // The old command is dispatched and cannot be recalled.
+      await targetStateCharacteristic().setHandler(LockTargetState.SECURED);
+      operation.resolve(NOT_ONLINE);
+      await oldUnlock;
+      await jest.advanceTimersByTimeAsync(40 * 1000);
+
+      expect(mockDeviceManager.sendLockCommands.mock.calls.map((call: any[]) => call[2])).toEqual([true, false]);
+    });
+
+    test.each(['response', 'exception'])('a stale operation %s cannot clear a newer pending target', async failure => {
+      const operation = deferredResponse();
+      mockDeviceManager.sendLockCommands.mockImplementationOnce(() => operation.promise);
+      setup();
+
+      const oldUnlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await Promise.resolve();
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      if (failure === 'response') {
+        operation.resolve({ success: false, code: 1106, msg: 'permission deny' });
+      } else {
+        operation.reject(new Error('old operation failed'));
+      }
+      await expect(oldUnlock).resolves.toBeUndefined();
+
+      expect(await targetStateCharacteristic().getHandler()).toBe(LockTargetState.UNSECURED);
+      expect(mockDeviceManager.getLockRemoteUnlockMethods).not.toHaveBeenCalled();
+    });
+
+    test('a stale diagnostics response cannot clear the newer pending target', async () => {
+      const diagnostics = deferredResponse();
+      mockDeviceManager.sendLockCommands.mockResolvedValueOnce({ success: true, result: false } as never);
+      mockDeviceManager.getLockRemoteUnlockMethods.mockImplementationOnce(() => diagnostics.promise);
+      setup();
+
+      const oldUnlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(mockDeviceManager.getLockRemoteUnlockMethods).toHaveBeenCalledTimes(1);
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      diagnostics.resolve({ success: true, result: [] });
+      await expect(oldUnlock).resolves.toBeUndefined();
+
+      expect(await targetStateCharacteristic().getHandler()).toBe(LockTargetState.UNSECURED);
+    });
+
+    test('a retry ticket arriving after supersession cannot send or cancel the newer retry loop', async () => {
+      const retryTicket = deferredResponse();
+      mockDeviceManager.getLockTemporaryKey
+        .mockResolvedValueOnce({ success: true, result: { ticket_id: 'FIRST-TICKET' } } as never)
+        .mockImplementationOnce(() => retryTicket.promise);
+      mockDeviceManager.sendLockCommands.mockResolvedValue(NOT_ONLINE as never);
+      setup();
+
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await jest.advanceTimersByTimeAsync(10 * 1000);
+      await targetStateCharacteristic().setHandler(LockTargetState.SECURED);
+      retryTicket.resolve({ success: true, result: { ticket_id: 'OLD-RETRY-TICKET' } });
+      await jest.advanceTimersByTimeAsync(10 * 1000);
+
+      expect(mockDeviceManager.sendLockCommands.mock.calls.map((call: any[]) => call[2])).toEqual([true, false, false]);
+      expect(mockDeviceManager.sendLockCommands)
+        .not.toHaveBeenCalledWith('lock-device-id', 'OLD-RETRY-TICKET', true, expect.any(Function));
+    });
+
+    test('a retry response arriving after supersession cannot replace the newer retry loop', async () => {
+      const retryOperation = deferredResponse();
+      mockDeviceManager.sendLockCommands
+        .mockResolvedValueOnce(NOT_ONLINE as never)
+        .mockImplementationOnce(() => retryOperation.promise)
+        .mockResolvedValue(NOT_ONLINE as never);
+      setup();
+
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await jest.advanceTimersByTimeAsync(10 * 1000);
+      await targetStateCharacteristic().setHandler(LockTargetState.SECURED);
+      retryOperation.resolve(NOT_ONLINE);
+      await jest.advanceTimersByTimeAsync(10 * 1000);
+
+      expect(mockDeviceManager.sendLockCommands.mock.calls.map((call: any[]) => call[2]))
+        .toEqual([true, true, false, false]);
+    });
+
+    test('a ticket arriving after pending-target timeout cannot dispatch an unlock', async () => {
+      const ticket = deferredResponse();
+      mockDeviceManager.getLockTemporaryKey.mockImplementationOnce(() => ticket.promise);
+      setup();
+
+      const unlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await jest.advanceTimersByTimeAsync(105 * 1000);
+      ticket.resolve({ success: true, result: { ticket_id: 'EXPIRED-TICKET' } });
+      await unlock;
+
+      expect(mockDeviceManager.sendLockCommands).not.toHaveBeenCalled();
+      expect(await targetStateCharacteristic().getHandler()).toBe(LockTargetState.SECURED);
+    });
+
+    test('an expired ticket cannot send even before the timeout callback has run', async () => {
+      const ticket = deferredResponse();
+      mockDeviceManager.getLockTemporaryKey.mockImplementationOnce(() => ticket.promise);
+      setup();
+
+      const unlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      // Simulate a delayed event loop: wall time expired, but its timer has not
+      // yet had a chance to clear the pending target.
+      jest.setSystemTime(Date.now() + 106 * 1000);
+      ticket.resolve({ success: true, result: { ticket_id: 'EXPIRED-TICKET' } });
+      await unlock;
+
+      expect(mockDeviceManager.sendLockCommands).not.toHaveBeenCalled();
+      expect(await targetStateCharacteristic().getHandler()).toBe(LockTargetState.SECURED);
+    });
+
+    test('a retry ticket arriving after its retry window cannot dispatch an unlock', async () => {
+      const ticket = deferredResponse();
+      mockDeviceManager.getLockTemporaryKey
+        .mockResolvedValueOnce({ success: true, result: { ticket_id: 'FIRST-TICKET' } } as never)
+        .mockImplementationOnce(() => ticket.promise);
+      mockDeviceManager.sendLockCommands.mockResolvedValue(NOT_ONLINE as never);
+      setup();
+
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await jest.advanceTimersByTimeAsync(91 * 1000);
+      ticket.resolve({ success: true, result: { ticket_id: 'EXPIRED-RETRY-TICKET' } });
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(mockDeviceManager.sendLockCommands).toHaveBeenCalledTimes(1);
+      expect(await targetStateCharacteristic().getHandler()).toBe(LockTargetState.SECURED);
+    });
+
+    test('a matching device report invalidates an outstanding ticket before it can send', async () => {
+      const ticket = deferredResponse();
+      mockDeviceManager.getLockTemporaryKey.mockImplementationOnce(() => ticket.promise);
+      const accessory = setup();
+
+      const unlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      device.status.find(status => status.code === 'lock_motor_state')!.value = true;
+      await accessory.onDeviceStatusUpdate([{ code: 'lock_motor_state', value: true }]);
+      ticket.resolve({ success: true, result: { ticket_id: 'OBSOLETE-TICKET' } });
+      await unlock;
+      await jest.advanceTimersByTimeAsync(30 * 1000);
+
+      expect(mockDeviceManager.sendLockCommands).not.toHaveBeenCalled();
+    });
+
+    test('the transport cancellation guard rejects a superseded request while allowing its replacement', async () => {
+      const guardedDispatch = deferredResponse();
+      mockDeviceManager.sendLockCommands.mockImplementationOnce(() => guardedDispatch.promise);
+      setup();
+
+      const oldUnlock = targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await Promise.resolve();
+      const oldGuard = mockDeviceManager.sendLockCommands.mock.calls[0][3];
+      expect(oldGuard()).toBe(true);
+
+      await targetStateCharacteristic().setHandler(LockTargetState.SECURED);
+      const newGuard = mockDeviceManager.sendLockCommands.mock.calls[1][3];
+      expect(oldGuard()).toBe(false);
+      expect(newGuard()).toBe(true);
+      guardedDispatch.resolve({ success: false, code: -1, msg: 'Cancelled before dispatch' });
+      await oldUnlock;
+
+      await jest.advanceTimersByTimeAsync(105 * 1000);
+      expect(newGuard()).toBe(false);
+    });
   });
 
   // ─── UNSECURED -> SECURED ────────────────────────────────────────
@@ -542,7 +771,7 @@ describe('LockAccessory', () => {
     await targetStateCharacteristic().setHandler(LockTargetState.SECURED);
 
     expect(mockDeviceManager.sendLockCommands)
-      .toHaveBeenCalledWith('lock-device-id', 'TICKET-ABCDEF123456', false);
+      .toHaveBeenCalledWith('lock-device-id', 'TICKET-ABCDEF123456', false, expect.any(Function));
     expect(allLogText()).toContain('HomeKit requested target state: SECURED');
   });
 

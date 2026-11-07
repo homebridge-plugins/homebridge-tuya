@@ -186,6 +186,8 @@ If your device is not supported, please follow these steps to collect informatio
 #### 1. Get Device Information
 
 After Homebridge has been successfully launched, the device information list will be saved in Homebridge's persist path. You can find the file path in the Homebridge log:
+
+New device-list exports omit local device keys, IP addresses and coordinates, redact other recognised credentials, and use owner-only file permissions. The next startup replaces an older export with a sanitised private file. Older exports and logs are not retroactively sanitised. Homebridge's `config.json` also contains account credentials; its permissions are managed by the Homebridge installation and should restrict access to the account running Homebridge.
 ```
 [2022/11/3 18:37:43] [TuyaPlatform] Device list saved at /path/to/TuyaDeviceList.{uid}.json
 ```

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import util from 'util';
-import cloneDeep from 'lodash/cloneDeep';
+import { redactSensitive } from './util';
 
 export default interface Logger {
   info(message?: any, ...args: any[]): void;
@@ -34,8 +34,8 @@ export class PrefixLogger implements ExLogger {
   }
 
   debug(message?: any, ...args: any[]) {
-    message = typeof message === 'string' ? this.masking(message) : this.maskingValue(message);
-    args = args?.map(arg => typeof arg === 'string' ? this.masking(arg) : arg);
+    message = this.maskingValue(message);
+    args = args.map(arg => this.maskingValue(arg));
     if (this.debugMode) {
       this.log.info(util.format(`[%s] ${typeof message === 'string' ? '%s' : '%O'}`, this.prefix, message), ...args);
     } else {
@@ -44,26 +44,26 @@ export class PrefixLogger implements ExLogger {
   }
 
   info(message?: any, ...args: any[]) {
-    message = typeof message === 'string' ? this.masking(message) : this.maskingValue(message);
-    args = args?.map(arg => typeof arg === 'string' ? this.masking(arg) : arg);
+    message = this.maskingValue(message);
+    args = args.map(arg => this.maskingValue(arg));
     this.log.info(util.format(`[%s] ${typeof message === 'string' ? '%s' : '%O'}`, this.prefix, message), ...args);
   }
 
   warn(message?: any, ...args: any[]) {
-    message = typeof message === 'string' ? this.masking(message) : this.maskingValue(message);
-    args = args?.map(arg => typeof arg === 'string' ? this.masking(arg) : arg);
+    message = this.maskingValue(message);
+    args = args.map(arg => this.maskingValue(arg));
     this.log.warn(util.format(`[%s] ${typeof message === 'string' ? '%s' : '%O'}`, this.prefix, message), ...args);
   }
 
   error(message?: any, ...args: any[]) {
-    message = typeof message === 'string' ? this.masking(message) : this.maskingValue(message);
-    args = args?.map(arg => typeof arg === 'string' ? this.masking(arg) : arg);
+    message = this.maskingValue(message);
+    args = args.map(arg => this.maskingValue(arg));
     this.log.error(util.format(`[%s] ${typeof message === 'string' ? '%s' : '%O'}`, this.prefix, message), ...args);
   }
 
   success(message?: any, ...args: any[]) {
-    message = typeof message === 'string' ? this.masking(message) : this.maskingValue(message);
-    args = args?.map(arg => typeof arg === 'string' ? this.masking(arg) : this.maskingValue(arg));
+    message = this.maskingValue(message);
+    args = args.map(arg => this.maskingValue(arg));
     if (isExLogger(this.log)) {
       this.log.success(util.format(`[%s] ${typeof message === 'string' ? '%s' : '%O'}`, this.prefix, message), ...args);
     } else {
@@ -71,42 +71,7 @@ export class PrefixLogger implements ExLogger {
     }
   }
 
-  private masking(str: string) : string {
-    if (!this.mask || typeof str !== 'string') {
-      return str;
-    }
-    // NOTE: a /g regex carries `lastIndex` across calls, so the previous
-    // `.some(s => re.test(s))` pre-check alternated true/false and let secrets
-    // through. `String.replace` resets `lastIndex` itself, so just replace.
-    const KEYS = 'password|token|access_?token|refresh_?token|accessKey|access_?key'
-      + '|tuyaKey|api_?key|secret|ticket_key|ticket_id|sign';
-    const regex_single = new RegExp(`'(${KEYS})'\\s*:\\s*'[^']*'`, 'gi');
-    const regex_double = new RegExp(`"(${KEYS})"\\s*:\\s*"[^"]*"`, 'gi');
-    return str
-      .replace(regex_single, '\'$1\': \'********\'')
-      .replace(regex_double, '"$1": "********"');
-  }
-
-  private maskingValue(obj: any) {
-    if (!this.mask) {
-      return obj;
-    }
-    const cloneObj = cloneDeep(obj);
-    const regex = /(password|token|access_?token|refresh_?token|accessKey|access_?key|tuyakey|api_?key|secret|ticket_key|ticket_id|sign)/i;
-    for (const key in cloneObj) {
-      const value = cloneObj[key];
-      if (typeof value === 'function') {
-        continue;
-      }
-      if (typeof value === 'string') {
-        if (!regex.test(key)) {
-          continue;
-        }
-        cloneObj[key] = '*'.repeat(value.length);
-      } else {
-        cloneObj[key] = this.maskingValue(value);
-      }
-    }
-    return cloneObj;
+  private maskingValue(value: any) {
+    return this.mask ? redactSensitive(value) : value;
   }
 }

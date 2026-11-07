@@ -10,6 +10,7 @@ import os from 'os';
 import readline from 'readline';
 import { Writable } from 'stream';
 import { PrefixLogger } from './Logger';
+import { formatRedactedCommand, redactMediaLog } from './util';
 
 export interface StreamingDelegate {
     stopStream(sessionId: StreamSessionIdentifier): void;
@@ -44,7 +45,7 @@ export class FfmpegStreamingProcess {
     callback?: StreamRequestCallback,
   ) {
 
-    log.debug(`Stream command: ${videoProcessor} ${ffmpegArgs.map(value => JSON.stringify(value)).join(' ')}`);
+    log.debug(`Stream command: ${formatRedactedCommand(videoProcessor, ffmpegArgs)}`);
 
     let started = false;
     const startTime = Date.now();
@@ -80,11 +81,11 @@ export class FfmpegStreamingProcess {
         callback = undefined;
       }
       if (line.match(/\[(panic|fatal|error)\]/)) {
-        log.error(line);
+        log.error(redactMediaLog(line, ffmpegArgs));
       }
     });
     this.process.on('error', (error: Error) => {
-      log.error('FFmpeg process creation failed: ' + error.message);
+      log.error('FFmpeg process creation failed: ' + redactMediaLog(error.message, ffmpegArgs));
       if (callback) {
         callback(new Error('FFmpeg process creation failed'));
       }

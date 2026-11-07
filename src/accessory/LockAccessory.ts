@@ -50,7 +50,7 @@ const RETRY_INTERVAL = 10 * 1000;
 const PENDING_TARGET_STATE_TIMEOUT = RETRY_WINDOW + 15 * 1000;
 
 /** What one attempt at the two-step Smart Lock flow concluded. */
-type DoorOperationOutcome = 'ok' | 'unreachable' | 'failed';
+type DoorOperationOutcome = 'ok' | 'unreachable' | 'failed' | 'cancelled';
 
 /**
  * Tuya Smart Lock (categories `ms`, `jtmspro`), including Bluetooth locks
@@ -65,6 +65,8 @@ type DoorOperationOutcome = 'ok' | 'unreachable' | 'failed';
 export default class LockAccessory extends BaseAccessory {
 
   private pendingTargetState?: CharacteristicValue;
+  private pendingTargetDeadline = 0;
+  private requestGeneration = 0;
   private pendingTargetStateTimer?: ReturnType<typeof setTimeout>;
   private retryTimer?: ReturnType<typeof setTimeout>;
 
@@ -153,9 +155,18 @@ export default class LockAccessory extends BaseAccessory {
       open ? 'unlock' : 'lock');
     }
 
-    this.setPendingTargetState(value);
+    const generation = this.setPendingTargetState(value);
 
-    const outcome = await this.performDoorOperation(open);
+    const outcome = await this.performDoorOperation(open, generation);
+    if (!this.isCurrentRequest(generation)) {
+      return;
+    }
+
+    if (outcome === 'cancelled') {
+      this.clearPendingTargetState();
+      this.updateAllValues();
+      return;
+    }
 
     if (outcome === 'failed') {
       this.clearPendingTargetState();
@@ -173,7 +184,7 @@ export default class LockAccessory extends BaseAccessory {
       this.log.info('[Lock] Lock is not reachable through the gateway right now. '
         + 'Retrying for up to %ds in the background — HomeKit will show the real state '
         + 'once the lock answers.', RETRY_WINDOW / 1000);
-      this.scheduleRetry(open, Date.now() + RETRY_WINDOW);
+      this.scheduleRetry(open, generation, Date.now() + RETRY_WINDOW);
       return;
     }
 
@@ -184,16 +195,20 @@ export default class LockAccessory extends BaseAccessory {
   /**
    * Keeps asking until the lock's next connection window opens, the deadline
    * passes, or something cancels the pending state (a device report, or the
-   * user asking for the opposite).
+   * user making a new request, even for the same state).
    */
-  private scheduleRetry(open: boolean, deadline: number) {
+  private scheduleRetry(open: boolean, generation: number, deadline: number) {
+    if (!this.isCurrentRequest(generation)) {
+      return;
+    }
     this.clearRetryTimer();
 
     this.retryTimer = setTimeout(async () => {
-      if (this.pendingTargetState === undefined) {
-        this.log.debug('[Lock] Retry cancelled: no target state is pending any more.');
+      if (!this.isCurrentRequest(generation)) {
+        this.log.debug('[Lock] Retry cancelled: its request is no longer current.');
         return;
       }
+      this.retryTimer = undefined;
 
       const remaining = deadline - Date.now();
       if (remaining <= 0) {
@@ -205,20 +220,23 @@ export default class LockAccessory extends BaseAccessory {
       }
 
       this.log.debug('[Lock] Retrying the door operation (%ds left in the window)...', Math.round(remaining / 1000));
-      const outcome = await this.performDoorOperation(open);
+      const outcome = await this.performDoorOperation(open, generation, deadline);
+      if (!this.isCurrentRequest(generation)) {
+        return;
+      }
 
       if (outcome === 'ok') {
         this.log.info('[Lock] Door operation accepted on retry. Waiting for the device to report its real state.');
         return;
       }
 
-      if (outcome === 'failed') {
+      if (outcome === 'failed' || outcome === 'cancelled') {
         this.clearPendingTargetState();
         this.updateAllValues();
         return;
       }
 
-      this.scheduleRetry(open, deadline);
+      this.scheduleRetry(open, generation, deadline);
     }, RETRY_INTERVAL);
 
     this.retryTimer.unref?.();
@@ -236,10 +254,35 @@ export default class LockAccessory extends BaseAccessory {
    * Reports the outcome — after logging why — instead of throwing, so the
    * caller owns the single HomeKit-facing error and the retry decision.
    */
-  private async performDoorOperation(open: boolean): Promise<DoorOperationOutcome> {
+  private async performDoorOperation(
+    open: boolean, generation: number, deadline = this.pendingTargetDeadline,
+  ): Promise<DoorOperationOutcome> {
+    // A new HomeKit request or a completed/timed-out pending request invalidates
+    // every older continuation, including a ticket request already in flight.
+    const isActive = () => this.isCurrentRequest(generation)
+      && Date.now() < Math.min(deadline, this.pendingTargetDeadline);
+    if (!isActive()) {
+      return 'cancelled';
+    }
+
+    try {
+      return await this.performCurrentDoorOperation(open, isActive);
+    } catch {
+      if (!isActive()) {
+        return 'cancelled';
+      }
+      this.log.error('[Lock] Door operation request failed.');
+      return 'failed';
+    }
+  }
+
+  private async performCurrentDoorOperation(open: boolean, isActive: () => boolean): Promise<DoorOperationOutcome> {
     this.log.debug('[Lock] Requesting Tuya password ticket...');
 
     const ticketRes = await this.deviceManager.getLockTemporaryKey(this.device.id);
+    if (!isActive()) {
+      return 'cancelled';
+    }
     if (!ticketRes.success) {
       this.log.error('[Lock] password-ticket failed:\n  success=false\n  code=%s\n  msg=%s',
         ticketRes.code, ticketRes.msg);
@@ -258,7 +301,15 @@ export default class LockAccessory extends BaseAccessory {
 
     this.log.debug('[Lock] Sending door operation:\n  open=%s', open);
 
-    const operateRes = await this.deviceManager.sendLockCommands(this.device.id, ticketID, open);
+    // Keep checking inside the transport, which may await token refresh. A
+    // command already dispatched to Tuya cannot be recalled by the plugin.
+    if (!isActive()) {
+      return 'cancelled';
+    }
+    const operateRes = await this.deviceManager.sendLockCommands(this.device.id, ticketID, open, isActive);
+    if (!isActive()) {
+      return 'cancelled';
+    }
 
     // Tuya may answer `success: true` with `result: false`, meaning the cloud
     // accepted the request but the lock refused the operation.
@@ -277,13 +328,13 @@ export default class LockAccessory extends BaseAccessory {
       this.log.error('[Lock] door-operate failed:\n  success=false\n  code=%s\n  msg=%s',
         operateRes.code, operateRes.msg);
       await this.logRemoteUnlockDiagnostics();
-      return 'failed';
+      return isActive() ? 'failed' : 'cancelled';
     }
 
     if (operateRes.result === false) {
       this.log.error('[Lock] door-operate rejected by the device:\n  success=true\n  result=false');
       await this.logRemoteUnlockDiagnostics();
-      return 'failed';
+      return isActive() ? 'failed' : 'cancelled';
     }
 
     this.log.debug('[Lock] door-operate response:\n  success=true\n  result=%o', operateRes.result);
@@ -337,12 +388,17 @@ export default class LockAccessory extends BaseAccessory {
     // A fresh request supersedes whatever was still being retried, including
     // one going the opposite way.
     this.clearRetryTimer();
+    const generation = ++this.requestGeneration;
     this.pendingTargetState = value;
+    this.pendingTargetDeadline = Date.now() + PENDING_TARGET_STATE_TIMEOUT;
 
     if (this.pendingTargetStateTimer) {
       clearTimeout(this.pendingTargetStateTimer);
     }
     this.pendingTargetStateTimer = setTimeout(() => {
+      if (!this.isCurrentRequest(generation)) {
+        return;
+      }
       this.log.debug('[Lock] Timed out after %ds waiting for the device to report the requested state. '
         + 'Falling back to the reported state.', PENDING_TARGET_STATE_TIMEOUT / 1000);
       this.clearPendingTargetState();
@@ -351,11 +407,18 @@ export default class LockAccessory extends BaseAccessory {
 
     // Don't hold the event loop open.
     this.pendingTargetStateTimer.unref?.();
+    return generation;
+  }
+
+  private isCurrentRequest(generation: number) {
+    return generation === this.requestGeneration && this.pendingTargetState !== undefined;
   }
 
   private clearPendingTargetState() {
+    this.requestGeneration++;
     this.clearRetryTimer();
     this.pendingTargetState = undefined;
+    this.pendingTargetDeadline = 0;
     if (this.pendingTargetStateTimer) {
       clearTimeout(this.pendingTargetStateTimer);
       this.pendingTargetStateTimer = undefined;

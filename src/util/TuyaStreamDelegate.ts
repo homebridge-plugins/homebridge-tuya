@@ -40,6 +40,7 @@ import { spawn } from 'child_process';
 import { createSocket, Socket } from 'dgram';
 import { FfmpegStreamingProcess, StreamingDelegate as FfmpegStreamingDelegate, isFfmpegOptionSupported, isEncoderAvailable } from './FfmpegStreamingProcess';
 import { logger, PrefixLogger } from './Logger';
+import { formatRedactedCommand } from './util';
 
 interface SessionInfo {
     address: string; // address of the HAP controller
@@ -551,7 +552,7 @@ export class TuyaStreamingDelegate implements CameraStreamingDelegate, FfmpegStr
 
     return new Promise((resolve, reject) => {
 
-      this.log.debug(`Running Snapshot command: ${defaultFfmpegPath} ${ffmpegArgs.map(value => JSON.stringify(value)).join(' ')}`);
+      this.log.debug(`Running Snapshot command: ${formatRedactedCommand(defaultFfmpegPath, ffmpegArgs)}`);
 
       const ffmpeg = spawn(
         defaultFfmpegPath,
