@@ -279,6 +279,9 @@ class BaseAccessory {
     //
   }
 
+  /** Release accessory-specific resources on removal or shutdown. */
+  dispose() {}
+
   async onDeviceInfoUpdate(info) {
     this.updateAllValues();
   }

@@ -25,6 +25,9 @@ jobs:
       - name: Lint the project
         run: npm run lint
 
+      - name: Run offline tests
+        run: npm test -- --runInBand --testPathIgnorePatterns 'test/(home|custom).test.ts'
+
       - name: Build the project
         run: npm run build
         env:

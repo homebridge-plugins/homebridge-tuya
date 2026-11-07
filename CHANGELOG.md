@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+ - Map ET-72GW DP103 Smart/Manual to HomeKit Auto/Heat using the shared shadow poll, with bounded explicit mode commands.
+ - Automatically recognize the verified HEATIT/Jiahong ET-72GW product with a dedicated accessory for measured floor temperature, relay activity and native Fahrenheit/Celsius target conversion; no device configuration is required.
+
+### Fixed
+ - Keep ET-72GW relay reports valid across independent power timestamps and avoid redundant power-on writes when selecting Auto/Manual.
+
 ## [2.7.1] - (2026.10.20)
 
 ### Added

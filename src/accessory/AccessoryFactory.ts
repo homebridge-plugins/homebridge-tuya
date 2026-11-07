@@ -16,6 +16,7 @@ import WindowAccessory from './WindowAccessory';
 import WindowCoveringAccessory from './WindowCoveringAccessory';
 import LockAccessory from './LockAccessory';
 import ThermostatAccessory from './ThermostatAccessory';
+import ET72GWAccessory from './ET72GWAccessory';
 import HeaterAccessory from './HeaterAccessory';
 import HeaterAccessory_old from './HeaterAccessory_old';
 import ValveAccessory from './ValveAccessory';
@@ -169,6 +170,8 @@ export default class AccessoryFactory {
 
 function resolveAccessoryByProductID(platform: TuyaPlatform, accessory: PlatformAccessory, product_id: string): BaseAccessory | undefined {
   switch (product_id) {
+    case 'm2dkohai78cwr3yd':
+      return new ET72GWAccessory(platform, accessory);
     case 'scene': // see TuyaHomeDeviceManager#getSceneList
       return new SceneAccessory(platform, accessory);
     case 'virtual-product-id-wbgt':

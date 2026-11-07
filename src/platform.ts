@@ -130,6 +130,10 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     // Dynamic Platform plugins should only register new accessories after this event was fired,
     // in order to ensure they weren't added to homebridge already. This event can also be used
     // to start discovery of new accessories.
+    this.api.on('shutdown', () => {
+      this.accessoryHandlers.forEach(handler => handler.dispose());
+    });
+
     this.api.on('didFinishLaunching', async () => {
       this.log.debug('Executed didFinishLaunching callback');
       // run the method to discover / register your devices as accessories
@@ -517,6 +521,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
       return;
     }
 
+    handler.dispose();
     const index = this.accessoryHandlers.indexOf(handler);
     if (index >= 0) {
       this.accessoryHandlers.splice(index, 1);
