@@ -134,7 +134,7 @@ export default class AccessoryFactory {
 
     configs.filter(config => config.device_id === sn).forEach(config => {
       try {
-        const service = accessory.services[config.index];
+        const service = accessory.services[Number(config.index ?? '1')];
         if (config.manifacturer) {
           const before = service.getCharacteristic(platform.Characteristic.Manufacturer).value;
           service.getCharacteristic(platform.Characteristic.Manufacturer).updateValue(config.manifacturer);

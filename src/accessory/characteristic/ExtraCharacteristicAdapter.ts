@@ -6,7 +6,7 @@ import { configureName } from './Name';
 import { configureOn } from './On';
 import { configureEnumOn } from './EnumOn';
 import { toHapProperty } from '../../util/util';
-import { TuyaPlatformDeviceSchemaConfig } from '../../config';
+import { TuyaPlatformDeviceSchemaConfig, TuyaPlatformExtraRawSwitchConfig } from '../../config';
 import { configureRawOn } from './RawOn';
 
 export function configureExtraCharactersitcs(accessory: BaseAccessory, schema: TuyaDeviceSchema) {
@@ -117,7 +117,7 @@ function createExtraRawSwitch(accessory: BaseAccessory, schema: TuyaDeviceSchema
   const schemaConfig = accessory.platform.getDeviceConfig(accessory.device)?.schema?.find(item => {
     return item.code === schema.code;
   });
-  const switches = configureRawOn(accessory, schema, schemaConfig?.extraRawSwitch ?? []);
+  const switches = configureRawOn(accessory, schema, normalizeRawSwitchConfigs(schemaConfig?.extraRawSwitch));
   Object.entries(switches).forEach(([key, value]) => {
     const schemaConfig = accessory.platform.getDeviceConfig(accessory.device)?.schema?.find(item => {
       return item.code === key;
@@ -212,4 +212,20 @@ function createExtraBrightnessSlider(accessory: BaseAccessory, schema: TuyaDevic
     .setProps(props);
 
   return service;
+}
+
+/**
+ * Raw switch entries from the config, without the blank rows the settings
+ * screen can save, and with the defaults for notation and byteIndex applied
+ * here rather than in the settings schema (a schema default fills the blank
+ * row, which is then saved).
+ */
+export function normalizeRawSwitchConfigs(list?: TuyaPlatformExtraRawSwitchConfig[]): TuyaPlatformExtraRawSwitchConfig[] {
+  return (list ?? [])
+    .filter(item => item && item.configuredName && item.value)
+    .map(item => ({
+      ...item,
+      notation: item.notation || 'base64',
+      byteIndex: item.byteIndex ?? 0,
+    }));
 }
