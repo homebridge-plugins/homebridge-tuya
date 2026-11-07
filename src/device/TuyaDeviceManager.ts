@@ -14,7 +14,7 @@ import { RTSPCameraConfig } from '../config';
 import { maskSecret, uuidFromSeed } from '../util/util';
 import {
   FASTWARM_CURRENT_TEMPERATURE_SCHEMA, FastWarmTemperatureReport, getFastWarmTemperatureReport,
-  isFastWarmTemperatureReport, isFastWarmThermostat,
+  getFastWarmSetTemperatureReport, isFastWarmSetTemperatureReport, isFastWarmTemperatureReport, isFastWarmThermostat,
 } from './profile/FastWarmThermostat';
 
 enum Events {
@@ -43,6 +43,7 @@ export default class TuyaDeviceManager extends EventEmitter {
   private supplementalTemperatureReports = new Map<string, FastWarmTemperatureReport & { time: number }>();
   private supplementalTemperatureRequests = new Map<string, Promise<void>>();
   private supplementalTemperatureRetries = new Map<string, { nextAttempt: number; failures: number }>();
+  private targetTemperatureReports = new Map<string, FastWarmTemperatureReport & { time: number }>();
 
   constructor(
     public api: TuyaOpenAPI,
@@ -201,6 +202,10 @@ export default class TuyaDeviceManager extends EventEmitter {
     if (latest) {
       this.applySupplementalTemperature(device, latest);
     }
+    const target = this.targetTemperatureReports.get(device.id);
+    if (target && this.hasFastWarmCelsiusTarget(device)) {
+      this.applyTargetTemperature(device, target);
+    }
   }
 
   /** MQTT supplies normal updates; HomeKit reads can recover a missed report, at most once per five minutes. */
@@ -228,8 +233,17 @@ export default class TuyaDeviceManager extends EventEmitter {
 
   private async fetchSupplementalTemperature(device: TuyaDevice): Promise<void> {
     try {
-      const response = await this.api.get(`/v2.0/cloud/thing/${device.id}/shadow/properties`, { codes: 'RoomTemper' });
+      const response = await this.api.get(`/v2.0/cloud/thing/${device.id}/shadow/properties`, {
+        codes: this.hasFastWarmCelsiusTarget(device) ? 'RoomTemper,SetTemp' : 'RoomTemper',
+      });
       const properties: unknown[] = Array.isArray(response.result?.properties) ? response.result.properties : [];
+      if (response.success !== false && this.hasFastWarmCelsiusTarget(device)) {
+        const target = properties.map(getFastWarmSetTemperatureReport).find(value => value !== undefined);
+        const status = target && this.applyTargetTemperature(device, target);
+        if (status) {
+          this.emit(Events.DEVICE_STATUS_UPDATE, device, [status]);
+        }
+      }
       const report = properties.map(getFastWarmTemperatureReport).find(value => value !== undefined);
       if (response.success === false || !report) {
         throw new Error(response.success === false ? `${response.code}: ${response.msg}` : 'RoomTemper was not returned');
@@ -249,7 +263,7 @@ export default class TuyaDeviceManager extends EventEmitter {
 
   private applySupplementalTemperature(device: TuyaDevice, report: FastWarmTemperatureReport): TuyaDeviceStatus | undefined {
     const time = report.time ?? Date.now();
-    if (time < (this.supplementalTemperatureReports.get(device.id)?.time ?? 0)) {
+    if (time > Date.now() + 5 * 60_000 || time < (this.supplementalTemperatureReports.get(device.id)?.time ?? 0)) {
       return undefined;
     }
     this.supplementalTemperatureReports.set(device.id, { ...report, time });
@@ -262,6 +276,31 @@ export default class TuyaDeviceManager extends EventEmitter {
       existing.value = status.value;
     } else {
       device.status.push(status);
+    }
+    return status;
+  }
+
+  private hasFastWarmCelsiusTarget(device: TuyaDevice): boolean {
+    return isFastWarmThermostat(device) && device.status.some(item => item.code === 'temp_unit_convert' && item.value === 'c')
+      && device.schema.some(item => item.code === 'temp_set');
+  }
+
+  /** Keep the active native target truthful without treating it as a room measurement. */
+  private applyTargetTemperature(device: TuyaDevice, report: FastWarmTemperatureReport): TuyaDeviceStatus | undefined {
+    const time = report.time ?? Date.now();
+    if (time > Date.now() + 5 * 60_000 || time < (this.targetTemperatureReports.get(device.id)?.time ?? 0)) {
+      return undefined;
+    }
+    this.targetTemperatureReports.set(device.id, { ...report, time });
+    const existing = device.status.find(item => item.code === 'temp_set');
+    if (existing?.value === report.value) {
+      return undefined;
+    }
+    const status = { code: 'temp_set', value: report.value, ...(report.time === undefined ? {} : { t: report.time }) };
+    if (existing) {
+      existing.value = report.value;
+    } else {
+      device.status.push({ code: status.code, value: status.value });
     }
     return status;
   }
@@ -572,15 +611,38 @@ export default class TuyaDeviceManager extends EventEmitter {
           return;
         }
 
+        if (this.hasFastWarmCelsiusTarget(device) && Array.isArray(status)) {
+          // Raw native changes do not always have a standardized temp_set MQTT twin.
+          // Order both forms together, independently of the measured room temperature.
+          const targets = status.map(item => getFastWarmSetTemperatureReport(
+            item?.code === 'temp_set' ? { ...item, dp_id: 102 } : item,
+          )).filter(report => report !== undefined);
+          status = status.filter(item => item?.code !== 'temp_set' && !isFastWarmSetTemperatureReport(item));
+          let latestTarget: TuyaDeviceStatus | undefined;
+          for (const report of targets) {
+            const target = this.applyTargetTemperature(device, report);
+            if (target) {
+              latestTarget = target;
+            }
+          }
+          if (latestTarget) {
+            status = [...status, latestTarget];
+          }
+        }
+
         if (isFastWarmThermostat(device) && this.supplementalTemperatureDevices.has(device.id) && Array.isArray(status)) {
           const reports = status.map(getFastWarmTemperatureReport).filter(report => report !== undefined);
           // Remove raw entries, including malformed/stale reports, before updating the standard status cache.
           status = status.filter(item => !isFastWarmTemperatureReport(item));
+          let latestTemperature: TuyaDeviceStatus | undefined;
           for (const report of reports) {
             const temperature = this.applySupplementalTemperature(device, report);
             if (temperature) {
-              status = [...status, temperature];
+              latestTemperature = temperature;
             }
+          }
+          if (latestTemperature) {
+            status = [...status, latestTemperature];
           }
         }
 

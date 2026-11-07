@@ -45,7 +45,7 @@ describe('FastWarm raw temperature support', () => {
     const post = jest.spyOn(api, 'post').mockResolvedValue({ success: true, result: true, t: NOW, tid: 'test' });
     await manager.enrichDeviceStatus(device);
 
-    expect(get).toHaveBeenCalledWith('/v2.0/cloud/thing/thermostat-1/shadow/properties', { codes: 'RoomTemper' });
+    expect(get).toHaveBeenCalledWith('/v2.0/cloud/thing/thermostat-1/shadow/properties', { codes: 'RoomTemper,SetTemp' });
     expect(device.schema.find(schema => schema.code === 'temp_current')).toMatchObject({
       mode: 'ro', type: 'Integer', property: { scale: 1 },
     });
@@ -183,6 +183,40 @@ describe('FastWarm raw temperature support', () => {
 
   test('normalizes second-based timestamps', () => {
     expect(getFastWarmTemperatureReport({ dpId: 105, value: 195, t: 1794025076 })?.time).toBe(1794025076000);
+  });
+
+  test('retains quoted source timestamps rather than treating a late shadow as a new report', async () => {
+    let resolve: (value: ReturnType<typeof shadow>) => void = () => undefined;
+    get.mockReturnValue(new Promise(done => { resolve = done; }));
+    const request = manager.enrichDeviceStatus(device);
+    await manager.onMQTTMessage('test', 4, {
+      devId: device.id, status: [{ dpId: 105, value: 210, t: String(NOW + 1000) }],
+    });
+    resolve(shadow(195, NOW));
+    await request;
+    expect(device.status.find(status => status.code === 'temp_current')?.value).toBe(210);
+    expect(getFastWarmTemperatureReport({ dpId: 105, value: 195, t: String(NOW) })?.time).toBe(NOW);
+  });
+
+  test('ignores far-future room reports without blocking the next valid update', async () => {
+    await manager.enrichDeviceStatus(device);
+    await manager.onMQTTMessage('test', 4, { devId: device.id, status: [{ dpId: 105, value: 230, t: NOW + 3600000 }] });
+    expect(device.status.find(status => status.code === 'temp_current')?.value).toBe(195);
+    await manager.onMQTTMessage('test', 4, { devId: device.id, status: [{ dpId: 105, value: 205, t: NOW + 1000 }] });
+    expect(device.status.find(status => status.code === 'temp_current')?.value).toBe(205);
+  });
+
+  test('keeps only the latest accepted room reading in a batch with duplicate raw report forms', async () => {
+    await manager.enrichDeviceStatus(device);
+    const listener = jest.fn();
+    manager.on(TuyaDeviceManager.Events.DEVICE_STATUS_UPDATE, listener);
+    await manager.onMQTTMessage('test', 4, { devId: device.id, status: [
+      { dpId: 105, value: 200, t: NOW + 1000 },
+      { code: 'RoomTemper', value: 210, t: NOW + 2000 },
+      { '105': 205, t: NOW + 1500 },
+    ] });
+    expect(device.status.find(status => status.code === 'temp_current')?.value).toBe(210);
+    expect(listener).toHaveBeenCalledWith(device, [{ code: 'temp_current', value: 210 }]);
   });
 
   test.each(['home', 'custom', 'single'])('hydrates before returning a device from %s discovery', async kind => {

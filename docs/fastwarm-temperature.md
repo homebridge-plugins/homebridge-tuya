@@ -16,6 +16,13 @@ a recovery read, with throttling, concurrent-request coalescing and backoff on
 failures. Normal sensor changes use MQTT. The profile creates no polling timer.
 Existing standard setpoint, power and display-unit command codes are retained.
 
+The same read-only recovery request also reads the active native target from
+`SetTemp` (DP102) when the thermostat uses Celsius. Native target changes and
+standard `temp_set` reports share their own timestamp ordering, so changes made
+on the thermostat or by its built-in programme are reflected in HomeKit without
+being mistaken for room measurements. This adds no target or programme writes.
+Quoted source timestamps are retained, and far-future reports are ignored.
+
 If a measured value cannot be obtained, HomeKit reports it unavailable rather
 than displaying the target as a measurement. The verified raw representation is
 Celsius; Fahrenheit and unknown units report the current measurement unavailable
