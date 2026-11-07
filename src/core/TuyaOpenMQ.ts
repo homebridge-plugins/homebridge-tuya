@@ -160,6 +160,12 @@ export default class TuyaOpenMQ {
 
       // Use newer status to override current status.
       for (const _status of message.status) {
+        // Raw reports may identify a DP by number instead of code. Two missing
+        // codes do not identify the same property; leave these for the product
+        // handler to order using its DP identity and report timestamp.
+        if (typeof _status.code !== 'string' || _status.code.length === 0) {
+          continue;
+        }
         for (const payload of this.consumedQueue.reverse()) {
           if (message.devId !== payload.message.devId) {
             continue;

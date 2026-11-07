@@ -62,6 +62,7 @@ export default class TuyaCustomDeviceManager extends TuyaDeviceManager {
 
     for (const device of devices) {
       device.schema = await this.getDeviceSchema(device.id);
+      await this.enrichDeviceStatus(device);
     }
 
     // this.log.debug('Devices updated.\n', JSON.stringify(devices, null, 2));

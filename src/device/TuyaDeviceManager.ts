@@ -12,6 +12,10 @@ import TuyaDevice, {
 } from './TuyaDevice';
 import { RTSPCameraConfig } from '../config';
 import { maskSecret, uuidFromSeed } from '../util/util';
+import {
+  FASTWARM_CURRENT_TEMPERATURE_SCHEMA, FastWarmTemperatureReport, getFastWarmTemperatureReport,
+  isFastWarmTemperatureReport, isFastWarmThermostat,
+} from './profile/FastWarmThermostat';
 
 enum Events {
   DEVICE_ADD = 'DEVICE_ADD',
@@ -33,6 +37,12 @@ export default class TuyaDeviceManager extends EventEmitter {
   public ownerIDs: string[];
   public devices: TuyaDevice[];
   public log: ExLogger;
+
+  private supplementalTemperatureDevices = new Set<string>();
+  private supplementalTemperatureSchemas = new WeakSet<TuyaDeviceSchema>();
+  private supplementalTemperatureReports = new Map<string, FastWarmTemperatureReport & { time: number }>();
+  private supplementalTemperatureRequests = new Map<string, Promise<void>>();
+  private supplementalTemperatureRetries = new Map<string, { nextAttempt: number; failures: number }>();
 
   constructor(
     public api: TuyaOpenAPI,
@@ -113,6 +123,7 @@ export default class TuyaDeviceManager extends EventEmitter {
 
     const device = new TuyaDevice(res.result);
     device.schema = await this.getDeviceSchema(deviceID);
+    await this.enrichDeviceStatus(device);
 
     const oldDevice = this.getDevice(deviceID);
     if (oldDevice) {
@@ -169,6 +180,90 @@ export default class TuyaDeviceManager extends EventEmitter {
     }
 
     return Object.values(schemas).sort((a, b) => a.code > b.code ? 1 : -1) as TuyaDeviceSchema[];
+  }
+
+  /** Supplement this product's incomplete standard schema without changing its command API. */
+  async enrichDeviceStatus(device: TuyaDevice) {
+    const currentSchema = device.schema.find(schema => schema.code.toLowerCase() === 'temp_current');
+    if (!isFastWarmThermostat(device) || (currentSchema && !this.supplementalTemperatureSchemas.has(currentSchema))) {
+      this.supplementalTemperatureDevices.delete(device.id);
+      return;
+    }
+    this.supplementalTemperatureDevices.add(device.id);
+    if (!currentSchema) {
+      const schema = { ...FASTWARM_CURRENT_TEMPERATURE_SCHEMA };
+      this.supplementalTemperatureSchemas.add(schema);
+      device.schema.push(schema);
+    }
+    await this.refreshSupplementalTemperature(device);
+    // A device rediscovery can overlap a newer MQTT update on the previous device object.
+    const latest = this.supplementalTemperatureReports.get(device.id);
+    if (latest) {
+      this.applySupplementalTemperature(device, latest);
+    }
+  }
+
+  /** MQTT supplies normal updates; HomeKit reads can recover a missed report, at most once per five minutes. */
+  async refreshSupplementalTemperature(device: TuyaDevice): Promise<void> {
+    if (!isFastWarmThermostat(device) || !this.supplementalTemperatureDevices.has(device.id) || !device.online) {
+      return;
+    }
+    const pending = this.supplementalTemperatureRequests.get(device.id);
+    if (pending) {
+      return pending;
+    }
+    const retry = this.supplementalTemperatureRetries.get(device.id);
+    if (retry && Date.now() < retry.nextAttempt) {
+      return;
+    }
+
+    const request = this.fetchSupplementalTemperature(device);
+    this.supplementalTemperatureRequests.set(device.id, request);
+    try {
+      await request;
+    } finally {
+      this.supplementalTemperatureRequests.delete(device.id);
+    }
+  }
+
+  private async fetchSupplementalTemperature(device: TuyaDevice): Promise<void> {
+    try {
+      const response = await this.api.get(`/v2.0/cloud/thing/${device.id}/shadow/properties`, { codes: 'RoomTemper' });
+      const properties: unknown[] = Array.isArray(response.result?.properties) ? response.result.properties : [];
+      const report = properties.map(getFastWarmTemperatureReport).find(value => value !== undefined);
+      if (response.success === false || !report) {
+        throw new Error(response.success === false ? `${response.code}: ${response.msg}` : 'RoomTemper was not returned');
+      }
+      this.supplementalTemperatureRetries.set(device.id, { failures: 0, nextAttempt: Date.now() + 5 * 60 * 1000 });
+      const status = this.applySupplementalTemperature(device, report);
+      if (status) {
+        this.emit(Events.DEVICE_STATUS_UPDATE, device, [status]);
+      }
+    } catch (error) {
+      const failures = (this.supplementalTemperatureRetries.get(device.id)?.failures ?? 0) + 1;
+      const delay = Math.min(60 * 60 * 1000, 60 * 1000 * Math.pow(2, Math.min(failures - 1, 6)));
+      this.supplementalTemperatureRetries.set(device.id, { failures, nextAttempt: Date.now() + delay });
+      this.log.warn('Could not read FastWarm room temperature. devId = %s, error = %s', device.id, String(error));
+    }
+  }
+
+  private applySupplementalTemperature(device: TuyaDevice, report: FastWarmTemperatureReport): TuyaDeviceStatus | undefined {
+    const time = report.time ?? Date.now();
+    if (time < (this.supplementalTemperatureReports.get(device.id)?.time ?? 0)) {
+      return undefined;
+    }
+    this.supplementalTemperatureReports.set(device.id, { ...report, time });
+    const status = { code: 'temp_current', value: report.value };
+    const existing = device.status.find(item => item.code === status.code);
+    if (existing) {
+      if (existing.value === status.value) {
+        return undefined;
+      }
+      existing.value = status.value;
+    } else {
+      device.status.push(status);
+    }
+    return status;
   }
 
   async getInfraredRemotes(infraredID: string) {
@@ -470,10 +565,23 @@ export default class TuyaDeviceManager extends EventEmitter {
   async onMQTTMessage(topic: string, protocol: TuyaMQTTProtocol, message) {
     switch(protocol) {
       case TuyaMQTTProtocol.DEVICE_STATUS_UPDATE: {
-        const { devId, status } = message;
+        const { devId } = message;
+        let status = message.status;
         const device = this.getDevice(devId);
         if (!device) {
           return;
+        }
+
+        if (isFastWarmThermostat(device) && this.supplementalTemperatureDevices.has(device.id) && Array.isArray(status)) {
+          const reports = status.map(getFastWarmTemperatureReport).filter(report => report !== undefined);
+          // Remove raw entries, including malformed/stale reports, before updating the standard status cache.
+          status = status.filter(item => !isFastWarmTemperatureReport(item));
+          for (const report of reports) {
+            const temperature = this.applySupplementalTemperature(device, report);
+            if (temperature) {
+              status = [...status, temperature];
+            }
+          }
         }
 
         for (const item of device.status) {
