@@ -1,8 +1,9 @@
 import { TuyaDeviceSchemaEnumProperty, TuyaDeviceSchemaIntegerProperty, TuyaDeviceStatus } from '../device/TuyaDevice';
-import { limit } from '../util/util';
+import { limit, toHapProperty } from '../util/util';
 import BaseAccessory from './BaseAccessory';
 import { configureCurrentTemperature } from './characteristic/CurrentTemperature';
 import { configureTempDisplayUnits } from './characteristic/TemperatureDisplayUnits';
+import { FASTWARM_CURRENT_TEMPERATURE_SCHEMA, isFastWarmThermostat } from '../device/profile/FastWarmThermostat';
 
 const SCHEMA_CODE = {
   ON: ['switch'],
@@ -16,15 +17,45 @@ const SCHEMA_CODE = {
 export default class ThermostatAccessory extends BaseAccessory {
 
   requiredSchema() {
+    if (isFastWarmThermostat(this.device)) {
+      return [SCHEMA_CODE.TARGET_TEMP];
+    }
     return [SCHEMA_CODE.CURRENT_TEMP, SCHEMA_CODE.TARGET_TEMP];
   }
 
   configureServices() {
     this.configureCurrentState();
     this.configureTargetState();
-    configureCurrentTemperature(this, this.mainService(), this.getSchema(...SCHEMA_CODE.CURRENT_TEMP));
+    if (isFastWarmThermostat(this.device)) {
+      this.configureFastWarmCurrentTemperature();
+    } else {
+      configureCurrentTemperature(this, this.mainService(), this.getSchema(...SCHEMA_CODE.CURRENT_TEMP));
+    }
     this.configureTargetTemp();
     configureTempDisplayUnits(this, this.mainService(), this.getSchema(...SCHEMA_CODE.TEMP_UNIT_CONVERT));
+  }
+
+  private configureFastWarmCurrentTemperature() {
+    const schema = this.getSchema('temp_current') ?? FASTWARM_CURRENT_TEMPERATURE_SCHEMA;
+    const property = schema.property as TuyaDeviceSchemaIntegerProperty;
+    this.mainService().getCharacteristic(this.Characteristic.CurrentTemperature)
+      .onGet(async () => {
+        this.checkOnlineStatus();
+        // The raw temperature's Fahrenheit representation has not been verified for this product.
+        if (this.getStatus('temp_unit_convert')?.value.toString().toLowerCase() !== 'c') {
+          const { HapStatusError, HAPStatus } = this.platform.api.hap;
+          throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+        }
+        // Do not hold a HomeKit read open while the cloud API retries; MQTT normally maintains this cache.
+        void this.deviceManager.refreshSupplementalTemperature(this.device);
+        const status = this.getStatus('temp_current');
+        if (!status || typeof status.value !== 'number' || !Number.isFinite(status.value)) {
+          const { HapStatusError, HAPStatus } = this.platform.api.hap;
+          throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+        }
+        return status.value / Math.pow(10, property.scale);
+      })
+      .setProps(toHapProperty(property));
   }
 
 
@@ -41,6 +72,21 @@ export default class ThermostatAccessory extends BaseAccessory {
         const on = this.getStatus('switch');
         if (on && on.value === false) {
           return OFF;
+        }
+
+        if (isFastWarmThermostat(this.device)) {
+          if (this.getStatus('temp_unit_convert')?.value.toString().toLowerCase() !== 'c') {
+            return OFF;
+          }
+          const current = this.getStatus('temp_current');
+          const target = this.getStatus('temp_set');
+          if (!current || !target || typeof current.value !== 'number' || typeof target.value !== 'number') {
+            return OFF;
+          }
+          const currentProperty = (this.getSchema('temp_current') ?? FASTWARM_CURRENT_TEMPERATURE_SCHEMA)
+            .property as TuyaDeviceSchemaIntegerProperty;
+          const targetProperty = this.getSchema('temp_set')!.property as TuyaDeviceSchemaIntegerProperty;
+          return target.value / Math.pow(10, targetProperty.scale) > current.value / Math.pow(10, currentProperty.scale) ? HEAT : OFF;
         }
 
         const schema = this.getSchema(...SCHEMA_CODE.CURRENT_MODE);

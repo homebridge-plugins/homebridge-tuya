@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- Read actual room temperature for FastWarm ET-63 thermostats with product ID `lmtejj3f4kafi2k1` when Tuya's standard schema omits it. See [FastWarm temperature support](docs/fastwarm-temperature.md).
+- Keep FastWarm's active target current when the thermostat reports a native change, and discard stale or far-future temperature reports.
+- Prevent out-of-order raw MQTT reports without property codes from overwriting values belonging to different datapoints.
+
 ## [2.7.1] - (2026.10.20)
 
 ### Added
