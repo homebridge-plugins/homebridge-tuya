@@ -15,6 +15,7 @@ import BaseAccessory from './accessory/BaseAccessory';
 import { sanitizeName } from './util/util';
 import TuyaOpenAPI, { LOGIN_ERROR_MESSAGES } from './core/TuyaOpenAPI';
 import { initLogger } from './util/Logger';
+import { writeDeviceCache } from './util/DeviceCache';
 
 
 /**
@@ -195,7 +196,7 @@ export class TuyaPlatform implements DynamicPlatformPlugin {
     if (!fs.existsSync(this.api.user.persistPath())) {
       await fs.promises.mkdir(this.api.user.persistPath());
     }
-    await fs.promises.writeFile(file, JSON.stringify(devices, null, 2));
+    await writeDeviceCache(file, devices);
 
     // add accessories
     for (const device of devices) {

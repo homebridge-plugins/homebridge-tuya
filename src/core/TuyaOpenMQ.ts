@@ -1,5 +1,4 @@
 import mqtt from 'mqtt';
-import { v4 as uuid_v4 } from 'uuid';
 import Crypto from 'crypto';
 import CryptoJS from 'crypto-js';
 
@@ -43,7 +42,7 @@ export default class TuyaOpenMQ {
   ) {
     this.version = '1.0';
     this.messageListeners = new Set();
-    this.linkId = uuid_v4();
+    this.linkId = Crypto.randomUUID();
     this.consumedQueue = [];
     this.log = new PrefixLogger(logger(), TuyaOpenMQ.name, debug);
   }
