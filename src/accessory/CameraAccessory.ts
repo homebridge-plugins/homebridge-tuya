@@ -70,7 +70,7 @@ export default class CameraAccessory extends BaseAccessory {
     }
 
     // TODO: TuyaStreamingDelegateへcamera情報をエレガントに渡す方法を検討する
-    this.platform.config.cameras?.forEach(camera => {
+    this.platform.config.cameras?.filter(camera => camera && camera.rtspUrl).forEach(camera => {
       const cameraId = camera.deviceId ?? uuidFromSeed(camera.rtspUrl);
       if (cameraId === this.device.id) {
         this.log.info('Using RTSP URL from config for camera:', camera.rtspUrl);
