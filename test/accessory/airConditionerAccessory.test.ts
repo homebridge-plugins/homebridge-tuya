@@ -67,6 +67,8 @@ const createMockPlatform = (): any => {
     Fanv2: 'Fanv2',
     AccessoryInformation: 'AccessoryInformation',
     Battery: 'Battery',
+    TemperatureSensor: 'TemperatureSensor',
+    HumiditySensor: 'HumiditySensor',
   };
 
   const MockCharacteristic = {
@@ -724,6 +726,103 @@ describe('AirConditionerAccessory', () => {
       device.status[1] = mockStatus('mode', 'wind');
       const status = airConditionerAccessory.getStatus('mode');
       expect(status?.value).toBe('wind');
+    });
+  });
+  describe('extra sensors StatusActive', () => {
+    const setup = () => {
+      const tempSensor = createMockService();
+      const humiditySensor = createMockService();
+      const other = createMockService();
+      const services: any = { TemperatureSensor: tempSensor, HumiditySensor: humiditySensor };
+      accessory.services = [tempSensor, humiditySensor, other];
+      accessory.getService.mockImplementation((type: any) => services[type]);
+
+      airConditionerAccessory.configureStatusActive();
+
+      const key = platform.api.hap.Characteristic.StatusActive;
+      return {
+        temp: tempSensor.characteristics.get(key),
+        humidity: humiditySensor.characteristics.get(key),
+        other: other.characteristics.get(key),
+      };
+    };
+    const setSwitch = (value: boolean) => {
+      device.status = device.status.map(status => status.code === 'switch' ? mockStatus('switch', value) : status);
+    };
+
+    test('temperature and humidity sensors are active while the AC is on', () => {
+      const { temp, humidity } = setup();
+      setSwitch(true);
+      expect(temp.getHandler()).toBe(true);
+      expect(humidity.getHandler()).toBe(true);
+    });
+
+    test('temperature and humidity sensors are inactive while the AC is off', () => {
+      const { temp, humidity } = setup();
+      setSwitch(false);
+      expect(temp.getHandler()).toBe(false);
+      expect(humidity.getHandler()).toBe(false);
+    });
+
+    test('sensors are inactive when the device is offline, even if the AC is on', () => {
+      const { temp } = setup();
+      setSwitch(true);
+      device.online = false;
+      expect(temp.getHandler()).toBe(false);
+    });
+
+    test('other services keep the default online-based StatusActive', () => {
+      const { other } = setup();
+      setSwitch(false);
+      expect(other.getHandler()).toBe(true);
+    });
+  });
+  describe('offline responses', () => {
+    const characteristic = (UUID: string, read: () => any) => {
+      const c: any = { UUID, getHandler: read };
+      c.onGet = (fn: any) => {
+        c.getHandler = fn;
+        return c;
+      };
+      return c;
+    };
+
+    const setup = () => {
+      platform.api.hap.Service.AccessoryInformation = { UUID: 'info-service' };
+      platform.api.hap.Characteristic.StatusActive = { UUID: 'status-active' };
+
+      const temperature = characteristic('current-temperature', () => 24);
+      const active = characteristic('active', () => 1);
+      const statusActive = characteristic('status-active', () => device.online);
+      const manufacturer = characteristic('manufacturer', () => 'Tuya');
+      accessory.services = [
+        { UUID: 'info-service', characteristics: [manufacturer] },
+        { UUID: 'heater-cooler', characteristics: [temperature, active, statusActive] },
+      ];
+
+      airConditionerAccessory.configureOfflineResponses();
+      return { temperature, active, statusActive, manufacturer };
+    };
+
+    test('reads work normally while the device is online, even with the AC off', () => {
+      const { temperature, active } = setup();
+      device.status = device.status.map(status => status.code === 'switch' ? mockStatus('switch', false) : status);
+      expect(temperature.getHandler()).toBe(24);
+      expect(active.getHandler()).toBe(1);
+    });
+
+    test('every AC read reports a communication failure while the device is offline', () => {
+      const { temperature, active } = setup();
+      device.online = false;
+      expect(() => temperature.getHandler()).toThrow(platform.api.hap.HapStatusError);
+      expect(() => active.getHandler()).toThrow(platform.api.hap.HapStatusError);
+    });
+
+    test('StatusActive and AccessoryInformation are not affected while offline', () => {
+      const { statusActive, manufacturer } = setup();
+      device.online = false;
+      expect(statusActive.getHandler()).toBe(false);
+      expect(manufacturer.getHandler()).toBe('Tuya');
     });
   });
 });

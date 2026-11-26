@@ -50,6 +50,57 @@ export default class AirConditionerAccessory extends BaseAccessory {
     configureCurrentRelativeHumidity(this, undefined, this.getSchema(...SCHEMA_CODE.CURRENT_HUMIDITY));
   }
 
+  override configureStatusActive() {
+    super.configureStatusActive();
+
+    // Many ACs stop updating `temp_current` / `humidity_current` while they are switched off,
+    // so the extra sensors would keep showing the last reading as if it were current.
+    // Report them as inactive (StatusActive = false) whenever the AC is off.
+    const activeSchema = this.getSchema(...SCHEMA_CODE.ACTIVE);
+    if (!activeSchema) {
+      return;
+    }
+
+    const extraSensors = [this.Service.TemperatureSensor, this.Service.HumiditySensor]
+      .map(type => this.accessory.getService(type))
+      .filter(service => service !== undefined);
+
+    for (const service of extraSensors) {
+      service.getCharacteristic(this.Characteristic.StatusActive)
+        .onGet(() => this.device.online && this.getStatus(activeSchema.code)?.value === true);
+    }
+
+    this.configureOfflineResponses();
+  }
+
+  configureOfflineResponses() {
+    // When the AC is offline the cloud only has stale values (e.g. the last `temp_current`), and
+    // HomeKit keeps counting that temperature among the home temperatures. Report a communication
+    // failure on every read instead, so HomeKit shows the AC as not responding, like the On/Active
+    // characteristics of other accessories already do. StatusActive keeps reporting false.
+    for (const service of this.accessory.services) {
+      if (service.UUID === this.Service.AccessoryInformation.UUID) {
+        continue;
+      }
+
+      for (const characteristic of service.characteristics) {
+        if (characteristic.UUID === this.Characteristic.StatusActive.UUID) {
+          continue;
+        }
+
+        const read = characteristic['getHandler'];
+        if (!read) {
+          continue;
+        }
+
+        characteristic.onGet(() => {
+          this.checkOnlineStatus();
+          return read();
+        });
+      }
+    }
+  }
+
   configureAirConditioner() {
     const activeSchema = this.getSchema(...SCHEMA_CODE.ACTIVE)!;
     const modeSchema = this.getSchema(...SCHEMA_CODE.MODE)!;
