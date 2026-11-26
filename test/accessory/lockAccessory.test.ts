@@ -353,6 +353,66 @@ describe('LockAccessory', () => {
     expect(allLogText()).toContain('Tuya reports this device as offline');
   });
 
+  test('offline warnings are emitted once until the device comes back online', async () => {
+    device = createDevice({ online: false } as any);
+    const accessory = setup();
+    const offlineWarning = 'Tuya reports this device as offline';
+
+    await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+    await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+    expect(logs.filter(log => log.message.includes(offlineWarning))).toHaveLength(1);
+
+    device.online = true;
+    await accessory.onDeviceInfoUpdate({ bizCode: 'online' });
+    device.online = false;
+    await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+
+    expect(logs.filter(log => log.message.includes(offlineWarning))).toHaveLength(2);
+  });
+
+  test('offline command warnings are emitted once until the device comes back online', async () => {
+    device = createDevice({ online: false } as any);
+    const accessory = setup();
+    const offlineWarning = 'Device is offline, skip send command.';
+    const send = () => accessory.sendCommands([{ code: 'lock_motor_state', value: true }]);
+
+    await expect(send()).rejects.toBeDefined();
+    await expect(send()).rejects.toBeDefined();
+    expect(logs.filter(log => log.message.includes(offlineWarning))).toHaveLength(1);
+
+    device.online = true;
+    await accessory.onDeviceInfoUpdate({ bizCode: 'online' });
+    device.online = false;
+    await expect(send()).rejects.toBeDefined();
+
+    expect(logs.filter(log => log.message.includes(offlineWarning))).toHaveLength(2);
+  });
+
+  test('each kind of offline warning is emitted once until the device comes back online', async () => {
+    device = createDevice({ online: false } as any);
+    const accessory = setup();
+    const commandWarning = 'Device is offline, skip send command.';
+    const lockWarning = 'Tuya reports this device as offline';
+    const send = () => accessory.sendCommands([{ code: 'lock_motor_state', value: true }]);
+    const requestUnlock = () => targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+
+    await expect(send()).rejects.toBeDefined();
+    await requestUnlock();
+    await expect(send()).rejects.toBeDefined();
+    await requestUnlock();
+    expect(logs.filter(log => log.message.includes(commandWarning))).toHaveLength(1);
+    expect(logs.filter(log => log.message.includes(lockWarning))).toHaveLength(1);
+
+    device.online = true;
+    await accessory.onDeviceInfoUpdate({ bizCode: 'online' });
+    device.online = false;
+    await expect(send()).rejects.toBeDefined();
+    await requestUnlock();
+
+    expect(logs.filter(log => log.message.includes(commandWarning))).toHaveLength(2);
+    expect(logs.filter(log => log.message.includes(lockWarning))).toHaveLength(2);
+  });
+
   // ─── HTTP success must not imply an unlocked door ────────────────
 
   test('a successful HTTP unlock does NOT mark LockCurrentState as unsecured', async () => {
@@ -463,6 +523,40 @@ describe('LockAccessory', () => {
       // Every attempt carries its own ticket, since a rejected one may or may
       // not have been consumed.
       expect(mockDeviceManager.getLockTemporaryKey).toHaveBeenCalledTimes(4);
+    });
+
+    test('logs 2312 once while retrying and logs again after a successful operation', async () => {
+      mockDeviceManager.sendLockCommands
+        .mockResolvedValueOnce(NOT_ONLINE as never)
+        .mockResolvedValueOnce(NOT_ONLINE as never)
+        .mockResolvedValueOnce({ success: true, result: true } as never);
+
+      setup();
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      await jest.advanceTimersByTimeAsync(20 * 1000);
+
+      const warning = '[Lock] door-operate rejected:';
+      expect(logs.filter(log => log.message.includes(warning))).toHaveLength(1);
+
+      mockDeviceManager.sendLockCommands.mockResolvedValue(NOT_ONLINE as never);
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+
+      expect(logs.filter(log => log.message.includes(warning))).toHaveLength(2);
+    });
+
+    test('an online notification resets the 2312 warning', async () => {
+      mockDeviceManager.sendLockCommands.mockResolvedValue(NOT_ONLINE as never);
+
+      const accessory = setup();
+      const warning = '[Lock] door-operate rejected:';
+      await targetStateCharacteristic().setHandler(LockTargetState.UNSECURED);
+      expect(logs.filter(log => log.message.includes(warning))).toHaveLength(1);
+
+      device.online = true;
+      await accessory.onDeviceInfoUpdate({ bizCode: 'online' });
+      await targetStateCharacteristic().setHandler(LockTargetState.SECURED);
+
+      expect(logs.filter(log => log.message.includes(warning))).toHaveLength(2);
     });
 
     test('stops once the window closes and falls back to the reported state', async () => {

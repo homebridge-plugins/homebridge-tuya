@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { format } from 'util';
 import { PlatformAccessory, Service, Characteristic, Nullable, CharacteristicValue } from 'homebridge';
 import { debounce } from 'debounce';
 import isEqual from 'lodash.isequal';
@@ -210,6 +211,17 @@ class BaseAccessory {
 
   private sendQueue: Map<string, TuyaDeviceStatus>;
   private debounceSendCommands: ReturnType<typeof debounce>;
+  private offlineWarningsLogged = new Set<string>();
+
+  protected warnOfflineOnce(message: string, ...args: string[]) {
+    const formattedMessage = format(message, ...args);
+    if (this.offlineWarningsLogged.has(formattedMessage)) {
+      return;
+    }
+
+    this.log.warn(message, ...args);
+    this.offlineWarningsLogged.add(formattedMessage);
+  }
 
   async sendCommands(commands: TuyaDeviceStatus[], debounce = false) {
     if (commands.length === 0) {
@@ -219,7 +231,7 @@ class BaseAccessory {
     commands = commands.filter((status) => status.code && status.value !== undefined);
 
     if (this.device.online === false) {
-      this.log.warn('Device is offline, skip send command.');
+      this.warnOfflineOnce('Device is offline, skip send command.');
       this.updateAllValues();
       const { HapStatusError, HAPStatus } = this.platform.api.hap;
       throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
@@ -283,6 +295,9 @@ class BaseAccessory {
   dispose() {}
 
   async onDeviceInfoUpdate(info) {
+    if (this.device.online) {
+      this.offlineWarningsLogged.clear();
+    }
     this.updateAllValues();
   }
 

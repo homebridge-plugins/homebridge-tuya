@@ -15,6 +15,7 @@ const SCHEMA_CODE = {
  * the lock was not holding its link.
  */
 const DEVICE_NOT_ONLINE_CODE = 2312;
+const DEVICE_NOT_ONLINE_WARNING = '[Lock] door-operate rejected:\n  success=false\n  code=%s\n  msg=%s';
 
 /**
  * Measured on a Tuya BLE lock (category `ms`) behind a Tuya gateway, from the
@@ -85,6 +86,7 @@ export default class LockAccessory extends BaseAccessory {
   private retryTimer?: ReturnType<typeof setTimeout>;
   private displayedUnlocked = false;
   private relockTimer?: ReturnType<typeof setTimeout>;
+  private doorOperationOfflineWarningLogged = false;
 
   requiredSchema() {
     return [SCHEMA_CODE.LOCK_CURRENT_STATE];
@@ -194,7 +196,7 @@ export default class LockAccessory extends BaseAccessory {
     // false` by Tuya while remote unlocking still works — the gateway is what
     // has to be online. So warn, but let the Smart Lock API be the authority.
     if (this.device.online === false) {
-      this.log.warn('[Lock] Tuya reports this device as offline. Trying the %s anyway '
+      this.warnOfflineOnce('[Lock] Tuya reports this device as offline. Trying the %s anyway '
         + '(BLE sub-devices are often reported offline while the gateway relays fine).',
       open ? 'unlock' : 'lock');
     }
@@ -390,8 +392,10 @@ export default class LockAccessory extends BaseAccessory {
       // would spend an extra API call re-reading settings that cannot have
       // changed since the last one.
       if (operateRes.code === DEVICE_NOT_ONLINE_CODE) {
-        this.log.warn('[Lock] door-operate rejected:\n  success=false\n  code=%s\n  msg=%s',
-          operateRes.code, operateRes.msg);
+        if (!this.doorOperationOfflineWarningLogged) {
+          this.log.warn(DEVICE_NOT_ONLINE_WARNING, operateRes.code, operateRes.msg);
+          this.doorOperationOfflineWarningLogged = true;
+        }
         return 'unreachable';
       }
 
@@ -407,6 +411,7 @@ export default class LockAccessory extends BaseAccessory {
       return 'failed';
     }
 
+    this.doorOperationOfflineWarningLogged = false;
     this.log.debug('[Lock] door-operate response:\n  success=true\n  result=%o', operateRes.result);
     return 'ok';
   }
@@ -466,6 +471,13 @@ export default class LockAccessory extends BaseAccessory {
     }
 
     await super.onDeviceStatusUpdate(status);
+  }
+
+  async onDeviceInfoUpdate(info) {
+    if (this.device.online) {
+      this.doorOperationOfflineWarningLogged = false;
+    }
+    await super.onDeviceInfoUpdate(info);
   }
 
   private setPendingTargetState(value: CharacteristicValue) {
