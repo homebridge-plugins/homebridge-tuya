@@ -18,7 +18,7 @@ export function configureEnergyUsage(
       service.addCharacteristic(amperes);
     }
     service.getCharacteristic(amperes).onGet(
-      createStatusGetter(accessory, currentSchema, isUnit(currentSchema, 'mA') ? 1000 : 0),
+      createStatusGetter(accessory, currentSchema, isUnit(currentSchema, 'mA') ? 1000 : 1),
     );
   }
 
